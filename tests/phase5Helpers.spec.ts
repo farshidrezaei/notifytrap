@@ -7,6 +7,7 @@ import {
   createWorkspaceOnboardingSchema,
 } from '../app/schemas/workspaceForms'
 import type { ChannelCredentialReveal, ChannelSummary } from '../app/types/application'
+import { resolveChannelCredentialDisplay } from '../app/utils/channelCredentialDisplay'
 import { buildSandboxedEmailDocument } from '../app/utils/emailSandbox'
 import {
   buildMonogramLabel,
@@ -199,6 +200,81 @@ describe('Phase 5 formatting helpers & onboarding/channel schemas', () => {
         })
         expect(invalidIdentifierChannel.success).toBe(false)
       }
+    },
+  )
+})
+
+describe('Channel credential card display mapping', () => {
+  const credential: ChannelCredentialReveal = {
+    channelId: '00000000-0000-4000-8000-000000000010',
+    credentialIdentifier: 'mail-local',
+    secretToken: 'ntsec_secret_password',
+    compositeKey: 'mail-local.ntsec_secret_password',
+  }
+  const webhookUrl = 'http://127.0.0.1:4080/api/v1/webhooks/mail-local/events'
+
+  it.each([
+    {
+      channelType: 'email' as const,
+      expectedPrimaryLabelKey: 'channels.card.smtpUsernameLabel',
+      expectedSecondaryLabelKey: 'channels.card.smtpPasswordLabel',
+      expectedRevealedSecondaryValue: 'ntsec_secret_password',
+      expectedMaskedSecondaryValue: 'ntsec_••••••••••••••••••••',
+      expectedIsWebhookEndpoint: false,
+    },
+    {
+      channelType: 'sms' as const,
+      expectedPrimaryLabelKey: 'channels.card.identifierLabel',
+      expectedSecondaryLabelKey: 'channels.card.compositeKeyLabel',
+      expectedRevealedSecondaryValue: 'mail-local.ntsec_secret_password',
+      expectedMaskedSecondaryValue: 'mail-local.••••••••••••••••',
+      expectedIsWebhookEndpoint: false,
+    },
+    {
+      channelType: 'push' as const,
+      expectedPrimaryLabelKey: 'channels.card.identifierLabel',
+      expectedSecondaryLabelKey: 'channels.card.compositeKeyLabel',
+      expectedRevealedSecondaryValue: 'mail-local.ntsec_secret_password',
+      expectedMaskedSecondaryValue: 'mail-local.••••••••••••••••',
+      expectedIsWebhookEndpoint: false,
+    },
+    {
+      channelType: 'webhook' as const,
+      expectedPrimaryLabelKey: 'channels.card.identifierLabel',
+      expectedSecondaryLabelKey: 'channels.card.webhookUrlLabel',
+      expectedRevealedSecondaryValue: webhookUrl,
+      expectedMaskedSecondaryValue: webhookUrl,
+      expectedIsWebhookEndpoint: true,
+    },
+  ])(
+    'maps $channelType credentials cleanly to match integration snippets',
+    ({
+      channelType,
+      expectedPrimaryLabelKey,
+      expectedSecondaryLabelKey,
+      expectedRevealedSecondaryValue,
+      expectedMaskedSecondaryValue,
+      expectedIsWebhookEndpoint,
+    }) => {
+      const hiddenDisplay = resolveChannelCredentialDisplay(
+        { channelType, credentialIdentifier: 'mail-local' },
+        null,
+        webhookUrl,
+      )
+      expect(hiddenDisplay.primaryLabelKey).toBe(expectedPrimaryLabelKey)
+      expect(hiddenDisplay.secondaryLabelKey).toBe(expectedSecondaryLabelKey)
+      expect(hiddenDisplay.maskedSecondaryValue).toBe(expectedMaskedSecondaryValue)
+      expect(hiddenDisplay.revealedSecondaryValue).toBe(
+        expectedIsWebhookEndpoint ? webhookUrl : null,
+      )
+
+      const revealedDisplay = resolveChannelCredentialDisplay(
+        { channelType, credentialIdentifier: 'mail-local' },
+        credential,
+        webhookUrl,
+      )
+      expect(revealedDisplay.revealedSecondaryValue).toBe(expectedRevealedSecondaryValue)
+      expect(revealedDisplay.isWebhookEndpoint).toBe(expectedIsWebhookEndpoint)
     },
   )
 })

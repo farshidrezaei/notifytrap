@@ -291,6 +291,8 @@
     "card": {
       "identifierLabel": "Credential Identifier",
       "compositeKeyLabel": "X-Channel-Key / Composite Key",
+      "smtpUsernameLabel": "SMTP Username (MAIL_USERNAME)",
+      "smtpPasswordLabel": "SMTP Password (MAIL_PASSWORD)",
       "webhookUrlLabel": "Local Webhook Endpoint URL",
       "secretTokenLabel": "Secret Token",
       "snippetLabel": "Integration Snippet",

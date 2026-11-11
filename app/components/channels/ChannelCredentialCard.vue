@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ChannelSummary } from '~/types/application'
+import { resolveChannelCredentialDisplay } from '~/utils/channelCredentialDisplay'
 import { copyTextToClipboard } from '~/utils/clipboard'
 import { formatShortTimestamp } from '~/utils/formatters'
 import {
@@ -39,6 +40,10 @@ const smtpEndpoint = computed(() => health.value?.smtpEndpoint ?? '127.0.0.1:102
 
 const webhookUrl = computed(
   () => `http://${httpEndpoint.value}/api/v1/webhooks/${props.channel.credentialIdentifier}/events`,
+)
+
+const credentialDisplay = computed(() =>
+  resolveChannelCredentialDisplay(props.channel, revealedCredential.value, webhookUrl.value),
 )
 
 const integrationSnippetLanguage = computed(() =>
@@ -214,14 +219,14 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
         <div class="rounded-md border border-default bg-muted/40 p-2.5">
           <div class="mb-1 flex items-center justify-between gap-2">
             <span class="text-[11px] font-medium text-muted">
-              {{ t('channels.card.identifierLabel') }}
+              {{ t(credentialDisplay.primaryLabelKey) }}
             </span>
             <UButton
               size="xs"
               color="neutral"
               variant="ghost"
               icon="i-lucide-copy"
-              @click="handleCopyValue(props.channel.credentialIdentifier, t('channels.card.identifierLabel'))"
+              @click="handleCopyValue(props.channel.credentialIdentifier, t(credentialDisplay.primaryLabelKey))"
             />
           </div>
           <code dir="ltr" class="block truncate font-mono text-xs text-highlighted">
@@ -232,11 +237,7 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
         <div class="rounded-md border border-default bg-muted/40 p-2.5">
           <div class="mb-1 flex items-center justify-between gap-2">
             <span class="text-[11px] font-medium text-muted">
-              {{
-                props.channel.channelType === 'webhook'
-                  ? t('channels.card.webhookUrlLabel')
-                  : t('channels.card.compositeKeyLabel')
-              }}
+              {{ t(credentialDisplay.secondaryLabelKey) }}
             </span>
             <div class="flex items-center gap-1">
               <UButton
@@ -249,41 +250,35 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
                 @click="handleToggleReveal"
               />
               <UButton
-                v-if="props.channel.channelType === 'webhook'"
+                v-if="credentialDisplay.revealedSecondaryValue"
                 size="xs"
                 color="neutral"
                 variant="ghost"
                 icon="i-lucide-copy"
-                @click="handleCopyValue(webhookUrl, t('channels.card.webhookUrlLabel'))"
-              />
-              <UButton
-                v-else-if="revealedCredential"
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-copy"
-                @click="handleCopyValue(revealedCredential.compositeKey, t('channels.card.compositeKeyLabel'))"
+                @click="
+                  handleCopyValue(
+                    credentialDisplay.revealedSecondaryValue,
+                    t(credentialDisplay.secondaryLabelKey),
+                  )
+                "
               />
             </div>
           </div>
 
           <USkeleton v-if="isLoadingSecret" class="h-4 w-48 rounded" />
           <code
-            v-else-if="props.channel.channelType === 'webhook'"
+            v-else-if="credentialDisplay.revealedSecondaryValue"
             dir="ltr"
             class="block truncate font-mono text-xs text-highlighted"
           >
-            {{ webhookUrl }}
-          </code>
-          <code v-else-if="revealedCredential" dir="ltr" class="block truncate font-mono text-xs text-highlighted">
-            {{ revealedCredential.compositeKey }}
+            {{ credentialDisplay.revealedSecondaryValue }}
           </code>
           <code v-else dir="ltr" class="block truncate font-mono text-xs text-muted">
-            {{ props.channel.credentialIdentifier }}.••••••••••••••••
+            {{ credentialDisplay.maskedSecondaryValue }}
           </code>
 
           <div
-            v-if="props.channel.channelType === 'webhook' && revealedCredential"
+            v-if="credentialDisplay.isWebhookEndpoint && revealedCredential"
             class="mt-2 flex items-center justify-between gap-2 border-t border-default/60 pt-2"
           >
             <code dir="ltr" class="truncate font-mono text-[11px] text-toned">

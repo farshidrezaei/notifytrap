@@ -291,6 +291,8 @@
     "card": {
       "identifierLabel": "شناسه دسترسی",
       "compositeKeyLabel": "کلید ترکیبی / X-Channel-Key",
+      "smtpUsernameLabel": "نام کاربری SMTP (MAIL_USERNAME)",
+      "smtpPasswordLabel": "رمز عبور SMTP (MAIL_PASSWORD)",
       "webhookUrlLabel": "نشانی وب‌هوک محلی",
       "secretTokenLabel": "توکن محرمانه",
       "snippetLabel": "کد اتصال",
