@@ -149,3 +149,19 @@ jobs:
           releaseBody: 'Cross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts.'
           retryAttempts: 3
           args: ${{ matrix.args }}
+
+  finalize_release:
+    name: Publish Release
+    needs: [prepare_release, publish]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Publish draft release after all OS builds succeed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.prepare_release.outputs.release_id }}
+        run: |
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -F draft=false \
+            --jq '{id, tag_name, draft, html_url}'
