@@ -84,17 +84,28 @@ impl DesktopSecretKeyProvider {
             .map_err(|error| ApplicationError::Internal(format!("Keyring store failed: {error}")))
     }
 
+    fn try_read_existing_fallback_file_key(
+        &self,
+    ) -> Result<Option<[u8; MASTER_KEY_BYTE_LENGTH]>, ApplicationError> {
+        let key_path = self.fallback_directory.join(FALLBACK_KEY_FILENAME);
+        if !key_path.exists() {
+            return Ok(None);
+        }
+
+        let encoded = fs::read_to_string(&key_path).map_err(|error| {
+            ApplicationError::Internal(format!("Unable to read master key file: {error}"))
+        })?;
+        decode_key_base64(encoded.trim()).map(Some)
+    }
+
     fn get_or_create_fallback_file_key(
         &self,
     ) -> Result<[u8; MASTER_KEY_BYTE_LENGTH], ApplicationError> {
-        let key_path = self.fallback_directory.join(FALLBACK_KEY_FILENAME);
-        if key_path.exists() {
-            let encoded = fs::read_to_string(&key_path).map_err(|error| {
-                ApplicationError::Internal(format!("Unable to read master key file: {error}"))
-            })?;
-            return decode_key_base64(encoded.trim());
+        if let Some(existing_key) = self.try_read_existing_fallback_file_key()? {
+            return Ok(existing_key);
         }
 
+        let key_path = self.fallback_directory.join(FALLBACK_KEY_FILENAME);
         fs::create_dir_all(&self.fallback_directory).map_err(|error| {
             ApplicationError::Internal(format!("Unable to create key directory: {error}"))
         })?;
@@ -153,14 +164,23 @@ impl SecretKeyProvider for DesktopSecretKeyProvider {
         let resolved = match Self::try_read_from_keyring() {
             Ok(Some(keyring_key)) => keyring_key,
             Ok(None) => {
-                let generated = generate_master_key_bytes()?;
-                if let Err(keyring_error) = Self::try_write_to_keyring(&generated) {
-                    tracing::warn!(
-                        "OS keyring storage failed, using restricted key file: {keyring_error}"
-                    );
-                    self.get_or_create_fallback_file_key()?
+                if let Some(existing_fallback_key) = self.try_read_existing_fallback_file_key()? {
+                    if let Err(keyring_error) = Self::try_write_to_keyring(&existing_fallback_key) {
+                        tracing::warn!(
+                            "Could not migrate existing key file into OS keyring: {keyring_error}"
+                        );
+                    }
+                    existing_fallback_key
                 } else {
-                    generated
+                    let generated = generate_master_key_bytes()?;
+                    if let Err(keyring_error) = Self::try_write_to_keyring(&generated) {
+                        tracing::warn!(
+                            "OS keyring storage failed, using restricted key file: {keyring_error}"
+                        );
+                        self.get_or_create_fallback_file_key()?
+                    } else {
+                        generated
+                    }
                 }
             }
             Err(keyring_error) => {
@@ -191,4 +211,43 @@ fn decode_key_base64(encoded: &str) -> Result<[u8; MASTER_KEY_BYTE_LENGTH], Appl
     decoded
         .try_into()
         .map_err(|_| ApplicationError::Internal("Master key has invalid byte length".to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn fallback_master_key_persists_across_provider_restarts() {
+        let directory = tempdir().expect("temporary directory should be created");
+        let first_provider = DesktopSecretKeyProvider::new(directory.path().to_path_buf());
+
+        assert_eq!(
+            first_provider
+                .try_read_existing_fallback_file_key()
+                .expect("reading missing key should succeed"),
+            None
+        );
+
+        let created_key = first_provider
+            .get_or_create_fallback_file_key()
+            .expect("fallback key creation should succeed");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let metadata = fs::metadata(directory.path().join(FALLBACK_KEY_FILENAME))
+                .expect("key file metadata should exist");
+            assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
+        }
+
+        let restarted_provider = DesktopSecretKeyProvider::new(directory.path().to_path_buf());
+        let reloaded_key = restarted_provider
+            .try_read_existing_fallback_file_key()
+            .expect("reloading key should succeed")
+            .expect("persisted key should exist on restart");
+
+        assert_eq!(created_key, reloaded_key);
+    }
 }

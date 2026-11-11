@@ -33,7 +33,7 @@ subtle = "2.6"
 aes-gcm = "0.10"
 base64 = "0.23"
 rand = "0.10"
-keyring = "3"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 mail-parser = "1"
 ammonia = "4"
 
