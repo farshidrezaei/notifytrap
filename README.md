@@ -1,89 +1,234 @@
 <p align="center">
-  <img src="notifytrap-logo.png" alt="NotifyTrap Logo" width="112" />
+  <img src="notifytrap-logo.png" alt="NotifyTrap Logo" width="116" />
 </p>
 
-# NotifyTrap
+<h1 align="center">NotifyTrap</h1>
 
-**Capture, inspect, and debug application notifications in one local desktop workspace.**
+<p align="center">
+  <strong>Local-first, offline-capable desktop utility for capturing, inspecting, and debugging application notifications—with zero real-world delivery.</strong>
+</p>
 
-NotifyTrap is a lightweight, local-first, offline-capable, open-source desktop application (Tauri 2 + Rust + Nuxt 4 + Nuxt UI + SQLite) for capturing and inspecting development notifications across **Email (SMTP)**, **SMS (HTTP)**, **Push (HTTP)**, and **Webhooks (HTTP)**—without ever sending real messages to external recipients.
+<p align="center">
+  <a href="https://github.com/farshidrezaei/notifytrap/actions/workflows/release.yml">
+    <img src="https://github.com/farshidrezaei/notifytrap/actions/workflows/release.yml/badge.svg" alt="Build and Release" />
+  </a>
+  <a href="https://github.com/farshidrezaei/notifytrap/releases">
+    <img src="https://img.shields.io/github/v/release/farshidrezaei/notifytrap?display_name=tag&sort=semver" alt="GitHub Release" />
+  </a>
+  <img src="https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-blue" alt="Platforms" />
+  <img src="https://img.shields.io/badge/stack-Tauri%202%20%C2%B7%20Rust%20%C2%B7%20Nuxt%204%20%C2%B7%20SQLite-4f46e5" alt="Tech Stack" />
+  <img src="https://img.shields.io/badge/i18n-English%20(LTR)%20%7C%20%D9%81%D8%A7%D8%B1%D8%B3%DB%8C%20(RTL)-0891b2" alt="Languages" />
+  <a href="src-tauri/Cargo.toml">
+    <img src="https://img.shields.io/badge/license-MIT-15803d" alt="MIT License" />
+  </a>
+</p>
 
 ---
 
-## Key Features
+## Table of Contents
 
-- **Local-First & Zero Real Delivery**: Single desktop binary with embedded SQLite, Tokio SMTP server, and Axum HTTP server bound to `127.0.0.1` by default.
-- **Workspace Isolation**: Explicit `Workspace → Project → Environment (Local / Development / Testing / Staging) → Channel` hierarchy with isolated per-channel credentials (`AES-256-GCM` + `SHA-256`).
-- **Four Capture Channels**:
-  - **Email**: Local ESMTP server (`AUTH PLAIN` / `AUTH LOGIN`, multipart MIME, attachments, backend `ammonia` HTML sanitization, offline CSP sandbox iframe + raw source).
-  - **SMS**: Local `POST /api/v1/sms` JSON capture endpoint.
-  - **Push**: Local `POST /api/v1/push` JSON capture endpoint.
-  - **Webhook**: Local `ANY /api/v1/webhooks/{credential_identifier}` and subpaths capturing HTTP method, path, redacted headers/query parameters, JSON/raw body, and payload size.
-- **Unified Inbox & Channel Inspector**: Real-time `notification:captured` streaming updates, channel/status filters, search, pagination, syntax-highlighted payloads (`JSON`, `HTML`, `Bash`, `.ENV`, `MIME / HTTP`), and tailored inspectors per channel.
-- **Bilingual & Dual-Theme**: First-class **English (`en`, LTR)** and **Persian (`fa`, RTL)** support with Light/Dark themes and automatic Persian/Arabic-Indic/Hindi digit normalization to English ASCII before backend submission.
+- [Why NotifyTrap?](#why-notifytrap)
+- [Core Capabilities](#core-capabilities)
+- [CLI & Desktop Installation](#cli--desktop-installation)
+  - [One-Command Installers](#one-command-installers)
+  - [Manual CLI Commands by OS & Distro](#manual-cli-commands-by-os--distro)
+  - [Signed In-App Auto-Updates](#signed-in-app-auto-updates)
+- [Quick Start in 60 Seconds](#quick-start-in-60-seconds)
+- [Transport & API Cookbook](#transport--api-cookbook)
+- [Security & Privacy Model](#security--privacy-model)
+- [Architecture Overview](#architecture-overview)
+- [Run & Build from Source](#run--build-from-source)
+- [Documentation](#documentation)
 
 ---
 
-## Quick Start & Installation
+## Why NotifyTrap?
 
-### Prebuilt Desktop Packages
+During local development and staging verification, applications frequently emit emails, SMS codes, push alerts, and outbound webhooks. Using production gateways risks accidental real delivery, while scraping terminal logs hides HTML rendering, MIME attachments, HTTP headers, and multi-environment isolation.
 
-GitHub Releases (automated via [`.github/workflows/release.yml`](.github/workflows/release.yml)) provide installers for all major desktop platforms:
+| Problem in Development | How NotifyTrap Solves It |
+| --- | --- |
+| Accidental emails/SMS sent to real users | Embedded ESMTP & HTTP servers bound strictly to `127.0.0.1` — **zero external delivery** |
+| Hardcoded test secrets mixed across projects | Explicit `Workspace → Project → Environment → Channel` isolation with scoped credentials |
+| Untrusted HTML emails or leaked auth tokens | Backend `ammonia` HTML sanitization, offline CSP iframe sandbox, and automatic `[REDACTED]` scrubbing |
+| Switching tools for Email vs SMS/Push/Webhooks | Unified real-time Inbox inspecting **Email, SMS, Push, and Webhooks** in one native binary |
+| Cloud SaaS mock traps & rate limits | 100% local SQLite persistence, instant startup, offline-first with zero external accounts |
 
-- **Linux**: `.deb` (Debian / Ubuntu / Mint / Pop!_OS), `.rpm` (Fedora / RHEL / openSUSE), `.AppImage` (Arch / Manjaro / universal Linux)
-- **Windows**: `.exe` (NSIS installer) and `.msi`
-- **macOS**: Universal `.dmg` (Apple Silicon & Intel)
+---
 
-Packaged builds include cryptographically signed in-app updates with silent background detection and toast actions (supported directly on Windows, macOS, and Linux `.AppImage`).
+## Core Capabilities
 
-### Prerequisites
+- **Four Local Capture Channels in One Engine**:
+  - **Email (SMTP)**: Embedded Tokio ESMTP listener (`127.0.0.1:1025` default) supporting `AUTH PLAIN` and `AUTH LOGIN`, multipart `text/plain` + `text/html`, attachment inspection, sanitized HTML preview, and raw MIME source.
+  - **SMS (HTTP)**: `POST /api/v1/sms` capturing recipient, sender ID, message text, and arbitrary JSON metadata.
+  - **Push (HTTP)**: `POST /api/v1/push` capturing device token, platform, notification title/body, badge count, and custom payload data.
+  - **Webhook (HTTP)**: `ANY /api/v1/webhooks/{credential_identifier}[/{subpath}]` supporting every HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), subpaths, request headers, query strings, and JSON/raw request bodies.
+- **Scoped Multi-Project Organization**: Organize captures across **Workspaces → Projects → Environments (`local`, `development`, `testing`, `staging`) → Channels**, each with its own generated `<credential_identifier>.<secret_token>`.
+- **Real-Time Unified Inbox**: Live desktop event streaming (`notification:captured`), channel/status filtering, search, pagination, syntax highlighting (`JSON`, `HTML`, `Bash`, `.ENV`, `MIME / HTTP`), and copyable framework snippets.
+- **First-Class Bilingual & Dual-Theme UI**:
+  - Native **English (`en`, LTR)** and **Persian (`fa`, RTL)** with logical CSS layout symmetry and bundled offline typography (`IBM Plex Sans`, `Vazirmatn`, `JetBrains Mono`).
+  - Independent **Light** and **Dark** themes.
+  - Automatic normalization of **Persian (`۰-۹`)**, **Arabic-Indic (`٠-٩`)**, and **Devanagari (`०-९`)** digits to English ASCII digits inside numeric inputs before backend persistence.
+- **Signed Cross-Platform Updates**: Silent background release check on startup with actionable toast notifications (`Download & Update`, `Restart Now`) and manual update management in **Settings**.
 
-- **Rust** stable toolchain (`rustc >= 1.85`, `cargo`, `rustfmt`, `clippy`)
-- **Bun** (`>= 1.x`, recommended matching `bun.lock`) or Node.js `>= 22`
-- **Tauri 2 Linux System Libraries**: `webkit2gtk-4.1`, `gtk3`, `libayatana-appindicator`, `librsvg`, `openssl`, `pkg-config`
+---
 
-### Run from Source
+## CLI & Desktop Installation
+
+Prebuilt packages for Linux, macOS, and Windows are published via [GitHub Releases](https://github.com/farshidrezaei/notifytrap/releases).
+
+### One-Command Installers
+
+#### Linux & macOS (`bash`)
+
+Auto-detects your OS (`Linux` / `macOS`), CPU architecture, and Linux package manager (`apt`/`dpkg` for `.deb`, `dnf`/`zypper`/`yum` for `.rpm`, or `.AppImage` fallback with desktop entry + CLI symlink):
 
 ```bash
-# 1. Install frontend dependencies
-bun install
+curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash
+```
 
-# 2. Launch Tauri 2 desktop application in development mode
-bun run tauri dev
+Optional flags (`--method` / `--version`):
 
-# 3. Build release desktop binary (or omit --no-bundle where OS packagers are installed)
-bun run tauri build --no-bundle
+```bash
+# Force AppImage on Ubuntu/Fedora (recommended if you want direct in-app self-updates on Linux)
+curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash -s -- --method appimage
+
+# Install a specific release tag
+curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash -s -- --version v1.0.0
+```
+
+Supported `--method` values: `auto` (default), `deb`, `rpm`, `appimage`, `dmg`.
+
+#### Windows (`PowerShell`)
+
+Downloads the latest Windows installer (`.exe` NSIS by default, or `.msi`) from GitHub Releases and runs it cleanly:
+
+```powershell
+irm https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.ps1 | iex
+```
+
+With options (for example silent `.msi` or pinned version):
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.ps1))) -Method msi -Silent
+```
+
+Supported parameters: `-Method auto|exe|msi`, `-Version latest|v1.0.0`, `-Silent`.
+
+---
+
+### Manual CLI Commands by OS & Distro
+
+Prefer downloading the exact installer directly without piping a script? Use the commands below for your platform:
+
+#### Debian / Ubuntu / Pop!_OS / Linux Mint (`.deb`)
+
+```bash
+ASSET_URL=$(curl -fsSL https://api.github.com/repos/farshidrezaei/notifytrap/releases/latest \
+  | grep -Eo '"browser_download_url":[[:space:]]*"[^"]+\.deb"' \
+  | head -n 1 | cut -d'"' -f4)
+curl -fL "$ASSET_URL" -o /tmp/notifytrap.deb
+sudo apt-get update && sudo apt-get install -y /tmp/notifytrap.deb
+```
+
+#### Fedora / RHEL / Rocky / Alma / openSUSE (`.rpm`)
+
+```bash
+ASSET_URL=$(curl -fsSL https://api.github.com/repos/farshidrezaei/notifytrap/releases/latest \
+  | grep -Eo '"browser_download_url":[[:space:]]*"[^"]+\.rpm"' \
+  | head -n 1 | cut -d'"' -f4)
+curl -fL "$ASSET_URL" -o /tmp/notifytrap.rpm
+sudo dnf install -y /tmp/notifytrap.rpm
+# openSUSE: sudo zypper --non-interactive install /tmp/notifytrap.rpm
+```
+
+#### Arch Linux / Manjaro / Universal Linux (`.AppImage`)
+
+```bash
+mkdir -p ~/.local/bin ~/.local/share/notifytrap
+ASSET_URL=$(curl -fsSL https://api.github.com/repos/farshidrezaei/notifytrap/releases/latest \
+  | grep -Eo '"browser_download_url":[[:space:]]*"[^"]+\.AppImage"' \
+  | grep -v '\.sig"' | head -n 1 | cut -d'"' -f4)
+curl -fL "$ASSET_URL" -o ~/.local/share/notifytrap/NotifyTrap.AppImage
+chmod +x ~/.local/share/notifytrap/NotifyTrap.AppImage
+ln -sf ~/.local/share/notifytrap/NotifyTrap.AppImage ~/.local/bin/notifytrap
+notifytrap
+```
+
+> [!TIP]
+> On Linux, **AppImage** supports seamless cryptographic in-app self-updates. For `.deb` and `.rpm` installs, you will still receive update notifications and can upgrade by re-running the CLI installer or downloading the new package.
+
+#### macOS — Apple Silicon & Intel (Universal `.dmg`)
+
+```bash
+ASSET_URL=$(curl -fsSL https://api.github.com/repos/farshidrezaei/notifytrap/releases/latest \
+  | grep -Eo '"browser_download_url":[[:space:]]*"[^"]+\.dmg"' \
+  | head -n 1 | cut -d'"' -f4)
+curl -fL "$ASSET_URL" -o /tmp/NotifyTrap.dmg
+MOUNT_DIR=$(hdiutil attach /tmp/NotifyTrap.dmg -nobrowse -readonly | awk '/\/Volumes\// { idx = index($0, "/Volumes/"); print substr($0, idx); exit }')
+rm -rf /Applications/NotifyTrap.app && cp -R "$MOUNT_DIR/NotifyTrap.app" /Applications/
+hdiutil detach "$MOUNT_DIR" -quiet && rm -f /tmp/NotifyTrap.dmg
+```
+
+#### Windows 10 / 11 (`.exe` / `.msi` via PowerShell)
+
+```powershell
+$asset = (Invoke-RestMethod https://api.github.com/repos/farshidrezaei/notifytrap/releases/latest).assets `
+  | Where-Object { $_.name -match '-setup\.exe$' } | Select-Object -First 1
+$installer = Join-Path $env:TEMP $asset.name
+Invoke-WebRequest $asset.browser_download_url -OutFile $installer
+Start-Process $installer -Wait
 ```
 
 ---
 
-## Usage Workflow
+### Signed In-App Auto-Updates
 
-1. Launch **NotifyTrap** — on first run, the onboarding card creates your initial **Workspace** and **Project** (auto-provisioning `local`, `development`, `testing`, and `staging` environments).
-2. Open **Channels**, create a channel (`Email`, `SMS`, `Push`, or `Webhook`), and copy or reveal its generated `<credential_identifier>` and `<secret_token>` (composite key: `<credential_identifier>.<secret_token>`).
-3. Point your local application's mail or notification transport to NotifyTrap's loopback endpoints (`127.0.0.1:1025` SMTP, `127.0.0.1:4080` HTTP by default, configurable in **Settings**).
-4. Inspect captured messages live inside **Inbox**.
+- Release artifacts are signed with minisign (`TAURI_SIGNING_PRIVATE_KEY`) and verified against the embedded public key in [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json) before applying any update.
+- When `app.auto_update_check_enabled` is enabled (on by default), NotifyTrap silently checks [`latest.json`](https://github.com/farshidrezaei/notifytrap/releases/latest/download/latest.json) shortly after startup and shows an interactive toast if a newer version exists.
+- Manual checks and toggle preferences are available anytime under **Settings → Application Updates**.
 
 ---
 
-## SMTP Configuration Examples
+## Quick Start in 60 Seconds
 
-Use the **Email** channel's `credential_identifier` as SMTP username and `secret_token` as SMTP password against `127.0.0.1:1025` (no TLS required on loopback; supports `AUTH PLAIN` and `AUTH LOGIN`).
+1. **Initialize Workspace & Project**: On first run, complete the onboarding card to create your first **Workspace** and **Project** (`local`, `development`, `testing`, and `staging` environments are created automatically).
+2. **Create a Channel**: Navigate to **Channels**, select **Email**, **SMS**, **Push**, or **Webhook**, and copy the generated `<credential_identifier>` and `<secret_token>` (composite HTTP key: `<credential_identifier>.<secret_token>`).
+3. **Configure Your App**: Point your development `.env`, mailer, SMS service, or webhook client to NotifyTrap's loopback listeners (`127.0.0.1:1025` SMTP / `127.0.0.1:4080` HTTP by default, customizable in **Settings**).
+4. **Inspect Live**: Captured messages appear immediately in **Inbox** with unread counters, search, status controls (`unread` / `read` / `archived`), and channel-specific views.
 
-### `.env` (Laravel / Symfony / Generic)
+---
+
+## Transport & API Cookbook
+
+### Default Local Endpoints
+
+| Service / Endpoint | Default Address / Route | Authentication | Purpose |
+| --- | --- | --- | --- |
+| **ESMTP Server** | `127.0.0.1:1025` | SMTP `AUTH PLAIN` / `AUTH LOGIN` (`credential_identifier` / `secret_token`) | Captures local application emails & attachments |
+| **Health Check** | `GET http://127.0.0.1:4080/api/v1/health` | Public (loopback only) | Returns runtime, database, and server readiness |
+| **SMS Capture** | `POST http://127.0.0.1:4080/api/v1/sms` | `X-Channel-Key` or `Authorization: Bearer` | Captures SMS payloads |
+| **Push Capture** | `POST http://127.0.0.1:4080/api/v1/push` | `X-Channel-Key` or `Authorization: Bearer` | Captures mobile/web push payloads |
+| **Webhook Capture** | `ANY http://127.0.0.1:4080/api/v1/webhooks/{id}[/{subpath}]` | `X-Channel-Key`, `Authorization: Bearer`, or `?channel_key=` | Captures arbitrary HTTP webhook calls |
+
+Successful HTTP ingestion returns `202 Accepted` with `{ notificationId, channelId, status, receivedAt }`. Validation or credential failures return structured `{ code, message }` errors.
+
+### SMTP Email Examples
+
+#### Laravel / Symfony (`.env`)
 
 ```dotenv
 MAIL_MAILER=smtp
 MAIL_HOST=127.0.0.1
 MAIL_PORT=1025
-MAIL_USERNAME=your-email-channel-identifier
+MAIL_USERNAME=email-local
 MAIL_PASSWORD=ntsec_your_secret_token
 MAIL_ENCRYPTION=null
 MAIL_FROM_ADDRESS="noreply@local.test"
 MAIL_FROM_NAME="NotifyTrap Local"
 ```
 
-### Node.js (`nodemailer`)
+#### Node.js (`nodemailer`)
 
 ```js
 import nodemailer from 'nodemailer'
@@ -93,7 +238,7 @@ const transporter = nodemailer.createTransport({
   port: 1025,
   secure: false,
   auth: {
-    user: 'your-email-channel-identifier',
+    user: 'email-local',
     pass: 'ntsec_your_secret_token',
   },
 })
@@ -107,21 +252,24 @@ await transporter.sendMail({
 })
 ```
 
----
+#### Python (`smtplib`)
 
-## Local HTTP API Examples
+```python
+import smtplib
+from email.message import EmailMessage
 
-All HTTP capture endpoints return `202 Accepted` with `{ notificationId, channelId, status, receivedAt }` on success and structured JSON errors (`{ code, message }`) on validation or auth failure.
+message = EmailMessage()
+message["From"] = "noreply@local.test"
+message["To"] = "developer@example.com"
+message["Subject"] = "Password Reset"
+message.set_content("Reset code: 913-204")
 
-### 1. Health Check (`GET /api/v1/health`)
-
-```bash
-curl -s http://127.0.0.1:4080/api/v1/health
+with smtplib.SMTP("127.0.0.1", 1025) as server:
+    server.login("email-local", "ntsec_your_secret_token")
+    server.send_message(message)
 ```
 
-### 2. SMS Capture (`POST /api/v1/sms`)
-
-Authenticate using `X-Channel-Key: <credential_identifier>.<secret_token>` or `Authorization: Bearer <credential_identifier>.<secret_token>`.
+### HTTP SMS Capture (`POST /api/v1/sms`)
 
 ```bash
 curl -X POST http://127.0.0.1:4080/api/v1/sms \
@@ -135,12 +283,12 @@ curl -X POST http://127.0.0.1:4080/api/v1/sms \
   }'
 ```
 
-### 3. Push Capture (`POST /api/v1/push`)
+### HTTP Push Capture (`POST /api/v1/push`)
 
 ```bash
 curl -X POST http://127.0.0.1:4080/api/v1/push \
   -H "Content-Type: application/json" \
-  -H "X-Channel-Key: push-local.ntsec_your_secret_token" \
+  -H "Authorization: Bearer push-local.ntsec_your_secret_token" \
   -d '{
     "device_token": "fcm-device-token-123",
     "platform": "android",
@@ -151,12 +299,10 @@ curl -X POST http://127.0.0.1:4080/api/v1/push \
   }'
 ```
 
-### 4. Webhook Capture (`ANY /api/v1/webhooks/{credential_identifier}[/{subpath}]`)
-
-Supports any HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`). Authenticate via `X-Channel-Key`, `Authorization: Bearer`, or query parameter `?channel_key=<key>` (sensitive headers/query secrets are automatically redacted to `[REDACTED]` in stored captures).
+### HTTP Webhook Capture (`ANY /api/v1/webhooks/{credential_identifier}[/{subpath}]`)
 
 ```bash
-curl -X POST http://127.0.0.1:4080/api/v1/webhooks/billing-hook/stripe/events \
+curl -X POST "http://127.0.0.1:4080/api/v1/webhooks/billing-hook/stripe/events" \
   -H "Content-Type: application/json" \
   -H "X-Channel-Key: billing-hook.ntsec_your_secret_token" \
   -d '{
@@ -167,12 +313,91 @@ curl -X POST http://127.0.0.1:4080/api/v1/webhooks/billing-hook/stripe/events \
 
 ---
 
+## Security & Privacy Model
+
+- **Strict Loopback Binding**: HTTP and SMTP servers listen on `127.0.0.1` by default and never relay messages externally.
+- **Encrypted Channel Keys & Secret Hashing**: Channel secrets are encrypted at rest with `AES-256-GCM` (backed by the OS keychain when available, with strict `0o600` atomic fallback key file), hashed via `SHA-256`, and verified in constant time.
+- **Untrusted Email HTML Defense in Depth**:
+  1. Backend `ammonia` HTML sanitization strips `<script>`, event handlers, `javascript:` URLs, and dangerous tags before storage and IPC delivery.
+  2. Frontend renders email HTML inside a locked `<iframe sandbox="" referrerpolicy="no-referrer">` with injected CSP (`default-src 'none'`).
+- **Automatic Credential Redaction**: Case-insensitive scrubbing replaces sensitive HTTP headers (`authorization`, `proxy-authorization`, `x-channel-key`, `x-api-key`, `cookie`, `set-cookie`) and query parameters (`channel_key`, `token`, `api_key`, `apikey`, `secret`, `password`, `authorization`) with `[REDACTED]`.
+- **Resource & Retention Guards**: Bounded SMTP line length, 60-second SMTP idle read timeout, max 64 concurrent SMTP sessions, configurable HTTP payload caps, and automatic retention cleanup on startup and settings save.
+
+---
+
+## Architecture Overview
+
+NotifyTrap follows a **modular monolith** architecture splitting presentation (Nuxt 4 + Nuxt UI + Tauri IPC) from Rust backend layers:
+
+```mermaid
+flowchart TD
+  UI["Nuxt 4 UI (Vue 3 + Nuxt UI v4 + Tailwind v4)"] -->|Tauri IPC Commands| CMD["src-tauri/src/commands/"]
+  UI <-->|tauri://notification:captured| EVT["src-tauri/src/events/"]
+  EXT["Your App (Laravel / Node / Python / cURL)"] -->|SMTP :1025| SMTP["infrastructure/smtp/"]
+  EXT -->|HTTP :4080| HTTP["infrastructure/http/"]
+  CMD --> SVC["services/"]
+  SMTP --> SVC
+  HTTP --> SVC
+  SVC --> DOM["domain/ & security/"]
+  SVC --> DB["infrastructure/database/ (SQLite)"]
+```
+
+- **Backend (`src-tauri/src/`)**: `application/`, `commands/`, `configuration/`, `domain/`, `events/`, `infrastructure/` (`database/`, `http/`, `migrations/`, `security/`, `smtp/`), `services/`.
+- **Frontend (`app/`)**: `components/`, `composables/`, `layouts/`, `pages/`, `schemas/`, `types/`, `utils/`, `assets/css/`.
+
+---
+
+## Run & Build from Source
+
+### Prerequisites
+
+- **Rust** stable toolchain (`rustc`, `cargo`, `rustfmt`, `clippy`)
+- **Bun** (`>= 1.x`, matching `bun.lock`)
+- **Platform Libraries**:
+  - **Ubuntu / Debian**: `sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev`
+  - **Fedora**: `sudo dnf install -y webkit2gtk4.1-devel libappindicator-gtk3-devel librsvg2-devel openssl-devel`
+  - **Arch Linux**: `sudo pacman -S --needed webkit2gtk-4.1 libappindicator-gtk3 librsvg openssl`
+  - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
+  - **Windows**: Microsoft C++ Build Tools + WebView2 Runtime
+
+### Development & Build Commands
+
+```bash
+# Install frontend dependencies
+bun install
+
+# Launch desktop app in dev mode (starts Rust backend + Nuxt UI)
+bun run tauri dev
+
+# Build distributable bundles for the current host OS
+bun run tauri build
+
+# Or build binary only without OS installers
+bun run tauri build --no-bundle
+```
+
+### Verification Suite
+
+```bash
+# Frontend quality gates
+bun run validate:i18n
+bun run typecheck
+bun run test:unit
+
+# Backend quality gates & integration tests
+cargo fmt --manifest-path src-tauri/Cargo.toml --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml --all-targets
+```
+
+---
+
 ## Documentation
 
-- [Engineering Constitution](AGENTS.md)
+- [Engineering Constitution (`AGENTS.md`)](AGENTS.md)
 - [Architecture & Contracts](docs/ARCHITECTURE.md)
-- [Architectural Decisions](docs/DECISIONS.md)
-- [Design System](docs/DESIGN-SYSTEM.md)
-- [Internationalization](docs/I18N.md)
-- [Testing Strategy](docs/TESTING.md)
-- [Development, Contribution & Release Guide](docs/DEVELOPMENT.md)
+- [Architectural Decisions (ADRs)](docs/DECISIONS.md)
+- [Design System & Tokens](docs/DESIGN-SYSTEM.md)
+- [Internationalization & RTL Guide](docs/I18N.md)
+- [Testing Matrix & Strategy](docs/TESTING.md)
+- [Development, CI Signing & Release Guide](docs/DEVELOPMENT.md)
