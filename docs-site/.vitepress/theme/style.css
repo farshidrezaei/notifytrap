@@ -1,0 +1,44 @@
+:root {
+  --vp-c-brand-1: #4f46e5;
+  --vp-c-brand-2: #4338ca;
+  --vp-c-brand-3: #3730a3;
+  --vp-c-brand-soft: rgba(79, 70, 229, 0.14);
+  --vp-font-family-base: 'IBM Plex Sans', 'Vazirmatn', system-ui, -apple-system, sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.dark {
+  --vp-c-brand-1: #6366f1;
+  --vp-c-brand-2: #818cf8;
+  --vp-c-brand-3: #4f46e5;
+  --vp-c-brand-soft: rgba(99, 102, 241, 0.16);
+}
+
+.notifytrap-banner-frame {
+  margin: 1.5rem auto 2.5rem;
+  max-width: 960px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+}
+
+.notifytrap-banner-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+[dir='rtl'] .vp-doc div[class*='language-'],
+[dir='rtl'] .vp-doc pre,
+[dir='rtl'] .vp-doc code {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
+[dir='rtl'] .VPNavBarMenu,
+[dir='rtl'] .VPSidebar,
+[dir='rtl'] .VPDoc {
+  font-family: 'Vazirmatn', 'IBM Plex Sans', system-ui, sans-serif;
+}

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="notifytrap-logo.png" alt="NotifyTrap Logo" width="116" />
+  <img src="notifytrap-banner.png" alt="NotifyTrap Banner — Capture, Inspect, and Debug Notifications Locally" width="840" />
 </p>
 
 <h1 align="center">NotifyTrap</h1>
@@ -9,6 +9,9 @@
 </p>
 
 <p align="center">
+  <a href="https://farshidrezaei.github.io/notifytrap/">
+    <img src="https://img.shields.io/badge/docs-GitHub%20Pages%20(EN%20%7C%20FA)-4f46e5" alt="Documentation" />
+  </a>
   <a href="https://github.com/farshidrezaei/notifytrap/actions/workflows/release.yml">
     <img src="https://github.com/farshidrezaei/notifytrap/actions/workflows/release.yml/badge.svg" alt="Build and Release" />
   </a>
@@ -394,6 +397,7 @@ cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 
 ## Documentation
 
+- **Online Documentation (English & فارسی RTL):** [farshidrezaei.github.io/notifytrap](https://farshidrezaei.github.io/notifytrap/)
 - [Engineering Constitution (`AGENTS.md`)](AGENTS.md)
 - [Architecture & Contracts](docs/ARCHITECTURE.md)
 - [Architectural Decisions (ADRs)](docs/DECISIONS.md)

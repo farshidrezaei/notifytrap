@@ -2,11 +2,13 @@
 node_modules/
 .pnpm-store/
 
-# Nuxt / Frontend build artifacts
+# Nuxt / Frontend & Docs build artifacts
 .nuxt/
 .output/
 dist
 dist/
+docs-site/.vitepress/cache/
+docs-site/.vitepress/dist/
 
 # Rust / Tauri build artifacts
 src-tauri/target/
