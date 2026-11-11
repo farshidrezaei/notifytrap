@@ -1,0 +1,602 @@
+{
+  "application": {
+    "name": "NotifyTrap",
+    "tagline": "Local Notification Capture",
+    "status": {
+      "desktopShellReady": "Desktop Shell Active",
+      "browserPreviewMode": "Browser Preview Mode",
+      "databaseConnected": "SQLite Connected",
+      "databaseDisconnected": "Database Offline",
+      "serverRunning": "Running",
+      "serverStopped": "Stopped"
+    }
+  },
+  "navigation": {
+    "overview": "Overview",
+    "inbox": "Inbox",
+    "workspaces": "Workspaces",
+    "projects": "Projects",
+    "channels": "Channels",
+    "settings": "Settings",
+    "designSystem": "Design System"
+  },
+  "workspace": {
+    "activeWorkspace": "Workspace",
+    "activeProject": "Project",
+    "activeEnvironment": "Environment",
+    "activeBadge": "Active",
+    "noneSelected": "None selected",
+    "noActiveScopeTitle": "Select a Workspace Project",
+    "noActiveScopeDescription": "Create or select a workspace and project from Overview or the sidebar switcher first.",
+    "environments": {
+      "local": "Local",
+      "development": "Development",
+      "testing": "Testing",
+      "staging": "Staging"
+    },
+    "environment": {
+      "defaultBadge": "Default",
+      "setAsDefault": "Set as Default Environment",
+      "defaultUpdatedTitle": "Default Environment Updated"
+    },
+    "form": {
+      "slugHint": "Lowercase letters, digits, and single hyphens only."
+    },
+    "switcher": {
+      "ariaLabel": "Switch active workspace or project",
+      "emptyTitle": "Select Project",
+      "emptySubtitle": "No workspace selected",
+      "searchPlaceholder": "Filter workspaces or projects...",
+      "noMatches": "No matching workspaces or projects found.",
+      "noProjectsInWorkspace": "No projects yet in this workspace."
+    },
+    "actions": {
+      "newWorkspace": "New Workspace",
+      "createWorkspace": "Create Workspace",
+      "newProject": "New Project",
+      "createProject": "Create Project"
+    },
+    "modals": {
+      "createWorkspaceTitle": "Create Workspace",
+      "createWorkspaceDescription": "Workspaces isolate products, teams, or local testing spaces.",
+      "editWorkspaceTitle": "Edit Workspace",
+      "createProjectTitle": "Create Project",
+      "createProjectDescription": "Projects initialize Local, Development, Testing, and Staging environments automatically.",
+      "editProjectTitle": "Edit Project"
+    },
+    "toast": {
+      "workspaceCreatedTitle": "Workspace Created",
+      "workspaceUpdatedTitle": "Workspace Updated",
+      "workspaceDeletedTitle": "Workspace Deleted",
+      "projectCreatedTitle": "Project Created",
+      "projectUpdatedTitle": "Project Updated",
+      "projectDeletedTitle": "Project Deleted"
+    }
+  },
+  "onboarding": {
+    "title": "Welcome to NotifyTrap",
+    "subtitle": "Create your first local workspace and project to activate Email, SMS, Push, and Webhook capture servers.",
+    "offlineBadge": "Zero External Delivery",
+    "formTitle": "Initialize First Workspace & Project",
+    "formDescription": "Organize captured messages by product or service with isolated local credentials.",
+    "workspaceNameLabel": "Workspace / Organization Name",
+    "workspaceNamePlaceholder": "Acme Studio",
+    "workspaceSlugLabel": "Workspace Slug",
+    "workspaceSlugPlaceholder": "acme-studio",
+    "projectNameLabel": "Project / App Name",
+    "projectNamePlaceholder": "Billing API",
+    "projectSlugLabel": "Project Slug",
+    "projectSlugPlaceholder": "billing-api",
+    "defaultEnvironmentsNote": "Local, Development, Testing, and Staging environments are created automatically.",
+    "captureReadyTitle": "Local Capture Engine",
+    "highlightsTitle": "What Gets Initialized",
+    "highlightEnvironments": "Four pre-configured environments (Local default, Development, Testing, Staging).",
+    "highlightSecurity": "Encrypted channel credentials stored in local SQLite with constant-time token verification.",
+    "highlightOffline": "All emails, SMS, push notifications, and webhooks stay 100% local on loopback.",
+    "submit": "Create Workspace & Open Dashboard",
+    "successTitle": "Workspace Ready",
+    "successDescription": "Your project workspace and environments have been initialized."
+  },
+  "overview": {
+    "title": "Workspace Overview",
+    "subtitle": "Monitor local capture servers, storage health, and active project context.",
+    "cards": {
+      "database": "Local Persistence",
+      "databaseStatus": "SQLite Persistence",
+      "databaseConnected": "Connected",
+      "databaseStandby": "Standby",
+      "smtpServer": "SMTP Capture Server",
+      "httpServer": "HTTP Capture Server",
+      "httpEndpoint": "HTTP Capture Endpoint",
+      "smtpEndpoint": "SMTP Capture Endpoint",
+      "migrationVersion": "Schema v{version}"
+    },
+    "actions": {
+      "openInbox": "Open Unified Inbox",
+      "openDesignSystem": "Inspect Design System",
+      "refreshHealth": "Refresh Status"
+    }
+  },
+  "dashboard": {
+    "scopedSubtitle": "Workspace: {workspace} • Active Environment: {environment}",
+    "serverLive": "Listening",
+    "serverStandby": "Standby",
+    "actions": {
+      "openInbox": "Inbox ({count})"
+    },
+    "quickIntegration": {
+      "title": "Quick Integration",
+      "emptyTitle": "No channels in this scope",
+      "emptyDescription": "Add an Email, SMS, Push, or Webhook channel to generate copy-ready connection snippets."
+    },
+    "recentActivity": {
+      "title": "Recent Captured Notifications",
+      "viewAll": "View All",
+      "emptyTitle": "Waiting for local notifications",
+      "emptyDescription": "Send a test email, SMS, push, or webhook request to inspect it live."
+    }
+  },
+  "inbox": {
+    "title": "Unified Inbox",
+    "subtitle": "Inspect captured Email, SMS, Push, and Webhook notifications in real time.",
+    "scopedSubtitle": "{workspace} / {project} / {environment}",
+    "noSubject": "(No Subject)",
+    "emptyTitle": "No notifications captured yet",
+    "emptyDescription": "Configure a channel and send a test payload to capture local notifications here.",
+    "inspectorEmptyTitle": "Select a notification",
+    "inspectorEmptyDescription": "Choose any captured Email, SMS, Push, or Webhook message on the left to inspect its headers and body.",
+    "paginationTotal": "{count} total notifications",
+    "filters": {
+      "allChannels": "All",
+      "allStatuses": "All Statuses",
+      "searchPlaceholder": "Search subject, recipient, preview..."
+    },
+    "status": {
+      "captured": "Unread",
+      "read": "Read",
+      "archived": "Archived"
+    },
+    "actions": {
+      "markUnread": "Mark Unread",
+      "markRead": "Mark Read",
+      "archive": "Archive",
+      "deleteNotification": "Delete",
+      "clearInbox": "Clear Scope"
+    },
+    "clearModal": {
+      "title": "Clear Scoped Notifications?",
+      "description": "This permanently deletes all captured notifications in the active project and environment."
+    },
+    "deleteModal": {
+      "title": "Delete Notification?",
+      "description": "This permanently deletes the selected captured notification and any stored attachments."
+    },
+    "toast": {
+      "clearedTitle": "Inbox Cleared",
+      "clearedDescription": "Removed {count} captured notifications.",
+      "deletedTitle": "Notification Deleted"
+    },
+    "email": {
+      "fields": {
+        "from": "From",
+        "to": "To",
+        "cc": "CC",
+        "bcc": "BCC"
+      },
+      "tabs": {
+        "htmlPreview": "HTML Preview",
+        "plainText": "Plain Text",
+        "rawHtml": "Raw HTML",
+        "headers": "Headers",
+        "attachments": "Attachments",
+        "rawSource": "Raw Source"
+      },
+      "emptyPlainText": "No plain-text part in this message.",
+      "emptyRawHtml": "No HTML part in this message.",
+      "emptyAttachmentsTitle": "No attachments",
+      "emptyAttachmentsDescription": "This message did not include any MIME attachments.",
+      "inlineAttachment": "Inline"
+    },
+    "sms": {
+      "fromLabel": "Sender",
+      "toLabel": "Recipient",
+      "lengthLabel": "Message Length",
+      "charactersCount": "{count} characters",
+      "metadataLabel": "Metadata JSON"
+    },
+    "push": {
+      "badgeLabel": "Badge: {value}",
+      "soundLabel": "Sound: {value}",
+      "dataLabel": "Custom Data Payload"
+    },
+    "webhook": {
+      "tabs": {
+        "body": "Body",
+        "headers": "Headers",
+        "query": "Query"
+      },
+      "emptyBody": "Request body was empty.",
+      "emptyQuery": "No query string parameters were attached."
+    }
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "subtitle": "Organize isolated local workspaces for separate products or teams.",
+    "emptyTitle": "No workspaces configured",
+    "emptyDescription": "Create your first local workspace to start organizing projects and channels.",
+    "updatedAt": "Updated {date}",
+    "form": {
+      "nameLabel": "Workspace Name",
+      "namePlaceholder": "Acme Studio",
+      "slugLabel": "Workspace Slug",
+      "slugPlaceholder": "acme-studio",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional workspace notes or team name"
+    },
+    "deleteModal": {
+      "title": "Delete Workspace?",
+      "description": "Deleting \"{name}\" will permanently remove all its projects, channels, and captured notifications."
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Group applications and isolated environments under the active workspace.",
+    "scopedSubtitle": "Managing projects inside {workspace}",
+    "emptyTitle": "No projects configured",
+    "emptyDescription": "Create a project to initialize Local, Development, Testing, and Staging environments.",
+    "actions": {
+      "openDashboard": "Open Dashboard"
+    },
+    "form": {
+      "workspaceLabel": "Workspace",
+      "nameLabel": "Project Name",
+      "namePlaceholder": "Billing API",
+      "slugLabel": "Project Slug",
+      "slugPlaceholder": "billing-api",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional service or application notes"
+    },
+    "deleteModal": {
+      "title": "Delete Project?",
+      "description": "Deleting \"{name}\" will permanently remove all its environments, channels, and captured notifications."
+    }
+  },
+  "channels": {
+    "title": "Channels",
+    "subtitle": "Manage Email, SMS, Push, and Webhook capture endpoints and isolated credentials.",
+    "scopedSubtitle": "Scoped to {workspace} / {project} / {environment}",
+    "types": {
+      "email": "Email (SMTP)",
+      "sms": "SMS (HTTP)",
+      "push": "Push (HTTP)",
+      "webhook": "Webhook (HTTP)"
+    },
+    "status": {
+      "enabled": "Active",
+      "disabled": "Paused"
+    },
+    "emptyTitle": "No channels configured",
+    "emptyDescription": "Add an Email, SMS, Push, or Webhook channel to obtain local credentials.",
+    "actions": {
+      "addChannel": "Add Channel",
+      "toggleEnabled": "Toggle channel enabled state",
+      "revealSecret": "Reveal",
+      "hideSecret": "Hide",
+      "rotateCredential": "Rotate Secret",
+      "deleteChannel": "Delete Channel",
+      "showSnippet": "Integration Snippet",
+      "hideSnippet": "Hide Snippet",
+      "copySnippet": "Copy Snippet"
+    },
+    "card": {
+      "identifierLabel": "Credential Identifier",
+      "compositeKeyLabel": "X-Channel-Key / Composite Key",
+      "webhookUrlLabel": "Local Webhook Endpoint URL",
+      "secretTokenLabel": "Secret Token",
+      "snippetLabel": "Integration Snippet",
+      "updatedAt": "Updated {date}"
+    },
+    "createModal": {
+      "title": "Add Capture Channel",
+      "description": "Generates isolated credentials scoped strictly to the active project and environment.",
+      "nameLabel": "Channel Name",
+      "namePlaceholder": "Transactional Email",
+      "typeLabel": "Channel Protocol",
+      "identifierLabel": "Custom Credential Identifier (Optional)",
+      "identifierHint": "Leave blank to auto-generate a secure identifier.",
+      "identifierPlaceholder": "transactional-mailer",
+      "enabledLabel": "Activation State",
+      "enabledHint": "Allow this channel to capture incoming payloads immediately.",
+      "submit": "Create Channel"
+    },
+    "rotateModal": {
+      "title": "Rotate Channel Secret?",
+      "description": "Rotating the secret for \"{name}\" immediately invalidates existing credentials in your local .env or test clients."
+    },
+    "deleteModal": {
+      "title": "Delete Channel?",
+      "description": "Deleting \"{name}\" stops capture and permanently removes notifications captured through it."
+    },
+    "toast": {
+      "createdTitle": "Channel Created",
+      "enabledTitle": "Channel Activated",
+      "disabledTitle": "Channel Paused",
+      "rotatedTitle": "Credential Rotated",
+      "deletedTitle": "Channel Deleted"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure appearance, language, local server ports, and storage preferences.",
+    "appearance": {
+      "title": "Appearance",
+      "description": "Switch between light and dark desktop themes.",
+      "label": "Color Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "title": "Language & Direction",
+      "description": "Switch interface language and automatic LTR/RTL layout direction.",
+      "label": "Interface Language"
+    },
+    "server": {
+      "title": "Local Capture Endpoints & Network",
+      "description": "Configure loopback binding, TCP ports, payload limits, and local retention rules.",
+      "httpEndpoint": "Active HTTP Endpoint",
+      "smtpEndpoint": "Active SMTP Endpoint",
+      "form": {
+        "bindAddressLabel": "Bind Address (IPv4)",
+        "bindAddressHint": "Masked loopback or local interface IPv4 address (for example 127.0.0.1).",
+        "httpPortLabel": "HTTP Capture Port",
+        "smtpPortLabel": "SMTP Capture Port",
+        "httpPayloadLimitLabel": "Max HTTP Payload (MB)",
+        "smtpMessageLimitLabel": "Max SMTP Message (MB)",
+        "retentionDaysLabel": "Retention Period (Days)",
+        "saveLabel": "Validate & Save",
+        "savedTitle": "Configuration Validated",
+        "savedDescription": "All server parameters passed Zod validation. Persistent backend storage activates in Phase 2."
+      }
+    },
+    "about": {
+      "title": "About NotifyTrap",
+      "description": "Local-first notification capture studio with zero external delivery.",
+      "versionLabel": "Application Version",
+      "schemaLabel": "Database Schema",
+      "architectureBadge": "Local Modular Monolith"
+    },
+    "updates": {
+      "title": "Application Updates",
+      "description": "Signed desktop updates verified locally before installation (Windows, macOS, and Linux AppImage).",
+      "autoCheckLabel": "Check automatically in background",
+      "autoCheckHint": "Silently checks for signed releases after startup and shows a toast only when a new version is available.",
+      "currentVersionLabel": "Installed Version",
+      "latestVersionLabel": "Available Version",
+      "statusUpToDate": "Up to date",
+      "statusAvailable": "Update v{version} available",
+      "statusDownloading": "Downloading update...",
+      "statusRestartReady": "Ready to restart",
+      "upToDateTitle": "NotifyTrap Is Up to Date",
+      "upToDateDescription": "You are already running the latest available release.",
+      "toastAvailableTitle": "Update v{version} Available",
+      "toastAvailableDescription": "A signed upgrade from v{currentVersion} to v{version} is ready to install.",
+      "installedTitle": "Update Ready to Apply",
+      "installedDescription": "The update has been verified and installed. Restart NotifyTrap to launch the new version.",
+      "desktopOnlyTitle": "Desktop Runtime Required",
+      "desktopOnlyDescription": "In-app updates can only be checked and installed inside the packaged desktop application.",
+      "releaseNotesLabel": "Release Notes",
+      "linuxPackageHint": "Linux .deb and .rpm packages should be updated via your package manager or the release installer.",
+      "actions": {
+        "checkNow": "Check for Updates",
+        "installNow": "Download & Update",
+        "openSettings": "View Details",
+        "restartNow": "Restart Now"
+      }
+    }
+  },
+  "designSystem": {
+    "title": "Design System",
+    "subtitle": "Living visual specification for tokens, components, themes, and bilingual layouts.",
+    "controls": {
+      "themeToggle": "Toggle Theme",
+      "languageToggle": "Switch Language"
+    },
+    "sections": {
+      "colors": "Semantic & Channel Colors",
+      "typography": "Typography System",
+      "spacing": "Spacing Scale",
+      "radius": "Radius System",
+      "shadows": "Shadow System",
+      "sizing": "Sizing System",
+      "motion": "Motion System",
+      "components": "Component Showcase",
+      "themeMatrix": "Theme & Direction Matrix"
+    },
+    "descriptions": {
+      "colors": "Independently calibrated light and dark palettes with semantic channel accents.",
+      "typography": "Bilingual Latin, Persian, and monospace scales with explicit weights and line heights.",
+      "spacing": "Centralized 4px-base spacing scale from 0 to 24 (0px–96px) preventing arbitrary layout offsets.",
+      "motion": "Restrained transitions honoring reduced-motion preferences.",
+      "components": "Official Nuxt UI components across interactive, validation, loading, empty, and error states.",
+      "themeMatrix": "Verify layout symmetry, contrast, and typography across Light/Dark and LTR/RTL."
+    },
+    "colors": {
+      "semanticGroup": "Brand & Status Tokens",
+      "surfaceGroup": "Surface, Control & Focus Tokens",
+      "channelGroup": "Notification Channel Badges",
+      "tokens": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "accent": "Accent",
+        "success": "Success",
+        "warning": "Warning",
+        "error": "Error",
+        "information": "Information",
+        "pending": "Pending",
+        "live": "Live",
+        "background": "Background",
+        "sidebar": "Sidebar",
+        "foreground": "Text Primary",
+        "surface": "Surface",
+        "elevatedSurface": "Elevated Surface",
+        "hoverSurface": "Hover Surface",
+        "activeSurface": "Active Surface",
+        "border": "Border",
+        "input": "Input",
+        "focus": "Focus",
+        "disabled": "Disabled",
+        "overlay": "Overlay"
+      }
+    },
+    "typography": {
+      "latinFont": "Latin UI Font",
+      "persianFont": "Persian UI Font",
+      "monoFont": "Technical Monospace Font",
+      "scale": {
+        "display": "Display — Local Notification Workspace",
+        "heading": "Heading — Capture Channels & Projects",
+        "section": "Section — Incoming Payload Details",
+        "body": "Body — Standard readable description text across components.",
+        "label": "Label — Input Field & Navigation Item",
+        "caption": "Caption — Metadata, timestamps, and schema version"
+      }
+    },
+    "radius": {
+      "none": "None",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large",
+      "extraLarge": "Extra Large",
+      "twoExtraLarge": "2X Large",
+      "full": "Full"
+    },
+    "shadows": {
+      "none": "None",
+      "sm": "Shadow SM",
+      "md": "Shadow MD",
+      "lg": "Shadow LG",
+      "xl": "Shadow XL",
+      "focus": "Focus Ring"
+    },
+    "sizing": {
+      "controlSm": "Control Height (SM)",
+      "controlMd": "Control Height (MD)",
+      "controlLg": "Control Height (LG)",
+      "inputHeight": "Input Height",
+      "sidebarWidth": "Sidebar Width",
+      "sidebarCollapsedWidth": "Sidebar Collapsed Width",
+      "iconSm": "Icon Size (SM)",
+      "iconMd": "Icon Size (MD)",
+      "iconLg": "Icon Size (LG)"
+    },
+    "motion": {
+      "fast": "Fast Transition",
+      "standard": "Standard Transition",
+      "slow": "Slow Transition",
+      "easing": "Standard Easing",
+      "trigger": "Animate Preview"
+    },
+    "showcase": {
+      "buttons": "Buttons & States",
+      "disabledState": "Disabled",
+      "formsTitle": "Validated Form & Input Masks (Zod + Maska)",
+      "inputDefault": "Channel Identifier (Slug Mask)",
+      "inputSlugHint": "Lowercase English letters, digits, and single hyphens only.",
+      "phoneLabel": "SMS Recipient (E.164 Mask)",
+      "portLabel": "Capture Port (Port Mask)",
+      "verificationCodeLabel": "Verification Code (###-### Mask)",
+      "selectLabel": "Environment Select",
+      "searchLabel": "Search Filter",
+      "searchPlaceholder": "Filter captured notifications...",
+      "textareaLabel": "JSON Payload Textarea",
+      "checkboxEnabled": "Require capture confirmation",
+      "switchLabel": "Auto-scroll live inbox",
+      "submitForm": "Validate & Submit",
+      "formValidTitle": "Form Validated",
+      "formValidDescription": "All masked inputs and Zod schema rules passed.",
+      "tooltipTrigger": "Hover Tooltip",
+      "tooltipHint": "Local capture endpoint active on loopback.",
+      "dropdownTrigger": "Actions Menu",
+      "popoverTrigger": "Open Popover",
+      "popoverBody": "Channel credentials are encrypted locally using the OS keyring.",
+      "dialogTrigger": "Open Dialog",
+      "dialogTitle": "Channel Configuration",
+      "dialogDescription": "Inspect and copy local SMTP or HTTP credentials.",
+      "confirmTrigger": "Confirm Delete",
+      "confirmTitle": "Delete Channel?",
+      "confirmDescription": "This permanently removes the channel and its captured notifications.",
+      "toastTrigger": "Show Toast",
+      "toastTitle": "Credentials Copied",
+      "toastDescription": "Channel connection settings copied to clipboard.",
+      "tabPreview": "Preview",
+      "tabSource": "Raw Source",
+      "tabPreviewBody": "Sanitized HTML and plain text previews render inside isolated sandboxes.",
+      "tableChannel": "Channel",
+      "tableRecipient": "Recipient",
+      "tableStatus": "Status",
+      "alertSuccess": "Local capture servers bound cleanly on loopback.",
+      "alertError": "Unable to bind port 1025: address already in use."
+    },
+    "matrix": {
+      "themeControls": "Theme Mode Verification",
+      "directionControls": "Direction & Locale Verification",
+      "englishLtr": "English (LTR)",
+      "persianRtl": "Persian (RTL)"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "refresh": "Refresh",
+    "save": "Save",
+    "reset": "Reset",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copiedTitle": "Copied to Clipboard",
+    "copyFailedTitle": "Copy Unavailable",
+    "errorTitle": "Action Failed",
+    "unexpectedError": "An unexpected desktop command error occurred.",
+    "retry": "Retry"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "minLength": "Must be at least {min} characters.",
+    "maxLength": "Must be at most {max} characters.",
+    "englishOnly": "Use English ASCII characters only.",
+    "invalidSlug": "Use lowercase English letters, numbers, and single hyphens only (no leading or trailing hyphens).",
+    "invalidInteger": "Enter digits only (whole numbers).",
+    "integerRange": "Value must be between {min} and {max}.",
+    "invalidPortRange": "Port must be between {min} and {max}.",
+    "portConflict": "SMTP port and HTTP port must be different.",
+    "invalidIpv4Address": "Enter a valid IPv4 address (for example 127.0.0.1).",
+    "invalidPhoneE164": "Enter a valid international phone number (for example +98 912 000 0000).",
+    "invalidVerificationCode": "Enter a complete {digits}-digit code.",
+    "invalidJsonObject": "Enter a valid JSON object or array.",
+    "invalidUuid": "Select a valid UUID identifier.",
+    "invalidSelection": "Select a valid option.",
+    "invalidUrl": "Enter a valid URL.",
+    "invalidHttpScheme": "URL must begin with http:// or https://.",
+    "invalidControlCharacters": "Control characters are not allowed.",
+    "mustBeEnabled": "This option must be enabled to continue."
+  },
+  "errors": {
+    "ipcUnavailable": "Desktop runtime IPC is unavailable in standalone browser preview.",
+    "healthLoadFailed": "Unable to read local runtime health status.",
+    "updateCheckFailed": "Unable to check for application updates right now.",
+    "updateInstallFailed": "Unable to download or install the application update."
+  },
+  "window": {
+    "toggleSidebar": "Toggle Sidebar",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close"
+  },
+  "footer": {
+    "smtpLabel": "SMTP",
+    "httpLabel": "HTTP"
+  }
+}

@@ -1,0 +1,602 @@
+{
+  "application": {
+    "name": "NotifyTrap",
+    "tagline": "دریافت‌کننده محلی اعلان‌ها",
+    "status": {
+      "desktopShellReady": "پوسته دسکتاپ فعال است",
+      "browserPreviewMode": "حالت پیش‌نمایش مرورگر",
+      "databaseConnected": "پایگاه‌داده SQLite متصل",
+      "databaseDisconnected": "پایگاه‌داده قطع است",
+      "serverRunning": "در حال اجرا",
+      "serverStopped": "متوقف"
+    }
+  },
+  "navigation": {
+    "overview": "نمای کلی",
+    "inbox": "صندوق ورودی",
+    "workspaces": "فضاهای کاری",
+    "projects": "پروژه‌ها",
+    "channels": "کانال‌ها",
+    "settings": "تنظیمات",
+    "designSystem": "سیستم طراحی"
+  },
+  "workspace": {
+    "activeWorkspace": "فضای کاری",
+    "activeProject": "پروژه",
+    "activeEnvironment": "محیط",
+    "activeBadge": "فعال",
+    "noneSelected": "انتخاب نشده",
+    "noActiveScopeTitle": "یک پروژه انتخاب کنید",
+    "noActiveScopeDescription": "ابتدا از بخش نمای کلی یا انتخابگر نوار کناری یک فضای کاری و پروژه بسازید یا انتخاب کنید.",
+    "environments": {
+      "local": "محلی",
+      "development": "توسعه",
+      "testing": "تست",
+      "staging": "پیش‌تولید"
+    },
+    "environment": {
+      "defaultBadge": "پیش‌فرض",
+      "setAsDefault": "تنظیم به‌عنوان محیط پیش‌فرض",
+      "defaultUpdatedTitle": "محیط پیش‌فرض بروزرسانی شد"
+    },
+    "form": {
+      "slugHint": "فقط حروف کوچک انگلیسی، عدد و خط تیره تکی مجاز است."
+    },
+    "switcher": {
+      "ariaLabel": "تغییر فضای کاری یا پروژه فعال",
+      "emptyTitle": "انتخاب پروژه",
+      "emptySubtitle": "فضای کاری انتخاب نشده",
+      "searchPlaceholder": "جستجوی فضای کاری یا پروژه...",
+      "noMatches": "فضای کاری یا پروژه‌ای با این عبارت یافت نشد.",
+      "noProjectsInWorkspace": "هنوز پروژه‌ای در این فضای کاری نیست."
+    },
+    "actions": {
+      "newWorkspace": "فضای کاری جدید",
+      "createWorkspace": "ساخت فضای کاری",
+      "newProject": "پروژه جدید",
+      "createProject": "ساخت پروژه"
+    },
+    "modals": {
+      "createWorkspaceTitle": "ایجاد فضای کاری جدید",
+      "createWorkspaceDescription": "فضاهای کاری محصولات، تیم‌ها یا محیط‌های آزمایش محلی شما را از هم جدا می‌کنند.",
+      "editWorkspaceTitle": "ویرایش فضای کاری",
+      "createProjectTitle": "ایجاد پروژه جدید",
+      "createProjectDescription": "با ساخت پروژه، محیط‌های محلی، توسعه، تست و پیش‌تولید به‌صورت خودکار ایجاد می‌شوند.",
+      "editProjectTitle": "ویرایش پروژه"
+    },
+    "toast": {
+      "workspaceCreatedTitle": "فضای کاری ساخته شد",
+      "workspaceUpdatedTitle": "فضای کاری بروزرسانی شد",
+      "workspaceDeletedTitle": "فضای کاری حذف شد",
+      "projectCreatedTitle": "پروژه ساخته شد",
+      "projectUpdatedTitle": "پروژه بروزرسانی شد",
+      "projectDeletedTitle": "پروژه حذف شد"
+    }
+  },
+  "onboarding": {
+    "title": "به NotifyTrap خوش آمدید",
+    "subtitle": "برای راه‌اندازی سرورهای دریافت ایمیل، پیامک، پوش و وب‌هوک، اولین فضای کاری و پروژه محلی خود را بسازید.",
+    "offlineBadge": "بدون ارسال واقعی به بیرون",
+    "formTitle": "ایجاد اولین فضای کاری و پروژه",
+    "formDescription": "پیام‌های دریافت‌شده را بر اساس محصول یا سرویس با کلیدهای مجزای محلی دسته‌بندی کنید.",
+    "workspaceNameLabel": "نام فضای کاری / سازمان",
+    "workspaceNamePlaceholder": "استودیو توسعه",
+    "workspaceSlugLabel": "شناسه فضای کاری (Slug)",
+    "workspaceSlugPlaceholder": "dev-studio",
+    "projectNameLabel": "نام پروژه / اپلیکیشن",
+    "projectNamePlaceholder": "سرویس پرداخت",
+    "projectSlugLabel": "شناسه پروژه (Slug)",
+    "projectSlugPlaceholder": "billing-api",
+    "defaultEnvironmentsNote": "محیط‌های محلی، توسعه، تست و پیش‌تولید به‌طور خودکار ایجاد می‌شوند.",
+    "captureReadyTitle": "موتور دریافت محلی",
+    "highlightsTitle": "موارد آماده در اولین راه‌اندازی",
+    "highlightEnvironments": "چهار محیط از پیش آماده (محلی پیش‌فرض، توسعه، تست و پیش‌تولید).",
+    "highlightSecurity": "نگهداری کلیدهای کانال به‌صورت رمزنگاری‌شده در SQLite محلی با بررسی امن توکن.",
+    "highlightOffline": "تمامی ایمیل‌ها، پیامک‌ها، پوش و وب‌هوک‌ها ۱۰۰٪ روی لوپ‌بک محلی باقی می‌مانند.",
+    "submit": "ساخت فضای کاری و ورود به داشبورد",
+    "successTitle": "فضای کاری آماده است",
+    "successDescription": "پروژه و محیط‌های پیش‌فرض شما با موفقیت راه‌اندازی شدند."
+  },
+  "overview": {
+    "title": "نمای کلی فضای کاری",
+    "subtitle": "وضعیت سرورهای دریافت محلی، سلامت ذخیره‌سازی و زمینه فعال پروژه را بررسی کنید.",
+    "cards": {
+      "database": "ذخیره‌سازی محلی",
+      "databaseStatus": "پایگاه‌داده SQLite",
+      "databaseConnected": "متصل",
+      "databaseStandby": "آماده‌به‌کار",
+      "smtpServer": "سرور دریافت SMTP",
+      "httpServer": "سرور دریافت HTTP",
+      "httpEndpoint": "نشانی دریافت HTTP",
+      "smtpEndpoint": "نشانی دریافت SMTP",
+      "migrationVersion": "نسخه ساختار {version}"
+    },
+    "actions": {
+      "openInbox": "باز کردن صندوق ورودی",
+      "openDesignSystem": "بررسی سیستم طراحی",
+      "refreshHealth": "بروزرسانی وضعیت"
+    }
+  },
+  "dashboard": {
+    "scopedSubtitle": "فضای کاری: {workspace} • محیط فعال: {environment}",
+    "serverLive": "در حال گوش‌دادن",
+    "serverStandby": "آماده‌به‌کار",
+    "actions": {
+      "openInbox": "صندوق ورودی ({count})"
+    },
+    "quickIntegration": {
+      "title": "اتصال سریع",
+      "emptyTitle": "هیچ کانالی در این محدوده نیست",
+      "emptyDescription": "یک کانال ایمیل، پیامک، پوش یا وب‌هوک بسازید تا کد اتصال آماده کپی تولید شود."
+    },
+    "recentActivity": {
+      "title": "آخرین اعلان‌های دریافت‌شده",
+      "viewAll": "مشاهده همه",
+      "emptyTitle": "در انتظار دریافت اعلان محلی",
+      "emptyDescription": "یک ایمیل، پیامک، پوش یا وب‌هوک آزمایشی ارسال کنید تا اینجا به‌صورت زنده نمایش داده شود."
+    }
+  },
+  "inbox": {
+    "title": "صندوق ورودی یکپارچه",
+    "subtitle": "اعلان‌های دریافت‌شده ایمیل، پیامک، پوش و وب‌هوک را به‌صورت آنی بررسی کنید.",
+    "scopedSubtitle": "{workspace} / {project} / {environment}",
+    "noSubject": "(بدون موضوع)",
+    "emptyTitle": "هنوز اعلانی دریافت نشده است",
+    "emptyDescription": "یک کانال بسازید و یک درخواست آزمایشی ارسال کنید تا اعلان‌ها اینجا ثبت شوند.",
+    "inspectorEmptyTitle": "یک اعلان انتخاب کنید",
+    "inspectorEmptyDescription": "برای بررسی هدرها و بدنه پیام، یکی از اعلان‌های فهرست را انتخاب کنید.",
+    "paginationTotal": "مجموع {count} اعلان",
+    "filters": {
+      "allChannels": "همه",
+      "allStatuses": "همه وضعیت‌ها",
+      "searchPlaceholder": "جستجو در موضوع، گیرنده، متن..."
+    },
+    "status": {
+      "captured": "خوانده‌نشده",
+      "read": "خوانده‌شده",
+      "archived": "بایگانی‌شده"
+    },
+    "actions": {
+      "markUnread": "علامت‌گذاری خوانده‌نشده",
+      "markRead": "علامت‌گذاری خوانده‌شده",
+      "archive": "بایگانی",
+      "deleteNotification": "حذف",
+      "clearInbox": "پاک‌سازی محدوده"
+    },
+    "clearModal": {
+      "title": "پاک‌سازی اعلان‌های این محیط؟",
+      "description": "این عملیات تمام اعلان‌های ثبت‌شده در پروژه و محیط فعال را به‌طور دائمی حذف می‌کند."
+    },
+    "deleteModal": {
+      "title": "حذف اعلان؟",
+      "description": "این عملیات اعلان انتخاب‌شده و فایل‌های پیوست آن را برای همیشه حذف می‌کند."
+    },
+    "toast": {
+      "clearedTitle": "صندوق ورودی پاک شد",
+      "clearedDescription": "{count} اعلان دریافت‌شده حذف شد.",
+      "deletedTitle": "اعلان حذف شد"
+    },
+    "email": {
+      "fields": {
+        "from": "فرستنده",
+        "to": "گیرنده",
+        "cc": "رونوشت",
+        "bcc": "رونوشت مخفی"
+      },
+      "tabs": {
+        "htmlPreview": "پیش‌نمایش HTML",
+        "plainText": "متن ساده",
+        "rawHtml": "HTML خام",
+        "headers": "هدرها",
+        "attachments": "پیوست‌ها",
+        "rawSource": "سورس خام"
+      },
+      "emptyPlainText": "این پیام بخش متن ساده ندارد.",
+      "emptyRawHtml": "این پیام بخش HTML ندارد.",
+      "emptyAttachmentsTitle": "بدون پیوست",
+      "emptyAttachmentsDescription": "این ایمیل هیچ فایل پیوست MIME همراه نداشته است.",
+      "inlineAttachment": "درون‌متنی"
+    },
+    "sms": {
+      "fromLabel": "ارسال‌کننده",
+      "toLabel": "گیرنده",
+      "lengthLabel": "طول پیام",
+      "charactersCount": "{count} کاراکتر",
+      "metadataLabel": "متادیتای JSON"
+    },
+    "push": {
+      "badgeLabel": "نشانگر: {value}",
+      "soundLabel": "صدا: {value}",
+      "dataLabel": "داده‌های سفارشی"
+    },
+    "webhook": {
+      "tabs": {
+        "body": "بدنه",
+        "headers": "هدرها",
+        "query": "کوئری"
+      },
+      "emptyBody": "بدنه درخواست خالی بوده است.",
+      "emptyQuery": "هیچ پارامتر کوئری‌ای ارسال نشده است."
+    }
+  },
+  "workspaces": {
+    "title": "فضاهای کاری",
+    "subtitle": "فضاهای کاری محلی مجزا برای محصولات یا تیم‌های مختلف بسازید.",
+    "emptyTitle": "هیچ فضای کاری تعریف نشده است",
+    "emptyDescription": "اولین فضای کاری محلی خود را برای سازمان‌دهی پروژه‌ها و کانال‌ها ایجاد کنید.",
+    "updatedAt": "بروزرسانی: {date}",
+    "form": {
+      "nameLabel": "نام فضای کاری",
+      "namePlaceholder": "استودیو توسعه",
+      "slugLabel": "شناسه فضای کاری (Slug)",
+      "slugPlaceholder": "dev-studio",
+      "descriptionLabel": "توضیحات",
+      "descriptionPlaceholder": "توضیحات اختیاری درباره تیم یا فضای کاری"
+    },
+    "deleteModal": {
+      "title": "حذف فضای کاری؟",
+      "description": "حذف «{name}» باعث حذف دائمی تمام پروژه‌ها، کانال‌ها و اعلان‌های آن می‌شود."
+    }
+  },
+  "projects": {
+    "title": "پروژه‌ها",
+    "subtitle": "اپلیکیشن‌ها و محیط‌های ایزوله را زیر نظر فضای کاری فعال مدیریت کنید.",
+    "scopedSubtitle": "مدیریت پروژه‌های فضای کاری {workspace}",
+    "emptyTitle": "هیچ پروژه‌ای تعریف نشده است",
+    "emptyDescription": "یک پروژه بسازید تا محیط‌های محلی، توسعه، تست و پیش‌تولید آماده شوند.",
+    "actions": {
+      "openDashboard": "باز کردن داشبورد"
+    },
+    "form": {
+      "workspaceLabel": "فضای کاری",
+      "nameLabel": "نام پروژه",
+      "namePlaceholder": "سرویس پرداخت",
+      "slugLabel": "شناسه پروژه (Slug)",
+      "slugPlaceholder": "billing-api",
+      "descriptionLabel": "توضیحات",
+      "descriptionPlaceholder": "توضیحات اختیاری پروژه"
+    },
+    "deleteModal": {
+      "title": "حذف پروژه؟",
+      "description": "حذف «{name}» باعث حذف دائمی تمام محیط‌ها، کانال‌ها و اعلان‌های آن می‌شود."
+    }
+  },
+  "channels": {
+    "title": "کانال‌ها",
+    "subtitle": "نقاط دریافت ایمیل، پیامک، پوش و وب‌هوک و کلیدهای ایزوله آن‌ها را مدیریت کنید.",
+    "scopedSubtitle": "محدوده: {workspace} / {project} / {environment}",
+    "types": {
+      "email": "ایمیل (SMTP)",
+      "sms": "پیامک (HTTP)",
+      "push": "پوش (HTTP)",
+      "webhook": "وب‌هوک (HTTP)"
+    },
+    "status": {
+      "enabled": "فعال",
+      "disabled": "متوقف"
+    },
+    "emptyTitle": "هیچ کانالی تعریف نشده است",
+    "emptyDescription": "یک کانال ایمیل، پیامک، پوش یا وب‌هوک اضافه کنید تا اطلاعات اتصال محلی ساخته شود.",
+    "actions": {
+      "addChannel": "افزودن کانال",
+      "toggleEnabled": "تغییر وضعیت فعال بودن کانال",
+      "revealSecret": "نمایش",
+      "hideSecret": "مخفی",
+      "rotateCredential": "تغییر کلید",
+      "deleteChannel": "حذف کانال",
+      "showSnippet": "کد اتصال",
+      "hideSnippet": "بستن کد اتصال",
+      "copySnippet": "کپی کد اتصال"
+    },
+    "card": {
+      "identifierLabel": "شناسه دسترسی",
+      "compositeKeyLabel": "کلید ترکیبی / X-Channel-Key",
+      "webhookUrlLabel": "نشانی وب‌هوک محلی",
+      "secretTokenLabel": "توکن محرمانه",
+      "snippetLabel": "کد اتصال",
+      "updatedAt": "بروزرسانی: {date}"
+    },
+    "createModal": {
+      "title": "افزودن کانال دریافت",
+      "description": "کلیدهای دسترسی ایزوله مخصوص همین پروژه و محیط فعال ایجاد می‌شوند.",
+      "nameLabel": "نام کانال",
+      "namePlaceholder": "ایمیل تراکنشی",
+      "typeLabel": "پروتکل کانال",
+      "identifierLabel": "شناسه سفارشی (اختیاری)",
+      "identifierHint": "در صورت خالی گذاشتن، شناسه امن به‌طور خودکار تولید می‌شود.",
+      "identifierPlaceholder": "transactional-mailer",
+      "enabledLabel": "وضعیت فعالیت",
+      "enabledHint": "امکان دریافت پیام‌های ورودی بلافاصله پس از ساخت فعال باشد.",
+      "submit": "ایجاد کانال"
+    },
+    "rotateModal": {
+      "title": "تغییر توکن کانال؟",
+      "description": "بازتولید توکن برای «{name}» فوراً کلید قبلی را در فایل .env و کلاینت‌های آزمایشی نامعتبر می‌کند."
+    },
+    "deleteModal": {
+      "title": "حذف کانال؟",
+      "description": "حذف «{name}» دریافت پیام را متوقف کرده و تمام اعلان‌های دریافتی از این کانال را پاک می‌کند."
+    },
+    "toast": {
+      "createdTitle": "کانال ایجاد شد",
+      "enabledTitle": "کانال فعال شد",
+      "disabledTitle": "کانال متوقف شد",
+      "rotatedTitle": "توکن کانال تغییر یافت",
+      "deletedTitle": "کانال حذف شد"
+    }
+  },
+  "settings": {
+    "title": "تنظیمات",
+    "subtitle": "ظاهر، زبان، پورت‌های سرور محلی و تنظیمات ذخیره‌سازی را پیکربندی کنید.",
+    "appearance": {
+      "title": "ظاهر برنامه",
+      "description": "تغییر بین تم روشن و تاریک در محیط دسکتاپ.",
+      "label": "تم رنگی",
+      "light": "روشن",
+      "dark": "تاریک",
+      "system": "سیستم"
+    },
+    "language": {
+      "title": "زبان و جهت چیدمان",
+      "description": "تغییر زبان رابط کاربری و جهت خودکار چپ‌به‌راست یا راست‌به‌چپ.",
+      "label": "زبان رابط کاربری"
+    },
+    "server": {
+      "title": "نقاط اتصال محلی و شبکه",
+      "description": "پیکربندی آدرس اتصال لوپ‌بک، پورت‌های TCP، محدودیت حجم و نگهداری داده‌ها.",
+      "httpEndpoint": "نشانی فعال HTTP",
+      "smtpEndpoint": "نشانی فعال SMTP",
+      "form": {
+        "bindAddressLabel": "آدرس اتصال (IPv4)",
+        "bindAddressHint": "آدرس IPv4 با ماسک شبکه برای لوپ‌بک یا کارت شبکه محلی (مثلاً 127.0.0.1).",
+        "httpPortLabel": "پورت دریافت HTTP",
+        "smtpPortLabel": "پورت دریافت SMTP",
+        "httpPayloadLimitLabel": "حداکثر حجم بدنه HTTP (مگابایت)",
+        "smtpMessageLimitLabel": "حداکثر حجم ایمیل SMTP (مگابایت)",
+        "retentionDaysLabel": "مدت نگهداری اعلان‌ها (روز)",
+        "saveLabel": "اعتبارسنجی و ذخیره",
+        "savedTitle": "پیکربندی معتبر است",
+        "savedDescription": "تمامی پارامترهای سرور با Zod اعتبارسنجی شدند. ذخیره‌سازی دائمی در فاز ۲ فعال می‌شود."
+      }
+    },
+    "about": {
+      "title": "درباره NotifyTrap",
+      "description": "میزکار محلی دریافت و بررسی اعلان‌ها بدون ارسال به گیرندگان واقعی.",
+      "versionLabel": "نسخه برنامه",
+      "schemaLabel": "نسخه ساختار پایگاه‌داده",
+      "architectureBadge": "مونولیت ماژولار محلی"
+    },
+    "updates": {
+      "title": "به‌روزرسانی نرم‌افزار",
+      "description": "به‌روزرسانی‌های امضاشده دسکتاپ پیش از نصب به‌صورت محلی اعتبارسنجی می‌شوند (ویندوز، مک و AppImage لینوکس).",
+      "autoCheckLabel": "بررسی خودکار در پس‌زمینه",
+      "autoCheckHint": "پس از اجرای برنامه به‌صورت بی‌صدا نسخه جدید را بررسی کرده و فقط در صورت وجود نسخه جدید اعلان نمایش می‌دهد.",
+      "currentVersionLabel": "نسخه نصب‌شده",
+      "latestVersionLabel": "نسخه قابل دریافت",
+      "statusUpToDate": "به‌روز است",
+      "statusAvailable": "نسخه {version} آماده دریافت است",
+      "statusDownloading": "در حال دریافت به‌روزرسانی...",
+      "statusRestartReady": "آماده راه‌اندازی مجدد",
+      "upToDateTitle": "برنامه به‌روز است",
+      "upToDateDescription": "در حال حاضر از آخرین نسخه منتشرشده استفاده می‌کنید.",
+      "toastAvailableTitle": "نسخه جدید v{version} منتشر شد",
+      "toastAvailableDescription": "به‌روزرسانی امضاشده از نسخه v{currentVersion} به v{version} آماده نصب است.",
+      "installedTitle": "به‌روزرسانی آماده اعمال است",
+      "installedDescription": "بسته جدید تأیید و نصب شد. برای اجرای نسخه جدید برنامه را مجدداً راه‌اندازی کنید.",
+      "desktopOnlyTitle": "نیازمند محیط دسکتاپ",
+      "desktopOnlyDescription": "بررسی و نصب به‌روزرسانی درون‌برنامه‌ای فقط در نسخه دسکتاپ فعال است.",
+      "releaseNotesLabel": "یادداشت‌های انتشار",
+      "linuxPackageHint": "بسته‌های .deb و .rpm لینوکس از طریق مدیر بسته یا فایل نصب نسخه جدید به‌روز می‌شوند.",
+      "actions": {
+        "checkNow": "بررسی به‌روزرسانی",
+        "installNow": "دانلود و به‌روزرسانی",
+        "openSettings": "مشاهده جزئیات",
+        "restartNow": "راه‌اندازی مجدد"
+      }
+    }
+  },
+  "designSystem": {
+    "title": "سیستم طراحی",
+    "subtitle": "مرجع زنده بصری برای توکن‌ها، کامپوننت‌ها، تم‌ها و چیدمان دوزبانه.",
+    "controls": {
+      "themeToggle": "تغییر تم",
+      "languageToggle": "تغییر زبان"
+    },
+    "sections": {
+      "colors": "رنگ‌های معنایی و کانال‌ها",
+      "typography": "سیستم تایپوگرافی",
+      "spacing": "مقیاس فاصله‌گذاری",
+      "radius": "سیستم گردی گوشه‌ها",
+      "shadows": "سیستم سایه‌ها",
+      "sizing": "سیستم اندازه‌گذاری",
+      "motion": "سیستم حرکت و انیمیشن",
+      "components": "نمایشگاه کامپوننت‌ها",
+      "themeMatrix": "ماتریس تم و جهت"
+    },
+    "descriptions": {
+      "colors": "پالت‌های روشن و تاریک مستقل با رنگ‌های معنایی اختصاصی برای هر کانال.",
+      "typography": "مقیاس دوزبانه فارسی، انگلیسی و مونو‌اسپیس با وزن و ارتفاع خط دقیق.",
+      "spacing": "مقیاس متمرکز فاصله‌گذاری با پایه ۴ پیکسل از ۰ تا ۲۴ (۰ تا ۹۶ پیکسل).",
+      "motion": "گذارهای کنترل‌شده با احترام کامل به تنظیمات کاهش حرکت.",
+      "components": "کامپوننت‌های رسمی Nuxt UI در وضعیت‌های تعاملی، خطا، بارگذاری و خالی.",
+      "themeMatrix": "بررسی تقارن چیدمان، کنتراست و تایپوگرافی در حالت روشن/تاریک و LTR/RTL."
+    },
+    "colors": {
+      "semanticGroup": "توکن‌های برند و وضعیت",
+      "surfaceGroup": "توکن‌های سطوح، ورودی و فوکوس",
+      "channelGroup": "نشانگرهای کانال‌های اعلان",
+      "tokens": {
+        "primary": "اصلی",
+        "secondary": "ثانویه",
+        "accent": "تأکید",
+        "success": "موفقیت",
+        "warning": "هشدار",
+        "error": "خطا",
+        "information": "اطلاع‌رسانی",
+        "pending": "در انتظار",
+        "live": "زنده",
+        "background": "پس‌زمینه",
+        "sidebar": "نوار کناری",
+        "foreground": "متن اصلی",
+        "surface": "سطح",
+        "elevatedSurface": "سطح برجسته",
+        "hoverSurface": "سطح هاور",
+        "activeSurface": "سطح فعال",
+        "border": "حاشیه",
+        "input": "ورودی",
+        "focus": "فوکوس",
+        "disabled": "غیرفعال",
+        "overlay": "پوشش پس‌زمینه"
+      }
+    },
+    "typography": {
+      "latinFont": "فونت رابط کاربری لاتین",
+      "persianFont": "فونت رابط کاربری فارسی",
+      "monoFont": "فونت فنی مونو‌اسپیس",
+      "scale": {
+        "display": "نمایشی — محیط محلی آزمایش اعلان‌ها",
+        "heading": "سرتیتر — کانال‌های دریافت و پروژه‌ها",
+        "section": "بخش — جزئیات محتوای دریافت‌شده",
+        "body": "متن اصلی — متن استاندارد خوانا در سراسر رابط کاربری.",
+        "label": "برچسب — عنوان فیلدهای ورودی و منو",
+        "caption": "زیرنویس — متادیتا، زمان‌بندی و نسخه ساختار"
+      }
+    },
+    "radius": {
+      "none": "بدون گردی",
+      "small": "کوچک",
+      "medium": "متوسط",
+      "large": "بزرگ",
+      "extraLarge": "خیلی بزرگ",
+      "twoExtraLarge": "بسیار بزرگ (2XL)",
+      "full": "کاملاً گرد"
+    },
+    "shadows": {
+      "none": "بدون سایه",
+      "sm": "سایه کوچک (SM)",
+      "md": "سایه متوسط (MD)",
+      "lg": "سایه بزرگ (LG)",
+      "xl": "سایه خیلی بزرگ (XL)",
+      "focus": "حلقه فوکوس"
+    },
+    "sizing": {
+      "controlSm": "ارتفاع کنترل (کوچک)",
+      "controlMd": "ارتفاع کنترل (متوسط)",
+      "controlLg": "ارتفاع کنترل (بزرگ)",
+      "inputHeight": "ارتفاع فیلد ورودی",
+      "sidebarWidth": "عرض نوار کناری",
+      "sidebarCollapsedWidth": "عرض نوار کناری جمع‌شده",
+      "iconSm": "اندازه آیکون (کوچک)",
+      "iconMd": "اندازه آیکون (متوسط)",
+      "iconLg": "اندازه آیکون (بزرگ)"
+    },
+    "motion": {
+      "fast": "گذار سریع",
+      "standard": "گذار استاندارد",
+      "slow": "گذار آهسته",
+      "easing": "منحنی شتاب استاندارد",
+      "trigger": "اجرای پیش‌نمایش"
+    },
+    "showcase": {
+      "buttons": "دکمه‌ها و وضعیت‌ها",
+      "disabledState": "غیرفعال",
+      "formsTitle": "فرم‌های استاندارد با اعتبارسنجی Zod و ماسک (Maska)",
+      "inputDefault": "شناسه کانال (ماسک اسلاگ)",
+      "inputSlugHint": "فقط حروف کوچک انگلیسی، عدد و خط تیره تکی مجاز است.",
+      "phoneLabel": "شماره گیرنده پیامک (ماسک E.164)",
+      "portLabel": "پورت دریافت (ماسک پورت)",
+      "verificationCodeLabel": "کد تأیید (ماسک ###-###)",
+      "selectLabel": "انتخاب محیط",
+      "searchLabel": "فیلتر جستجو",
+      "searchPlaceholder": "جستجو در اعلان‌های دریافت‌شده...",
+      "textareaLabel": "بدنه JSON",
+      "checkboxEnabled": "تأیید فعال‌سازی دریافت الزامی است",
+      "switchLabel": "اسکرول خودکار صندوق زنده",
+      "submitForm": "اعتبارسنجی و ثبت",
+      "formValidTitle": "فرم معتبر است",
+      "formValidDescription": "تمامی ورودی‌های ماسک‌شده و قوانین Zod با موفقیت بررسی شدند.",
+      "tooltipTrigger": "راهنمای شناور",
+      "tooltipHint": "درگاه دریافت محلی روی آدرس لوپ‌بک فعال است.",
+      "dropdownTrigger": "منوی عملیات",
+      "popoverTrigger": "باز کردن پاپ‌اور",
+      "popoverBody": "اطلاعات دسترسی کانال به‌صورت محلی با کلید سیستم‌عامل رمزنگاری می‌شوند.",
+      "dialogTrigger": "باز کردن دیالوگ",
+      "dialogTitle": "پیکربندی کانال",
+      "dialogDescription": "مشاهده و کپی تنظیمات محلی SMTP یا HTTP.",
+      "confirmTrigger": "تأیید حذف",
+      "confirmTitle": "حذف کانال؟",
+      "confirmDescription": "این عملیات کانال و تمام اعلان‌های ثبت‌شده آن را حذف می‌کند.",
+      "toastTrigger": "نمایش اعلان",
+      "toastTitle": "اطلاعات کپی شد",
+      "toastDescription": "تنظیمات اتصال کانال در کلیپ‌بورد کپی شد.",
+      "tabPreview": "پیش‌نمایش",
+      "tabSource": "سورس خام",
+      "tabPreviewBody": "پیش‌نمایش HTML پاک‌سازی‌شده و متن ساده در محیط ایزوله نمایش داده می‌شوند.",
+      "tableChannel": "کانال",
+      "tableRecipient": "گیرنده",
+      "tableStatus": "وضعیت",
+      "alertSuccess": "سرورهای دریافت محلی با موفقیت روی لوپ‌بک متصل شدند.",
+      "alertError": "امکان اتصال به پورت 1025 وجود ندارد: آدرس در حال استفاده است."
+    },
+    "matrix": {
+      "themeControls": "بررسی تم رنگی",
+      "directionControls": "بررسی جهت و زبان",
+      "englishLtr": "انگلیسی (LTR)",
+      "persianRtl": "فارسی (RTL)"
+    }
+  },
+  "common": {
+    "loading": "در حال بارگذاری...",
+    "refresh": "بروزرسانی",
+    "save": "ذخیره",
+    "reset": "بازنشانی",
+    "cancel": "انصراف",
+    "edit": "ویرایش",
+    "delete": "حذف",
+    "copy": "کپی",
+    "copied": "کپی شد",
+    "copiedTitle": "در کلیپ‌بورد کپی شد",
+    "copyFailedTitle": "کپی در دسترس نیست",
+    "errorTitle": "خطا در انجام عملیات",
+    "unexpectedError": "خطای غیرمنتظره‌ای در ارتباط با هسته دسکتاپ رخ داد.",
+    "retry": "تلاش مجدد"
+  },
+  "validation": {
+    "required": "تکمیل این فیلد الزامی است.",
+    "minLength": "حداقل {min} کاراکتر وارد کنید.",
+    "maxLength": "حداکثر {max} کاراکتر مجاز است.",
+    "englishOnly": "فقط از حروف و کاراکترهای انگلیسی استفاده کنید.",
+    "invalidSlug": "فقط از حروف کوچک انگلیسی، عدد و خط تیره تکی استفاده کنید (بدون خط تیره در ابتدا یا انتها).",
+    "invalidInteger": "فقط عدد صحیح وارد کنید.",
+    "integerRange": "مقدار باید بین {min} و {max} باشد.",
+    "invalidPortRange": "شماره پورت باید بین {min} و {max} باشد.",
+    "portConflict": "پورت SMTP و پورت HTTP نمی‌توانند یکسان باشند.",
+    "invalidIpv4Address": "یک آدرس IPv4 معتبر وارد کنید (مثلاً 127.0.0.1).",
+    "invalidPhoneE164": "یک شماره تلفن بین‌المللی معتبر وارد کنید (مثلاً 0000 000 912 98+).",
+    "invalidVerificationCode": "کد {digits} رقمی کامل را وارد کنید.",
+    "invalidJsonObject": "یک آبجکت یا آرایه JSON معتبر وارد کنید.",
+    "invalidUuid": "یک شناسه UUID معتبر انتخاب کنید.",
+    "invalidSelection": "یک گزینه معتبر انتخاب کنید.",
+    "invalidUrl": "یک نشانی اینترنتی معتبر وارد کنید.",
+    "invalidHttpScheme": "نشانی باید با http:// یا https:// شروع شود.",
+    "invalidControlCharacters": "استفاده از کاراکترهای کنترلی مجاز نیست.",
+    "mustBeEnabled": "فعال بودن این گزینه برای ادامه الزامی است."
+  },
+  "errors": {
+    "ipcUnavailable": "رابط دسکتاپ در حالت پیش‌نمایش مستقل مرورگر در دسترس نیست.",
+    "healthLoadFailed": "خواندن وضعیت سلامت زمان اجرا ناموفق بود.",
+    "updateCheckFailed": "در حال حاضر امکان بررسی به‌روزرسانی وجود ندارد.",
+    "updateInstallFailed": "دانلود یا نصب به‌روزرسانی ناموفق بود."
+  },
+  "window": {
+    "toggleSidebar": "باز و بسته کردن نوار کناری",
+    "minimize": "کوچک کردن پنجره",
+    "maximize": "بزرگ‌نمایی پنجره",
+    "restore": "بازیابی اندازه پنجره",
+    "close": "بستن پنجره"
+  },
+  "footer": {
+    "smtpLabel": "SMTP",
+    "httpLabel": "HTTP"
+  }
+}
