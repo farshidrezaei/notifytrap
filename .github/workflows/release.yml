@@ -54,9 +54,51 @@ jobs:
           cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
           cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 
+  prepare_release:
+    name: Prepare Draft Release
+    needs: verify
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.draft.outputs.release_id }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create or reuse draft release
+        id: draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          TAG="v${VERSION}"
+          EXISTING_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id" | head -n 1 || true)
+          if [ -n "${EXISTING_ID}" ]; then
+            echo "Found existing draft release ${EXISTING_ID} for ${TAG}"
+            echo "release_id=${EXISTING_ID}" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          gh release create "${TAG}" \
+            --draft \
+            --title "NotifyTrap ${TAG}" \
+            --notes "Cross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts." \
+            --target "${GITHUB_SHA}"
+
+          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id" | head -n 1)
+          if [ -z "${RELEASE_ID}" ]; then
+            echo "Failed to resolve created draft release ID for ${TAG}" >&2
+            exit 1
+          fi
+          echo "Created draft release ${RELEASE_ID} for ${TAG}"
+          echo "release_id=${RELEASE_ID}" >> "${GITHUB_OUTPUT}"
+
   publish:
     name: Build & Publish (${{ matrix.platform }})
-    needs: verify
+    needs: prepare_release
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -101,9 +143,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'NotifyTrap v__VERSION__'
+          releaseId: ${{ needs.prepare_release.outputs.release_id }}
           releaseBody: 'Cross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts.'
-          releaseDraft: true
-          prerelease: false
+          retryAttempts: 3
           args: ${{ matrix.args }}
