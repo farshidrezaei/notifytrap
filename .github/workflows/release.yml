@@ -138,6 +138,17 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build universal notifytrap-cli binary for macOS bundle
+        if: matrix.platform == 'macos-latest'
+        run: |
+          cargo build --manifest-path src-tauri/Cargo.toml --release --target aarch64-apple-darwin --bin notifytrap-cli
+          cargo build --manifest-path src-tauri/Cargo.toml --release --target x86_64-apple-darwin --bin notifytrap-cli
+          mkdir -p src-tauri/target/universal-apple-darwin/release
+          lipo -create \
+            src-tauri/target/aarch64-apple-darwin/release/notifytrap-cli \
+            src-tauri/target/x86_64-apple-darwin/release/notifytrap-cli \
+            -output src-tauri/target/universal-apple-darwin/release/notifytrap-cli
+
       - name: Build Tauri installers and updater manifest
         uses: tauri-apps/tauri-action@v0
         env:
