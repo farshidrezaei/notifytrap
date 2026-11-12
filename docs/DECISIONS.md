@@ -56,3 +56,14 @@
   1. Extend `EventPublisher` (`TauriEventPublisher` and `BroadcastEventPublisher`) with a Tokio `broadcast::Receiver<NotificationCapturedEvent>` subscription channel so `GET /api/v1/notifications/wait` subscribes before its initial SQLite lookup and wakes instantaneously on matching captures without polling `sleep`.
   2. Compute `verificationArtifacts` (OTP codes and verification/magic links) deterministically in pure Rust (`domain/verification_extractor.rs`) on read/capture instead of persisting duplicated extracted tokens, ensuring backwards compatibility with existing v1.0.0 SQLite rows.
 - **Consequences**: Zero-polling E2E test synchronization (`408 WAIT_TIMEOUT` on expiry), strict channel-key scoping on all query/wait endpoints, and automatic extraction across existing and newly captured notifications.
+
+---
+
+## ADR-010: Strict Offline `cid:` Attachment Hydration & Sandboxed Image Preview (`v1.2.0`)
+
+- **Status**: Accepted
+- **Decision**:
+  1. Allow `<img>` tags with `cid:` `src` attributes through `ammonia` (`html_sanitizer.rs`) while actively stripping any `<img>` element whose `src` is not a `cid:` URI, preserving complete remote tracking-pixel blocking.
+  2. Resolve `cid:` images in the frontend (`EmailInspectorView.vue` / `attachmentPreview.ts`) strictly using local `data:` URIs fetched from SQLite via `get_notification_attachment` with raster MIME allowlisting (`png`, `jpeg`, `gif`, `webp`, excluding `image/svg+xml` from inline preview rendering).
+  3. Implement email quality auditing, SMS GSM-7/UCS-2 counting, and LCS notification diffing as pure deterministic frontend utilities rather than additional database columns or external requests.
+- **Consequences**: Authentic HTML email rendering with embedded logos and full attachment inspection without weakening `img-src data:; connect-src 'none'; script-src 'none';` sandbox isolation.

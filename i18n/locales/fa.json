@@ -190,25 +190,75 @@
         "rawHtml": "HTML خام",
         "headers": "هدرها",
         "attachments": "پیوست‌ها",
-        "rawSource": "سورس خام"
+        "rawSource": "سورس خام",
+        "audit": "ممیزی"
       },
       "emptyPlainText": "این پیام بخش متن ساده ندارد.",
       "emptyRawHtml": "این پیام بخش HTML ندارد.",
       "emptyAttachmentsTitle": "بدون پیوست",
       "emptyAttachmentsDescription": "این ایمیل هیچ فایل پیوست MIME همراه نداشته است.",
-      "inlineAttachment": "درون‌متنی"
+      "inlineAttachment": "درون‌متنی",
+      "viewport": {
+        "desktop": "دسکتاپ",
+        "tablet": "تبلت",
+        "mobile": "موبایل",
+        "simulateDark": "کلاینت تیره"
+      },
+      "attachments": {
+        "preview": "پیش‌نمایش",
+        "previewTitle": "پیش‌نمایش پیوست",
+        "download": "دانلود",
+        "binaryTitle": "پیوست باینری",
+        "binaryDescription": "پیش‌نمایش درون‌برنامه‌ای برای این نوع فایل باینری پشتیبانی نمی‌شود. برای بررسی، فایل را دانلود کنید."
+      },
+      "audit": {
+        "metrics": {
+          "size": "حجم پیام",
+          "links": "لینک‌ها",
+          "images": "تصاویر",
+          "missingAlt": "بدون متن جایگزین"
+        },
+        "severity": {
+          "pass": "تایید",
+          "warning": "هشدار",
+          "info": "اطلاع"
+        },
+        "findings": {
+          "subjectPresent": "ایمیل دارای عنوان غیرخالی است.",
+          "subjectMissing": "عنوان ایمیل خالی یا ناموجود است.",
+          "plainTextPresent": "نسخه متنی جایگزین (Plain Text) در ایمیل وجود دارد.",
+          "plainTextMissing": "ایمیل HTML فاقد نسخه متنی جایگزین (Plain Text) است.",
+          "allImagesHaveAlt": "همه تصاویر دارای صفت alt هستند.",
+          "imagesMissingAlt": "{count} تصویر فاقد صفت alt است.",
+          "remoteImagesBlocked": "{count} تصویر از راه دور شناسایی شد و در محیط ایزوله مسدود گردید.",
+          "unresolvedCidImages": "{count} تصویر درون‌خطی cid با هیچ پیوست MIME مطابقت ندارد.",
+          "linksValid": "همه لینک‌ها از پروتکل معتبر خارجی (https/http/mailto/tel) استفاده می‌کنند.",
+          "linksRelativeOrEmpty": "{count} لینک دارای آدرس خالی یا نسبی است.",
+          "listUnsubscribePresent": "سربرگ List-Unsubscribe در ایمیل وجود دارد.",
+          "listUnsubscribeMissing": "سربرگ List-Unsubscribe در ایمیل وجود ندارد.",
+          "compactSize": "حجم پیام ({kilobytes} کیلوبایت) مناسب است و بریده نمی‌شود.",
+          "largeHtmlSize": "حجم پیام ({kilobytes} کیلوبایت) بیش از ۱۰۰ کیلوبایت است و ممکن است در برخی کلاینت‌ها بریده شود."
+        }
+      }
     },
     "sms": {
       "fromLabel": "ارسال‌کننده",
       "toLabel": "گیرنده",
       "lengthLabel": "طول پیام",
       "charactersCount": "{count} کاراکتر",
-      "metadataLabel": "متادیتای JSON"
+      "metadataLabel": "متادیتای JSON",
+      "segmentsCount": "{count} بخش",
+      "unitsSummary": "{units} از {limit} واحد ({remaining} باقیمانده در بخش فعلی)"
     },
     "push": {
       "badgeLabel": "نشانگر: {value}",
       "soundLabel": "صدا: {value}",
-      "dataLabel": "داده‌های سفارشی"
+      "dataLabel": "داده‌های سفارشی",
+      "devices": {
+        "ios": "آیفون (iOS)",
+        "android": "اندروید",
+        "web": "وب پوش"
+      }
     },
     "webhook": {
       "tabs": {
@@ -232,6 +282,19 @@
       "copyCurl": "کپی دستور cURL",
       "downloadedTitle": "فایل {format} ذخیره شد",
       "copiedTitle": "محتوای {format} کپی شد"
+    },
+    "diff": {
+      "compareButton": "مقایسه",
+      "title": "مقایسه اعلان‌ها",
+      "description": "بررسی تفاوت خط‌به‌خط بین اعلان فعلی و یک پیام ثبت‌شده دیگر.",
+      "selectPlaceholder": "اعلان دیگری را برای مقایسه انتخاب کنید...",
+      "emptyTitle": "هدف مقایسه را انتخاب کنید",
+      "emptyDescription": "یک اعلان دوم از فهرست بالا انتخاب کنید تا تفاوت خطوط نمایش داده شود.",
+      "modes": {
+        "prettyPayload": "بدنه قالب‌بندی‌شده",
+        "rawPayload": "پیام خام",
+        "metadata": "فراداده"
+      }
     }
   },
   "workspaces": {

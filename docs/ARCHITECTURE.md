@@ -163,3 +163,6 @@ Default loopback binding: `127.0.0.1`. Default HTTP port: `4080`. Default SMTP p
   - Pure domain extractor (`src-tauri/src/domain/verification_extractor.rs`) detecting OTP codes (including Persian/Arabic-Indic digit normalization) and verification/magic links.
   - Event-driven HTTP query/wait endpoints (`src-tauri/src/infrastructure/http/query_routes.rs`) backed by `EventPublisher::subscribe_notifications()` broadcast wakeup.
   - Local `.eml`, `JSON`, and `cURL` export formatter (`app/utils/notificationExport.ts`) and Inbox verification artifact pills.
+- **v1.2.0 (Phase 2 — Rich Inspector Pro: Email, SMS, Push & Diff)**:
+  - Preserved `cid:` inline image references in `html_sanitizer.rs` (filtering out all remote `http://`/`https://` image tags) and added `get_notification_attachment` IPC command returning base64-encoded MIME payloads.
+  - Added pure offline frontend analyzers (`smsAnalyzer.ts`, `emailAudit.ts`, `textDiff.ts`, `attachmentPreview.ts`) plus responsive Email viewport/Dark Client controls, inline `cid:` hydration, attachment preview modal (`EmailAttachmentModal.vue`), SMS GSM-7/UCS-2 segment meter, Push iOS/Android/Web Push device mockups, and notification diff modal (`NotificationDiffModal.vue`).

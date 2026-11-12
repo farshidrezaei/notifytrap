@@ -62,12 +62,12 @@ During local development and staging verification, applications frequently emit 
 ## Core Capabilities
 
 - **Four Local Capture Channels in One Engine**:
-  - **Email (SMTP)**: Embedded Tokio ESMTP listener (`127.0.0.1:1025` default) supporting `AUTH PLAIN` and `AUTH LOGIN`, multipart `text/plain` + `text/html`, attachment inspection, sanitized HTML preview, and raw MIME source.
-  - **SMS (HTTP)**: `POST /api/v1/sms` capturing recipient, sender ID, message text, and arbitrary JSON metadata.
-  - **Push (HTTP)**: `POST /api/v1/push` capturing device token, platform, notification title/body, badge count, and custom payload data.
+  - **Email (SMTP)**: Embedded Tokio ESMTP listener (`127.0.0.1:1025` default) supporting `AUTH PLAIN` and `AUTH LOGIN`, multipart `text/plain` + `text/html`, attachment preview/download, inline `cid:` hydration, responsive Desktop/Tablet/Mobile + Dark Client preview, offline Email Audit diagnostics, and raw MIME source.
+  - **SMS (HTTP)**: `POST /api/v1/sms` capturing recipient, sender ID, message text, JSON metadata, GSM-7 / UCS-2 encoding diagnostics, and multi-segment counter.
+  - **Push (HTTP)**: `POST /api/v1/push` capturing device token, platform, notification title/body, badge count, custom payload data, and iOS / Android / Web Push device previews.
   - **Webhook (HTTP)**: `ANY /api/v1/webhooks/{credential_identifier}[/{subpath}]` supporting every HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), subpaths, request headers, query strings, and JSON/raw request bodies.
 - **Scoped Multi-Project Organization**: Organize captures across **Workspaces → Projects → Environments (`local`, `development`, `testing`, `staging`) → Channels**, each with its own generated `<credential_identifier>.<secret_token>`.
-- **Real-Time Unified Inbox**: Live desktop event streaming (`notification:captured`), channel/status filtering, search, pagination, syntax highlighting (`JSON`, `HTML`, `Bash`, `.ENV`, `MIME / HTTP`), and copyable framework snippets.
+- **Real-Time Unified Inbox & Diff Inspector**: Live desktop event streaming (`notification:captured`), channel/status/run-tag (`X-NotifyTrap-Run`) filtering, automatic OTP & magic-link extraction, one-click `.eml` / redacted `JSON` / `cURL` export, side-by-side notification diffing, search, pagination, and syntax highlighting (`JSON`, `HTML`, `Bash`, `.ENV`, `MIME / HTTP`).
 - **First-Class Bilingual & Dual-Theme UI**:
   - Native **English (`en`, LTR)** and **Persian (`fa`, RTL)** with logical CSS layout symmetry and bundled offline typography (`IBM Plex Sans`, `Vazirmatn`, `JetBrains Mono`).
   - Independent **Light** and **Dark** themes.

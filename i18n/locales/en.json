@@ -190,25 +190,75 @@
         "rawHtml": "Raw HTML",
         "headers": "Headers",
         "attachments": "Attachments",
-        "rawSource": "Raw Source"
+        "rawSource": "Raw Source",
+        "audit": "Audit"
       },
       "emptyPlainText": "No plain-text part in this message.",
       "emptyRawHtml": "No HTML part in this message.",
       "emptyAttachmentsTitle": "No attachments",
       "emptyAttachmentsDescription": "This message did not include any MIME attachments.",
-      "inlineAttachment": "Inline"
+      "inlineAttachment": "Inline",
+      "viewport": {
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "mobile": "Mobile",
+        "simulateDark": "Dark Client"
+      },
+      "attachments": {
+        "preview": "Preview",
+        "previewTitle": "Attachment Preview",
+        "download": "Download",
+        "binaryTitle": "Binary Attachment",
+        "binaryDescription": "Inline preview is unavailable for this binary MIME type. Download the file to inspect it locally."
+      },
+      "audit": {
+        "metrics": {
+          "size": "Payload Size",
+          "links": "Links",
+          "images": "Images",
+          "missingAlt": "Missing Alt"
+        },
+        "severity": {
+          "pass": "Pass",
+          "warning": "Warning",
+          "info": "Info"
+        },
+        "findings": {
+          "subjectPresent": "Email includes a non-empty subject line.",
+          "subjectMissing": "Email subject is empty or missing.",
+          "plainTextPresent": "Multipart plain-text fallback body is present.",
+          "plainTextMissing": "HTML email is missing a plain-text fallback body.",
+          "allImagesHaveAlt": "All images include descriptive alt attributes.",
+          "imagesMissingAlt": "{count} image(s) are missing an alt attribute.",
+          "remoteImagesBlocked": "{count} remote image URL(s) detected and blocked in the offline sandbox.",
+          "unresolvedCidImages": "{count} inline cid image(s) do not match an attached MIME part.",
+          "linksValid": "All anchor links use explicit external schemes (https/http/mailto/tel).",
+          "linksRelativeOrEmpty": "{count} link(s) use empty or relative targets.",
+          "listUnsubscribePresent": "List-Unsubscribe header is present.",
+          "listUnsubscribeMissing": "List-Unsubscribe header is absent.",
+          "compactSize": "Payload size ({kilobytes} KB) is compact and unlikely to clip.",
+          "largeHtmlSize": "Payload size ({kilobytes} KB) exceeds 100 KB and may be clipped in some clients."
+        }
+      }
     },
     "sms": {
       "fromLabel": "Sender",
       "toLabel": "Recipient",
       "lengthLabel": "Message Length",
       "charactersCount": "{count} characters",
-      "metadataLabel": "Metadata JSON"
+      "metadataLabel": "Metadata JSON",
+      "segmentsCount": "{count} segment(s)",
+      "unitsSummary": "{units}/{limit} units ({remaining} left in current segment)"
     },
     "push": {
       "badgeLabel": "Badge: {value}",
       "soundLabel": "Sound: {value}",
-      "dataLabel": "Custom Data Payload"
+      "dataLabel": "Custom Data Payload",
+      "devices": {
+        "ios": "iOS",
+        "android": "Android",
+        "web": "Web Push"
+      }
     },
     "webhook": {
       "tabs": {
@@ -232,6 +282,19 @@
       "copyCurl": "Copy cURL",
       "downloadedTitle": "Exported {format} file",
       "copiedTitle": "Copied {format} to clipboard"
+    },
+    "diff": {
+      "compareButton": "Compare",
+      "title": "Compare Notifications",
+      "description": "Inspect line-by-line differences between the selected notification and another captured message.",
+      "selectPlaceholder": "Select another notification to compare...",
+      "emptyTitle": "Select a Comparison Target",
+      "emptyDescription": "Choose a second notification from the list above to inspect line differences.",
+      "modes": {
+        "prettyPayload": "Formatted Payload",
+        "rawPayload": "Raw Payload",
+        "metadata": "Metadata"
+      }
     }
   },
   "workspaces": {

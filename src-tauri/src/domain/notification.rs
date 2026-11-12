@@ -55,6 +55,14 @@ pub struct NotificationAttachment {
     pub content_blob: Vec<u8>,
 }
 
+/// Serializable attachment payload returned over Tauri IPC for preview and disk download.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationAttachmentContent {
+    pub summary: NotificationAttachmentSummary,
+    pub content_base64: String,
+}
+
 /// Normalized notification record captured for local inspection.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

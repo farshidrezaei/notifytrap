@@ -123,6 +123,7 @@ pub fn run() {
             commands::channel_commands::delete_channel,
             commands::notification_commands::query_notifications,
             commands::notification_commands::get_notification_detail,
+            commands::notification_commands::get_notification_attachment,
             commands::notification_commands::update_notification_status,
             commands::notification_commands::delete_notification,
             commands::notification_commands::clear_scope_notifications,

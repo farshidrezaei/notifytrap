@@ -1,9 +1,12 @@
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use tauri::State;
 
 use crate::application::application_state::ApplicationState;
 use crate::domain::errors::CommandErrorPayload;
 use crate::domain::notification::{
-    Notification, NotificationDetail, NotificationPage, NotificationQuery, NotificationStatus,
+    Notification, NotificationAttachmentContent, NotificationDetail, NotificationPage,
+    NotificationQuery, NotificationStatus,
 };
 
 #[tauri::command]
@@ -28,6 +31,23 @@ pub fn get_notification_detail(
         .notifications
         .get_notification_detail(&notification_id)
         .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
+pub fn get_notification_attachment(
+    state: State<'_, ApplicationState>,
+    attachment_id: String,
+) -> Result<NotificationAttachmentContent, CommandErrorPayload> {
+    let attachment = state
+        .services
+        .notifications
+        .get_attachment(&attachment_id)
+        .map_err(|error| error.to_command_payload())?;
+
+    Ok(NotificationAttachmentContent {
+        summary: attachment.summary,
+        content_base64: STANDARD.encode(&attachment.content_blob),
+    })
 }
 
 #[tauri::command]

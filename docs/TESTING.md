@@ -48,6 +48,9 @@
   - Property-based (`proptest`) & table-driven OTP/magic-link extraction tests (`domain/verification_extractor.rs`).
   - End-to-end Axum/SMTP integration test (`http_query_wait_run_tag_and_verification_extraction_end_to_end`) verifying `X-NotifyTrap-Run`, cross-channel `404` isolation, race-free `/api/v1/notifications/wait` wakeup, and `408 WAIT_TIMEOUT`.
   - Vitest unit suite (`tests/notificationExport.spec.ts`) covering `.eml`, `JSON`, and secret-safe `cURL` export.
+- **v1.2.0 Additions**:
+  - Rust unit test (`preserves_cid_images_and_strips_remote_images_and_scripts`) verifying `cid:` inline image survival alongside remote tracker/XSS removal.
+  - Vitest unit suite (`tests/phase2InspectorPro.spec.ts`) verifying GSM-7/UCS-2 SMS segment math, offline email accessibility/delivery auditing, LCS diff computation, raster MIME preview safety (blocking SVG inline preview), `cid:` resolution, and Dark Client CSP sandbox generation.
 
 ---
 

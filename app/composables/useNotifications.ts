@@ -1,6 +1,7 @@
 import type {
   ChannelType,
   Notification,
+  NotificationAttachmentContent,
   NotificationCapturedEvent,
   NotificationDetail,
   NotificationPage,
@@ -160,6 +161,28 @@ export function useNotifications() {
     return deletedCount
   }
 
+  async function fetchNotificationDetailById(
+    notificationId: string,
+  ): Promise<NotificationDetail | null> {
+    if (!isTauriRuntime()) {
+      return null
+    }
+    return invokeTauriCommand<NotificationDetail>('get_notification_detail', {
+      notificationId,
+    })
+  }
+
+  async function fetchNotificationAttachment(
+    attachmentId: string,
+  ): Promise<NotificationAttachmentContent | null> {
+    if (!isTauriRuntime()) {
+      return null
+    }
+    return invokeTauriCommand<NotificationAttachmentContent>('get_notification_attachment', {
+      attachmentId,
+    })
+  }
+
   function patchSummaryStatus(notificationId: string, status: NotificationStatus): void {
     if (!notificationPage.value) {
       return
@@ -187,6 +210,8 @@ export function useNotifications() {
     refreshInbox,
     ensureLiveSubscription,
     selectNotification,
+    fetchNotificationDetailById,
+    fetchNotificationAttachment,
     updateNotificationStatus,
     deleteNotification,
     clearScopeNotifications,

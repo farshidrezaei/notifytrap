@@ -1,8 +1,22 @@
 <script setup lang="ts">
 import type { TabsItem } from '@nuxt/ui'
-import type { Notification, NotificationAttachmentSummary } from '~/types/application'
+import type {
+  Notification,
+  NotificationAttachmentContent,
+  NotificationAttachmentSummary,
+} from '~/types/application'
+import {
+  isPreviewableTextMime,
+  isSafePreviewableImageMime,
+  resolveInlineCidImages,
+  triggerBinaryFileDownload,
+} from '~/utils/attachmentPreview'
+import { auditCapturedEmail } from '~/utils/emailAudit'
 import { buildSandboxedEmailDocument, escapeEmailHtml } from '~/utils/emailSandbox'
 import { formatByteSize } from '~/utils/formatters'
+import { extractCommandErrorMessage } from '~/utils/tauriClient'
+
+type EmailViewportMode = 'desktop' | 'tablet' | 'mobile'
 
 const props = defineProps<{
   notification: Notification
@@ -10,7 +24,16 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const toast = useToast()
 const colorMode = useColorMode()
+const { fetchNotificationAttachment } = useNotifications()
+
+const viewportMode = ref<EmailViewportMode>('desktop')
+const isEmailDarkSimulated = ref(false)
+const inlineCidDataUrls = ref<Map<string, string>>(new Map())
+const loadingAttachmentId = ref<string | null>(null)
+const previewAttachment = ref<NotificationAttachmentContent | null>(null)
+const isAttachmentModalOpen = ref(false)
 
 const payload = computed(() => props.notification.payloadJson)
 
@@ -57,16 +80,61 @@ const headerRows = computed<Array<{ name: string; value: string }>>(() => {
   return []
 })
 
-const sandboxDocument = computed(() =>
-  buildSandboxedEmailDocument(
-    sanitizedHtml.value || `<pre>${escapeEmailHtml(textBody.value)}</pre>`,
-    colorMode.value === 'dark',
-  ),
+watch(
+  [() => props.notification.id, () => props.attachments],
+  async () => {
+    const nextMap = new Map<string, string>()
+    const inlineImages = props.attachments.filter(
+      (item) => item.isInline && Boolean(item.contentId) && isSafePreviewableImageMime(item.contentType),
+    )
+
+    for (const item of inlineImages) {
+      const normalizedCid = item.contentId?.replace(/^<|>$/g, '').trim().toLowerCase()
+      if (!normalizedCid) {
+        continue
+      }
+      try {
+        const fetched = await fetchNotificationAttachment(item.id)
+        if (fetched) {
+          const mime = item.contentType.split(';')[0]?.trim() || 'image/png'
+          nextMap.set(normalizedCid, `data:${mime};base64,${fetched.contentBase64}`)
+        }
+      } catch {
+        // Inline CID fallback gracefully leaves the original placeholder untouched.
+      }
+    }
+    inlineCidDataUrls.value = nextMap
+  },
+  { immediate: true },
 )
 
-const activeTab = ref<'htmlPreview' | 'plainText' | 'rawHtml' | 'headers' | 'attachments' | 'rawSource'>(
-  'htmlPreview',
+const resolvedHtml = computed(() => {
+  const baseHtml = sanitizedHtml.value || `<pre>${escapeEmailHtml(textBody.value)}</pre>`
+  return resolveInlineCidImages(baseHtml, inlineCidDataUrls.value)
+})
+
+const sandboxDocument = computed(() =>
+  buildSandboxedEmailDocument(resolvedHtml.value, {
+    isDarkTheme: colorMode.value === 'dark',
+    simulateEmailDarkMode: isEmailDarkSimulated.value,
+  }),
 )
+
+const viewportContainerClass = computed(() => {
+  if (viewportMode.value === 'mobile') {
+    return 'mx-auto w-full max-w-[375px]'
+  }
+  if (viewportMode.value === 'tablet') {
+    return 'mx-auto w-full max-w-[768px]'
+  }
+  return 'w-full'
+})
+
+const auditReport = computed(() => auditCapturedEmail(props.notification, props.attachments))
+
+const activeTab = ref<
+  'htmlPreview' | 'plainText' | 'rawHtml' | 'headers' | 'attachments' | 'audit' | 'rawSource'
+>('htmlPreview')
 
 watch(
   () => props.notification.id,
@@ -85,8 +153,59 @@ const tabItems = computed<TabsItem[]>(() => [
     label: `${t('inbox.email.tabs.attachments')} (${props.attachments.length})`,
     value: 'attachments',
   },
+  { label: t('inbox.email.tabs.audit'), value: 'audit' },
   { label: t('inbox.email.tabs.rawSource'), value: 'rawSource' },
 ])
+
+function canPreviewAttachment(attachment: NotificationAttachmentSummary): boolean {
+  return isSafePreviewableImageMime(attachment.contentType)
+    || isPreviewableTextMime(attachment.contentType)
+}
+
+async function handlePreviewAttachment(attachment: NotificationAttachmentSummary): Promise<void> {
+  loadingAttachmentId.value = attachment.id
+  try {
+    const content = await fetchNotificationAttachment(attachment.id)
+    if (!content) {
+      return
+    }
+    previewAttachment.value = content
+    isAttachmentModalOpen.value = true
+  } catch (error) {
+    toast.add({
+      title: t('common.errorTitle'),
+      description: extractCommandErrorMessage(error, t('common.unexpectedError')),
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+  } finally {
+    loadingAttachmentId.value = null
+  }
+}
+
+async function handleDownloadAttachment(attachment: NotificationAttachmentSummary): Promise<void> {
+  loadingAttachmentId.value = attachment.id
+  try {
+    const content = await fetchNotificationAttachment(attachment.id)
+    if (!content) {
+      return
+    }
+    triggerBinaryFileDownload(
+      content.summary.filename,
+      content.contentBase64,
+      content.summary.contentType,
+    )
+  } catch (error) {
+    toast.add({
+      title: t('common.errorTitle'),
+      description: extractCommandErrorMessage(error, t('common.unexpectedError')),
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+  } finally {
+    loadingAttachmentId.value = null
+  }
+}
 </script>
 
 <template>
@@ -116,22 +235,68 @@ const tabItems = computed<TabsItem[]>(() => [
 
     <UTabs v-model="activeTab" :items="tabItems" size="xs" />
 
-    <div v-if="activeTab === 'htmlPreview'" class="overflow-hidden rounded-lg border border-default">
-      <iframe
-        sandbox=""
-        referrerpolicy="no-referrer"
-        :title="notification.subject || t('inbox.email.tabs.htmlPreview')"
-        :srcdoc="sandboxDocument"
-        class="h-[420px] w-full border-0 bg-default"
-      />
+    <div v-if="activeTab === 'htmlPreview'" key="htmlPreview" class="space-y-2">
+      <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-default bg-muted/30 px-2.5 py-1.5">
+        <div class="flex items-center gap-1">
+          <UButton
+            size="xs"
+            :color="viewportMode === 'desktop' ? 'primary' : 'neutral'"
+            :variant="viewportMode === 'desktop' ? 'soft' : 'ghost'"
+            icon="i-lucide-monitor"
+            :label="t('inbox.email.viewport.desktop')"
+            @click="viewportMode = 'desktop'"
+          />
+          <UButton
+            size="xs"
+            :color="viewportMode === 'tablet' ? 'primary' : 'neutral'"
+            :variant="viewportMode === 'tablet' ? 'soft' : 'ghost'"
+            icon="i-lucide-tablet"
+            :label="t('inbox.email.viewport.tablet')"
+            @click="viewportMode = 'tablet'"
+          />
+          <UButton
+            size="xs"
+            :color="viewportMode === 'mobile' ? 'primary' : 'neutral'"
+            :variant="viewportMode === 'mobile' ? 'soft' : 'ghost'"
+            icon="i-lucide-smartphone"
+            :label="t('inbox.email.viewport.mobile')"
+            @click="viewportMode = 'mobile'"
+          />
+        </div>
+
+        <UButton
+          size="xs"
+          :color="isEmailDarkSimulated ? 'primary' : 'neutral'"
+          :variant="isEmailDarkSimulated ? 'soft' : 'outline'"
+          :icon="isEmailDarkSimulated ? 'i-lucide-moon' : 'i-lucide-sun'"
+          :label="t('inbox.email.viewport.simulateDark')"
+          @click="isEmailDarkSimulated = !isEmailDarkSimulated"
+        />
+      </div>
+
+      <div class="overflow-x-auto rounded-lg border border-default bg-muted/20 p-2">
+        <div
+          class="overflow-hidden rounded-md border border-default transition-all"
+          :class="viewportContainerClass"
+        >
+          <iframe
+            sandbox=""
+            referrerpolicy="no-referrer"
+            :title="notification.subject || t('inbox.email.tabs.htmlPreview')"
+            :srcdoc="sandboxDocument"
+            class="h-[420px] w-full border-0 bg-default"
+          />
+        </div>
+      </div>
     </div>
 
     <pre
       v-else-if="activeTab === 'plainText'"
+      key="plainText"
       class="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-lg border border-default bg-muted/40 p-3 text-xs leading-relaxed text-highlighted"
     >{{ textBody || t('inbox.email.emptyPlainText') }}</pre>
 
-    <template v-else-if="activeTab === 'rawHtml'">
+    <div v-else-if="activeTab === 'rawHtml'" key="rawHtml">
       <SharedCodeBlock
         v-if="rawHtml"
         :code="rawHtml"
@@ -144,9 +309,9 @@ const tabItems = computed<TabsItem[]>(() => [
       >
         {{ t('inbox.email.emptyRawHtml') }}
       </div>
-    </template>
+    </div>
 
-    <div v-else-if="activeTab === 'headers'" class="max-h-[420px] overflow-auto rounded-lg border border-default">
+    <div v-else-if="activeTab === 'headers'" key="headers" class="max-h-[420px] overflow-auto rounded-lg border border-default">
       <table class="w-full text-xs">
         <tbody class="divide-y divide-default">
           <tr v-for="(headerEntry, index) in headerRows" :key="`${headerEntry.name}-${index}`">
@@ -161,7 +326,7 @@ const tabItems = computed<TabsItem[]>(() => [
       </table>
     </div>
 
-    <div v-else-if="activeTab === 'attachments'" class="space-y-2">
+    <div v-else-if="activeTab === 'attachments'" key="attachments" class="space-y-2">
       <UEmpty
         v-if="props.attachments.length === 0"
         icon="i-lucide-paperclip"
@@ -191,15 +356,82 @@ const tabItems = computed<TabsItem[]>(() => [
           <span dir="ltr" class="font-mono text-xs text-toned">
             {{ formatByteSize(attachment.sizeBytes) }}
           </span>
+          <UButton
+            v-if="canPreviewAttachment(attachment)"
+            size="xs"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-eye"
+            :loading="loadingAttachmentId === attachment.id"
+            :label="t('inbox.email.attachments.preview')"
+            @click="handlePreviewAttachment(attachment)"
+          />
+          <UButton
+            size="xs"
+            color="primary"
+            variant="soft"
+            icon="i-lucide-download"
+            :loading="loadingAttachmentId === attachment.id"
+            :label="t('inbox.email.attachments.download')"
+            @click="handleDownloadAttachment(attachment)"
+          />
         </div>
       </div>
     </div>
 
-    <SharedCodeBlock
-      v-else
-      :code="notification.rawPayload"
-      language="http"
-      max-height-class="max-h-[420px]"
+    <div v-else-if="activeTab === 'audit'" key="audit" class="space-y-3">
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div class="rounded-lg border border-default bg-muted/30 p-2.5 text-xs">
+          <p class="text-[11px] text-muted">{{ t('inbox.email.audit.metrics.size') }}</p>
+          <p dir="ltr" class="mt-0.5 font-mono font-semibold text-highlighted">
+            {{ formatByteSize(auditReport.rawBytes) }}
+          </p>
+        </div>
+        <div class="rounded-lg border border-default bg-muted/30 p-2.5 text-xs">
+          <p class="text-[11px] text-muted">{{ t('inbox.email.audit.metrics.links') }}</p>
+          <p class="mt-0.5 font-mono font-semibold text-highlighted">{{ auditReport.linkCount }}</p>
+        </div>
+        <div class="rounded-lg border border-default bg-muted/30 p-2.5 text-xs">
+          <p class="text-[11px] text-muted">{{ t('inbox.email.audit.metrics.images') }}</p>
+          <p class="mt-0.5 font-mono font-semibold text-highlighted">{{ auditReport.imageCount }}</p>
+        </div>
+        <div class="rounded-lg border border-default bg-muted/30 p-2.5 text-xs">
+          <p class="text-[11px] text-muted">{{ t('inbox.email.audit.metrics.missingAlt') }}</p>
+          <p class="mt-0.5 font-mono font-semibold text-highlighted">{{ auditReport.missingAltCount }}</p>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <div
+          v-for="finding in auditReport.findings"
+          :key="finding.id"
+          class="flex items-center justify-between gap-3 rounded-lg border border-default bg-muted/20 px-3 py-2 text-xs"
+        >
+          <span class="text-highlighted">
+            {{ t(finding.translationKey, finding.params ?? {}) }}
+          </span>
+          <UBadge
+            :color="finding.severity === 'pass' ? 'success' : finding.severity === 'warning' ? 'warning' : 'info'"
+            variant="subtle"
+            size="xs"
+          >
+            {{ t(`inbox.email.audit.severity.${finding.severity}`) }}
+          </UBadge>
+        </div>
+      </div>
+    </div>
+
+    <div v-else key="rawSource">
+      <SharedCodeBlock
+        :code="notification.rawPayload"
+        language="http"
+        max-height-class="max-h-[420px]"
+      />
+    </div>
+
+    <InboxEmailAttachmentModal
+      v-model:open="isAttachmentModalOpen"
+      :attachment="previewAttachment"
     />
   </div>
 </template>

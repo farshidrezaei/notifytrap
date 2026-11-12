@@ -15,6 +15,7 @@ const { t, locale } = useI18n()
 const toast = useToast()
 const { health } = useApplicationHealth()
 const {
+  notificationPage,
   selectedDetail,
   isLoadingDetail,
   updateNotificationStatus,
@@ -24,8 +25,10 @@ const {
 const isUpdatingStatus = ref(false)
 const isDeleteConfirmOpen = ref(false)
 const isDeleting = ref(false)
+const isDiffModalOpen = ref(false)
 
 const currentNotification = computed(() => selectedDetail.value?.notification ?? null)
+const canCompareNotifications = computed(() => (notificationPage.value?.items.length ?? 0) >= 2)
 const verificationArtifacts = computed<readonly VerificationArtifact[]>(
   () => currentNotification.value?.verificationArtifacts ?? [],
 )
@@ -206,6 +209,7 @@ async function handleConfirmDelete(): Promise<void> {
         <div class="flex items-center gap-1.5">
           <UButton
             v-if="currentNotification.status !== 'captured'"
+            key="mark-unread"
             size="xs"
             color="neutral"
             variant="outline"
@@ -216,6 +220,7 @@ async function handleConfirmDelete(): Promise<void> {
           />
           <UButton
             v-else
+            key="mark-read"
             size="xs"
             color="neutral"
             variant="outline"
@@ -234,6 +239,16 @@ async function handleConfirmDelete(): Promise<void> {
             :loading="isUpdatingStatus"
             :label="t('inbox.actions.archive')"
             @click="handleStatusTransition('archived')"
+          />
+
+          <UButton
+            v-if="canCompareNotifications"
+            size="xs"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-git-compare-arrows"
+            :label="t('inbox.diff.compareButton')"
+            @click="isDiffModalOpen = true"
           />
 
           <UDropdownMenu :items="exportMenuItems">
@@ -289,19 +304,23 @@ async function handleConfirmDelete(): Promise<void> {
 
       <InboxEmailInspectorView
         v-if="currentNotification.channelType === 'email'"
+        :key="`email-${currentNotification.id}`"
         :notification="currentNotification"
         :attachments="selectedDetail?.attachments ?? []"
       />
       <InboxSmsInspectorView
         v-else-if="currentNotification.channelType === 'sms'"
+        :key="`sms-${currentNotification.id}`"
         :notification="currentNotification"
       />
       <InboxPushInspectorView
         v-else-if="currentNotification.channelType === 'push'"
+        :key="`push-${currentNotification.id}`"
         :notification="currentNotification"
       />
       <InboxWebhookInspectorView
         v-else
+        :key="`webhook-${currentNotification.id}`"
         :notification="currentNotification"
       />
     </div>
@@ -328,5 +347,10 @@ async function handleConfirmDelete(): Promise<void> {
         </div>
       </template>
     </UModal>
+    <InboxNotificationDiffModal
+      v-model:open="isDiffModalOpen"
+      :baseline-notification="currentNotification"
+      :candidates="notificationPage?.items ?? []"
+    />
   </div>
 </template>

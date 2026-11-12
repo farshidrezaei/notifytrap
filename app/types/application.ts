@@ -130,6 +130,11 @@ export interface NotificationAttachmentSummary {
   createdAt: string
 }
 
+export interface NotificationAttachmentContent {
+  summary: NotificationAttachmentSummary
+  contentBase64: string
+}
+
 export type VerificationArtifactKind = 'otpCode' | 'verificationLink'
 
 export interface VerificationArtifact {
