@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
 
+use crate::domain::database_statistics::DatabaseStorageStatistics;
 use crate::domain::errors::ApplicationError;
 use crate::infrastructure::migrations;
 
@@ -77,6 +78,61 @@ impl DatabaseConnectionManager {
     /// Returns the filesystem path of the SQLite database if file-backed.
     pub fn database_path(&self) -> Option<&Path> {
         self.database_path.as_deref()
+    }
+
+    /// Calculates comprehensive storage and footprint metrics for the SQLite database.
+    pub fn get_storage_statistics(&self) -> Result<DatabaseStorageStatistics, ApplicationError> {
+        let (file_size_bytes, wal_size_bytes) = if let Some(path) = &self.database_path {
+            let primary_size = std::fs::metadata(path).map(|metadata| metadata.len()).unwrap_or(0);
+            let wal_path = PathBuf::from(format!("{}-wal", path.display()));
+            let wal_size = std::fs::metadata(&wal_path).map(|metadata| metadata.len()).unwrap_or(0);
+            (primary_size, wal_size)
+        } else {
+            let size = self.with_connection(|connection| {
+                let page_count: i64 = connection.query_row("PRAGMA page_count;", [], |row| row.get(0))?;
+                let page_size: i64 = connection.query_row("PRAGMA page_size;", [], |row| row.get(0))?;
+                Ok((page_count.max(0) * page_size.max(0)) as u64)
+            })?;
+            (size, 0)
+        };
+
+        let (total_notifications_count, total_attachments_count, total_attachments_size_bytes) =
+            self.with_connection(|connection| {
+                let notifications_count: i64 = connection
+                    .query_row("SELECT COUNT(*) FROM notifications;", [], |row| row.get(0))
+                    .unwrap_or(0);
+
+                let (attachments_count, attachments_size): (i64, i64) = connection
+                    .query_row(
+                        "SELECT COUNT(*), COALESCE(SUM(size_bytes), 0) FROM notification_attachments;",
+                        [],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .unwrap_or((0, 0));
+
+                Ok((
+                    notifications_count.max(0) as u64,
+                    attachments_count.max(0) as u64,
+                    attachments_size.max(0) as u64,
+                ))
+            })?;
+
+        Ok(DatabaseStorageStatistics {
+            database_path: self.database_path.as_ref().map(|path| path.display().to_string()),
+            file_size_bytes,
+            wal_size_bytes,
+            total_notifications_count,
+            total_attachments_count,
+            total_attachments_size_bytes,
+        })
+    }
+
+    /// Executes VACUUM on the SQLite database to reclaim fragmented pages and compact storage.
+    pub fn vacuum_database(&self) -> Result<(), ApplicationError> {
+        self.with_connection(|connection| {
+            connection.execute_batch("VACUUM;")?;
+            Ok(())
+        })
     }
 }
 

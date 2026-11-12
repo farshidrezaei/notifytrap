@@ -128,6 +128,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::system_commands::get_application_health,
             commands::system_commands::get_server_configuration,
+            commands::system_commands::get_database_storage_statistics,
+            commands::system_commands::vacuum_database,
+            commands::system_commands::prune_expired_notifications_now,
             commands::system_commands::sync_unread_badge,
             commands::system_commands::send_native_notification,
             commands::workspace_commands::list_workspaces,
@@ -151,6 +154,7 @@ pub fn run() {
             commands::notification_commands::query_notifications,
             commands::notification_commands::get_notification_detail,
             commands::notification_commands::get_notification_attachment,
+            commands::notification_commands::audit_notification_links_and_assets,
             commands::notification_commands::replay_webhook_notification,
             commands::notification_commands::update_notification_status,
             commands::notification_commands::delete_notification,

@@ -1,4 +1,6 @@
+pub mod asset_audit;
 pub mod channel;
+pub mod database_statistics;
 pub mod environment;
 pub mod errors;
 pub mod notification;

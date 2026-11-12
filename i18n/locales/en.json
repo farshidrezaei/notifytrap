@@ -253,6 +253,22 @@
           "largeHtmlSize": "Payload size ({kilobytes} KB) exceeds 100 KB and may be clipped in some clients.",
           "unrenderedPlaceholdersFound": "{count} unrendered variable(s) detected: {samples}.",
           "noPlaceholdersFound": "No unrendered template variables detected."
+        },
+        "assetHealth": {
+          "title": "Live Link & Remote Image Health",
+          "description": "Verify status codes and detect broken 404 links or unreachable image assets.",
+          "checkButton": "Audit Links & Assets",
+          "empty": "No external HTTP/HTTPS links or remote images detected in this email.",
+          "kind": {
+            "link": "Link",
+            "image": "Image"
+          },
+          "status": {
+            "ok": "Available",
+            "broken": "Broken",
+            "error": "Error"
+          },
+          "latency": "{ms} ms"
         }
       },
       "mjml": {
@@ -575,6 +591,30 @@
         "openSettings": "View Details",
         "restartNow": "Restart Now"
       }
+    },
+    "database": {
+      "title": "Database & Storage Lifecycle",
+      "description": "Monitor SQLite disk footprint, reclaim unused space via VACUUM, and manage retention policies.",
+      "vacuumButton": "Vacuum & Compact",
+      "pruneNowButton": "Prune Expired Records",
+      "vacuumSuccessTitle": "Database Compacted",
+      "vacuumSuccessDescription": "SQLite VACUUM completed successfully and storage was reclaimed.",
+      "pruneSuccessTitle": "Retention Prune Complete",
+      "pruneSuccessDescription": "{count} expired notification(s) pruned from storage.",
+      "filePathLabel": "SQLite File Path",
+      "metrics": {
+        "databaseSize": "Database File",
+        "walSize": "WAL Journal",
+        "totalNotifications": "Notifications",
+        "attachmentsSize": "Attachments"
+      }
+    },
+    "categories": {
+      "general": "General & Appearance",
+      "server": "Server & Network",
+      "storage": "Database & Lifecycle",
+      "mcp": "AI & Integrations",
+      "about": "About & Updates"
     }
   },
   "designSystem": {

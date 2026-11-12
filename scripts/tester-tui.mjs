@@ -246,6 +246,23 @@ const SCENARIOS = {
         </div>`,
       },
     },
+    {
+      id: 'email_asset_audit',
+      title: 'Email: Broken Links & Missing CDN Image Test',
+      desc: 'Contains active links, a 404 broken URL, and a broken image to test Phase 2 Asset Auditor.',
+      hint: 'Check Email Inspector > Audit Tab > Click "Audit Links & Assets" to view live HTTP status codes!',
+      data: {
+        subject: 'Phase 2 Test: Broken Links and Image Assets',
+        text: 'Checking links: https://notifytrap.dev and http://127.0.0.1:4080/non-existent-page-404',
+        html: `<div style="font-family:sans-serif;padding:20px;">
+          <h2>NotifyTrap Asset Health Audit Test</h2>
+          <p>Healthy link: <a href="https://github.com/farshidrezaei/notifytrap">NotifyTrap GitHub</a></p>
+          <p>Broken link: <a href="http://127.0.0.1:4080/api/v1/non-existent-page-404">Dead 404 Endpoint</a></p>
+          <p>Remote image: <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f680.png" alt="Rocket" width="36" /></p>
+          <p>Broken image: <img src="http://127.0.0.1:4080/images/missing-logo-404.png" alt="Missing Logo" width="36" /></p>
+        </div>`,
+      },
+    },
   ],
   push: [
     {

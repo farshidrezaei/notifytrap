@@ -2,6 +2,7 @@
 import type { TabsItem } from '@nuxt/ui'
 import InboxDeviceFrameWrapper from '~/components/inbox/DeviceFrameWrapper.vue'
 import type {
+  AssetCheckResult,
   Notification,
   NotificationAttachmentContent,
   NotificationAttachmentSummary,
@@ -12,11 +13,16 @@ import {
   resolveInlineCidImages,
   triggerBinaryFileDownload,
 } from '~/utils/attachmentPreview'
+import { copyTextToClipboard } from '~/utils/clipboard'
 import { auditCapturedEmail } from '~/utils/emailAudit'
 import { buildSandboxedEmailDocument, escapeEmailHtml } from '~/utils/emailSandbox'
 import { formatByteSize } from '~/utils/formatters'
 import { inspectMjmlContent } from '~/utils/mjmlInspector'
-import { extractCommandErrorMessage } from '~/utils/tauriClient'
+import {
+  extractCommandErrorMessage,
+  invokeTauriCommand,
+  isTauriRuntime,
+} from '~/utils/tauriClient'
 
 type EmailViewportMode = 'desktop' | 'iphone' | 'pixel' | 'ipad'
 
@@ -135,6 +141,60 @@ const mjmlSandboxDocument = computed(() =>
 
 const auditReport = computed(() => auditCapturedEmail(props.notification, props.attachments))
 
+const assetCheckResults = ref<AssetCheckResult[]>([])
+const isAuditingAssets = ref(false)
+const hasRunAssetAudit = ref(false)
+
+async function handleAuditLinksAndAssets(): Promise<void> {
+  if (!isTauriRuntime()) {
+    isAuditingAssets.value = true
+    setTimeout(() => {
+      assetCheckResults.value = [
+        {
+          url: 'https://notifytrap.dev/verify',
+          kind: 'link',
+          statusCode: 200,
+          isBroken: false,
+          latencyMilliseconds: 38,
+          errorMessage: null,
+        },
+      ]
+      hasRunAssetAudit.value = true
+      isAuditingAssets.value = false
+    }, 300)
+    return
+  }
+
+  isAuditingAssets.value = true
+  try {
+    const results = await invokeTauriCommand<AssetCheckResult[]>(
+      'audit_notification_links_and_assets',
+      { notificationId: props.notification.id },
+    )
+    assetCheckResults.value = results
+    hasRunAssetAudit.value = true
+  } catch (error) {
+    toast.add({
+      title: t('common.errorTitle'),
+      description: extractCommandErrorMessage(error, t('common.unexpectedError')),
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+  } finally {
+    isAuditingAssets.value = false
+  }
+}
+
+async function copyAssetUrl(url: string): Promise<void> {
+  const isCopied = await copyTextToClipboard(url)
+  toast.add({
+    title: isCopied ? t('common.copiedTitle') : t('common.errorTitle'),
+    description: isCopied ? url : t('common.clipboardUnavailable'),
+    color: isCopied ? 'success' : 'error',
+    icon: isCopied ? 'i-lucide-check-circle-2' : 'i-lucide-alert-circle',
+  })
+}
+
 const activeTab = ref<
   'htmlPreview' | 'plainText' | 'rawHtml' | 'headers' | 'attachments' | 'audit' | 'rawSource' | 'mjml'
 >('htmlPreview')
@@ -143,6 +203,8 @@ watch(
   () => props.notification.id,
   () => {
     activeTab.value = sanitizedHtml.value.trim().length > 0 ? 'htmlPreview' : 'plainText'
+    assetCheckResults.value = []
+    hasRunAssetAudit.value = false
   },
   { immediate: true },
 )
@@ -535,6 +597,100 @@ async function handleCopyCompiledMjml(): Promise<void> {
           >
             {{ t(`inbox.email.audit.severity.${finding.severity}`) }}
           </UBadge>
+        </div>
+      </div>
+
+      <!-- Live Link & Remote Asset Health Section -->
+      <div class="mt-4 rounded-lg border border-default bg-muted/20 p-3 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="space-y-0.5">
+            <h4 class="text-xs font-semibold text-highlighted">
+              {{ t('inbox.email.audit.assetHealth.title') }}
+            </h4>
+            <p class="text-[11px] text-muted">
+              {{ t('inbox.email.audit.assetHealth.description') }}
+            </p>
+          </div>
+
+          <UButton
+            size="xs"
+            color="primary"
+            variant="soft"
+            icon="i-lucide-activity"
+            :loading="isAuditingAssets"
+            :label="t('inbox.email.audit.assetHealth.checkButton')"
+            @click="handleAuditLinksAndAssets"
+          />
+        </div>
+
+        <div v-if="hasRunAssetAudit" class="space-y-2 pt-1">
+          <div
+            v-if="assetCheckResults.length === 0"
+            class="rounded-md border border-default bg-muted/30 p-2.5 text-center text-xs text-muted"
+          >
+            {{ t('inbox.email.audit.assetHealth.empty') }}
+          </div>
+
+          <div
+            v-for="(asset, idx) in assetCheckResults"
+            :key="`${asset.url}-${idx}`"
+            class="flex flex-col gap-1 rounded-md border border-default bg-elevated p-2.5 text-xs shadow-xs"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-center gap-2">
+                <UIcon
+                  :name="asset.kind === 'link' ? 'i-lucide-link' : 'i-lucide-image'"
+                  class="size-3.5 shrink-0"
+                  :class="asset.kind === 'link' ? 'text-primary' : 'text-purple-500'"
+                />
+                <UBadge
+                  size="xs"
+                  variant="subtle"
+                  :color="asset.kind === 'link' ? 'primary' : 'neutral'"
+                >
+                  {{ t(`inbox.email.audit.assetHealth.kind.${asset.kind}`) }}
+                </UBadge>
+                <span dir="ltr" class="truncate font-mono text-xs text-highlighted" :title="asset.url">
+                  {{ asset.url }}
+                </span>
+              </div>
+
+              <div class="flex shrink-0 items-center gap-1.5">
+                <UBadge
+                  v-if="asset.statusCode"
+                  size="xs"
+                  :color="asset.isBroken ? 'error' : 'success'"
+                  variant="subtle"
+                >
+                  {{ asset.statusCode }} {{ asset.isBroken ? t('inbox.email.audit.assetHealth.status.broken') : 'OK' }}
+                </UBadge>
+                <UBadge
+                  v-else
+                  size="xs"
+                  color="error"
+                  variant="subtle"
+                >
+                  {{ t('inbox.email.audit.assetHealth.status.error') }}
+                </UBadge>
+                <span dir="ltr" class="font-mono text-[11px] text-muted">
+                  {{ t('inbox.email.audit.assetHealth.latency', { ms: asset.latencyMilliseconds }) }}
+                </span>
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  square
+                  icon="i-lucide-copy"
+                  :aria-label="t('common.copy')"
+                  @click="copyAssetUrl(asset.url)"
+                />
+              </div>
+            </div>
+
+            <p v-if="asset.errorMessage && asset.isBroken" class="font-mono text-[11px] text-rose-500 ps-5">
+              ↳ {{ asset.errorMessage }}
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -89,6 +89,19 @@ pub fn delete_notification(
 }
 
 #[tauri::command]
+pub async fn audit_notification_links_and_assets(
+    state: State<'_, ApplicationState>,
+    notification_id: String,
+) -> Result<Vec<crate::domain::asset_audit::AssetCheckResult>, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .audit_notification_links_and_assets(&notification_id)
+        .await
+        .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
 pub fn clear_scope_notifications(
     state: State<'_, ApplicationState>,
     workspace_id: String,

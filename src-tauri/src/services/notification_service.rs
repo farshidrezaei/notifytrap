@@ -1,6 +1,8 @@
 use uuid::Uuid;
 
+use crate::domain::asset_audit::AssetCheckResult;
 use crate::domain::channel::ChannelType;
+use crate::domain::database_statistics::DatabaseStorageStatistics;
 use crate::domain::errors::ApplicationError;
 use crate::domain::notification::{
     CaptureNotificationInput, Notification, NotificationAttachment, NotificationAttachmentSummary,
@@ -15,6 +17,7 @@ use crate::domain::verification_extractor::extract_verification_artifacts;
 use crate::infrastructure::database::channel_repository::SqliteChannelRepository;
 use crate::infrastructure::database::connection_manager::DatabaseConnectionManager;
 use crate::infrastructure::database::notification_repository::SqliteNotificationRepository;
+use crate::infrastructure::http::asset_checker::{check_candidate_assets, extract_candidate_urls};
 use crate::infrastructure::http::loopback_replay::{
     execute_loopback_http_replay, validate_loopback_target_url,
 };
@@ -298,6 +301,36 @@ impl NotificationService {
         let captured_headers = extract_replay_headers(payload.get("headers"));
 
         execute_loopback_http_replay(&target, method, &captured_headers, body_text).await
+    }
+
+    /// Retrieves filesystem and row footprint statistics for the SQLite database.
+    pub fn get_database_storage_statistics(&self) -> Result<DatabaseStorageStatistics, ApplicationError> {
+        self.database_manager.get_storage_statistics()
+    }
+
+    /// Compiles SQLite database vacuum and returns fresh storage statistics.
+    pub fn vacuum_database(&self) -> Result<DatabaseStorageStatistics, ApplicationError> {
+        self.database_manager.vacuum_database()?;
+        self.database_manager.get_storage_statistics()
+    }
+
+    /// Audits all candidate HTTP and HTTPS anchor links and remote images within a notification.
+    pub async fn audit_notification_links_and_assets(
+        &self,
+        notification_id: &str,
+    ) -> Result<Vec<AssetCheckResult>, ApplicationError> {
+        let validated_id = validate_uuid(notification_id, "notificationId")?;
+        let detail = self.get_notification_detail(&validated_id)?;
+
+        let raw_html = detail
+            .notification
+            .payload_json
+            .get("rawHtml")
+            .and_then(|value| value.as_str())
+            .unwrap_or(&detail.notification.raw_payload);
+
+        let candidates = extract_candidate_urls(raw_html);
+        check_candidate_assets(candidates).await
     }
 }
 

@@ -272,3 +272,21 @@ export interface ServerStatusChangedEvent {
   httpEndpoint: string
   smtpEndpoint: string
 }
+
+export interface DatabaseStorageStatistics {
+  databasePath: string | null
+  fileSizeBytes: number
+  walSizeBytes: number
+  totalNotificationsCount: number
+  totalAttachmentsCount: number
+  totalAttachmentsSizeBytes: number
+}
+
+export interface AssetCheckResult {
+  url: string
+  kind: 'link' | 'image'
+  statusCode: number | null
+  isBroken: boolean
+  latencyMilliseconds: number
+  errorMessage: string | null
+}

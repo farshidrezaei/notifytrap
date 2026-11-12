@@ -642,6 +642,27 @@ fn retention_cleanup_deletes_expired_notifications_and_preserves_recent_records(
     );
 }
 
+#[test]
+fn database_storage_statistics_and_vacuum_lifecycle() {
+    let services = create_test_services();
+
+    let initial_statistics = services
+        .notifications
+        .get_database_storage_statistics()
+        .expect("must read database storage statistics");
+
+    assert!(initial_statistics.file_size_bytes > 0);
+    assert_eq!(initial_statistics.total_notifications_count, 0);
+
+    let vacuumed_statistics = services
+        .notifications
+        .vacuum_database()
+        .expect("database vacuum must succeed");
+
+    assert!(vacuumed_statistics.file_size_bytes > 0);
+    assert_eq!(vacuumed_statistics.total_notifications_count, 0);
+}
+
 proptest! {
     #[test]
     fn property_derived_slug_is_always_valid_for_alphanumeric_inputs(

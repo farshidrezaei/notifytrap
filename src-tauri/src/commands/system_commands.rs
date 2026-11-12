@@ -53,6 +53,43 @@ pub fn get_server_configuration(
     Ok(state.current_server_configuration())
 }
 
+/// Returns current filesystem and row footprint statistics for the SQLite database.
+#[tauri::command]
+pub fn get_database_storage_statistics(
+    state: State<'_, ApplicationState>,
+) -> Result<crate::domain::database_statistics::DatabaseStorageStatistics, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .get_database_storage_statistics()
+        .map_err(|error| error.to_command_payload())
+}
+
+/// Executes a database vacuum to compact fragmented space and returns fresh statistics.
+#[tauri::command]
+pub fn vacuum_database(
+    state: State<'_, ApplicationState>,
+) -> Result<crate::domain::database_statistics::DatabaseStorageStatistics, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .vacuum_database()
+        .map_err(|error| error.to_command_payload())
+}
+
+/// Prunes notifications older than the given retention period and returns pruned count.
+#[tauri::command]
+pub fn prune_expired_notifications_now(
+    state: State<'_, ApplicationState>,
+    retention_days: u64,
+) -> Result<u64, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .prune_expired_by_retention_days(retention_days)
+        .map_err(|error| error.to_command_payload())
+}
+
 /// Synchronizes unread notification count onto the taskbar/dock badge and system tray icon.
 #[tauri::command]
 pub fn sync_unread_badge(application_handle: tauri::AppHandle, unread_count: u64) {

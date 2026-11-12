@@ -253,6 +253,22 @@
           "largeHtmlSize": "حجم پیام ({kilobytes} کیلوبایت) بیش از ۱۰۰ کیلوبایت است و ممکن است در برخی کلاینت‌ها بریده شود.",
           "unrenderedPlaceholdersFound": "{count} متغیر پرنشده در قالب شناسایی شد: {samples}.",
           "noPlaceholdersFound": "هیچ متغیر پرنشده‌ای در قالب مشاهده نشد."
+        },
+        "assetHealth": {
+          "title": "بررسی سلامت لینک‌ها و تصاویر خارجی",
+          "description": "بررسی کدهای وضعیت HTTP و شناسایی لینک‌های خراب یا تصاویر غیرقابل دسترس.",
+          "checkButton": "بررسی سلامت دارایی‌ها",
+          "empty": "هیچ لینک خارجی یا تصویر ریموت در این ایمیل یافت نشد.",
+          "kind": {
+            "link": "لینک",
+            "image": "تصویر"
+          },
+          "status": {
+            "ok": "در دسترس",
+            "broken": "خراب",
+            "error": "خطا"
+          },
+          "latency": "{ms} میلی‌ثانیه"
         }
       },
       "mjml": {
@@ -575,6 +591,30 @@
         "openSettings": "مشاهده جزئیات",
         "restartNow": "راه‌اندازی مجدد"
       }
+    },
+    "database": {
+      "title": "مدیریت پایگاه داده و چرخه داده‌ها",
+      "description": "مشاهده حجم دیتابیس لوکال SQLite، فشرده‌سازی فضا با VACUUM و مدیریت سیاست‌های نگهداری داده.",
+      "vacuumButton": "فشرده‌سازی دیتابیس",
+      "pruneNowButton": "پاکسازی رکوردهای منقضی",
+      "vacuumSuccessTitle": "دیتابیس فشرده‌سازی شد",
+      "vacuumSuccessDescription": "عملیات VACUUM با موفقیت انجام شد و فضای دیسک بازیابی گردید.",
+      "pruneSuccessTitle": "پاکسازی دوره‌ای انجام شد",
+      "pruneSuccessDescription": "{count} نوتیفیکیشن منقضی‌شده با موفقیت پاکسازی شد.",
+      "filePathLabel": "مسیر فایل دیتابیس",
+      "metrics": {
+        "databaseSize": "فایل اصلی دیتابیس",
+        "walSize": "ژورنال WAL",
+        "totalNotifications": "تعداد نوتیفیکیشن‌ها",
+        "attachmentsSize": "حجم پیوست‌ها"
+      }
+    },
+    "categories": {
+      "general": "عمومی و ظاهر",
+      "server": "سرور و شبکه",
+      "storage": "دیتابیس و نگهداری",
+      "mcp": "هوش مصنوعی و اتصالات",
+      "about": "درباره و بروزرسانی"
     }
   },
   "designSystem": {

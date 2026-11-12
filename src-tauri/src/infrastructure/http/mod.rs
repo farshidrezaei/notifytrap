@@ -1,3 +1,4 @@
+pub mod asset_checker;
 pub mod loopback_replay;
 pub mod mcp_routes;
 pub mod query_routes;
