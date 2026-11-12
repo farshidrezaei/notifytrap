@@ -177,10 +177,7 @@ jobs:
           if [ -z "${NOTES}" ]; then
             NOTES="Cross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts."
           else
-            NOTES="${NOTES}
-
----
-Cross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts."
+            NOTES=$(printf '%s\n\nCross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts.\n' "${NOTES}")
           fi
           gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
             -F draft=false \
