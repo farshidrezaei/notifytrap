@@ -21,11 +21,14 @@ hero:
 
 features:
   - icon: 📧
-    title: Embedded ESMTP Server
-    details: Captures local development emails on 127.0.0.1:1025 with AUTH PLAIN/LOGIN, multipart MIME, attachments, backend ammonia HTML sanitization, and sandboxed preview.
+    title: Email Studio & Audit Sandbox
+    details: Embedded ESMTP (127.0.0.1:1025) with multipart MIME, inline cid image hydration, safe attachment preview, Desktop/Tablet/Mobile + Dark Client views, and offline email audits.
   - icon: 💬
-    title: SMS & Push HTTP Endpoints
-    details: Dedicated POST /api/v1/sms and POST /api/v1/push endpoints returning structured 202 Accepted capture confirmations with constant-time credential verification.
+    title: SMS, Push & Device Previews
+    details: Dedicated POST /api/v1/sms and POST /api/v1/push endpoints with GSM-7/UCS-2 segment counting and iOS, Android, and Web Push device card previews.
+  - icon: 🧪
+    title: Test Automation, OTP & Query API
+    details: Event-driven /api/v1/notifications/wait long-polling, X-NotifyTrap-Run test tagging, automatic OTP & magic-link extraction, diff comparison, and .eml/JSON/cURL export.
   - icon: 🪝
     title: Universal Webhook Trap
     details: Captures ANY HTTP method on /api/v1/webhooks/{id}[/{subpath}] with redacted sensitive headers/query strings, JSON formatting, and syntax-highlighted payloads.
@@ -34,10 +37,7 @@ features:
     details: Explicit Workspace → Project → Environment → Channel hierarchy backed by AES-256-GCM credentials, OS keyring + 0o600 fallback, and strict loopback binding.
   - icon: 🌐
     title: Bilingual EN (LTR) & FA (RTL)
-    details: Native Light and Dark themes, symmetrical RTL/LTR layout, bundled fonts, and automatic Persian/Arabic-Indic/Devanagari digit normalization.
-  - icon: 🚀
-    title: Cross-Platform & Auto-Updated
-    details: Native builds for Linux (.deb, .rpm, .AppImage), macOS (Universal .dmg), and Windows (.exe, .msi) with cryptographically signed in-app updates.
+    details: Native Light and Dark themes, symmetrical RTL/LTR layout, bundled fonts, and automatic Persian/Arabic-Indic/Devanagari digit normalization with signed cross-platform updates.
 ---
 
 <div class="notifytrap-banner-frame">

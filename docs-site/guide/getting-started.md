@@ -96,7 +96,7 @@ Start-Process $installer -Wait
    - **Email** displays **SMTP Username (`MAIL_USERNAME`)** and **SMTP Password (`MAIL_PASSWORD`)** matching `.env`.
    - **SMS / Push** display `Credential Identifier` and `X-Channel-Key / Composite Key` (`<identifier>.<secret>`).
    - **Webhook** displays the local endpoint URL and `X-Channel-Key`.
-4. **Inspect Live**: Send a test notification and watch it stream into **Inbox** immediately.
+4. **Inspect Live**: Send a test notification and watch it stream into **Inbox** immediately with OTP/magic-link copy pills, responsive **Desktop/Tablet/Mobile** & **Dark Client** email preview, offline **Audit** diagnostics, SMS segment counters, Push device mockups, side-by-side **Compare** diffing, and one-click `.eml`/`JSON`/`cURL` export.
 
 ## Signed In-App Updates
 
