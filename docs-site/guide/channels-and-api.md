@@ -147,3 +147,11 @@ curl -X POST http://127.0.0.1:4080/api/v1/webhooks/billing-hook/stripe/events \
 :::
 
 For webhook integrations that only allow URL-based secrets, pass `?channel_key=<credential_identifier>.<secret_token>` (or `?channel_key=<secret_token>` when `{credential_identifier}` is in the URL path). Sensitive query parameters and headers are redacted before storage.
+
+---
+
+## Webhook Mocks, Loopback Replay & Chaos Rules (`v1.3.0`)
+
+- **Webhook Mock Responses**: Configure per-channel custom HTTP status (`100..599`), response headers, response body, and delay (`0..10000 ms`) from **Channels → Rules**. NotifyTrap persists the incoming capture first, then returns your mock response.
+- **Strict Loopback-Only Replay**: Replay any captured webhook from **Inbox → Replay** exclusively to local targets (`http://127.0.0.1`, `http://localhost`, or `http://[::1]`). External hosts, userinfo, and fragments are rejected.
+- **Chaos Rules**: Inject artificial latency (`0..10000 ms`) and probabilistic failures (`0..100%`) with custom HTTP (`400..599`) or SMTP (`400..599`) error codes on any channel to verify retry and backoff handling locally.

@@ -84,6 +84,48 @@ export interface Environment {
   updatedAt: string
 }
 
+export interface WebhookMockConfiguration {
+  isEnabled: boolean
+  statusCode: number
+  headers: Record<string, string>
+  body: string
+  delayMilliseconds: number
+}
+
+export interface ChannelChaosConfiguration {
+  isEnabled: boolean
+  latencyMilliseconds: number
+  failureRatePercent: number
+  httpErrorStatusCode: number
+  smtpErrorCode: number
+  errorMessage: string
+}
+
+export interface UpdateChannelRulesInput {
+  channelId: string
+  webhookMock: WebhookMockConfiguration
+  chaosRule: ChannelChaosConfiguration
+}
+
+export interface ReplayHeaderEntry {
+  name: string
+  value: string
+}
+
+export interface WebhookReplayInput {
+  notificationId: string
+  targetUrl: string
+}
+
+export interface WebhookReplayResult {
+  targetUrl: string
+  method: string
+  statusCode: number
+  durationMilliseconds: number
+  responseHeaders: ReplayHeaderEntry[]
+  responseBody: string
+}
+
 export interface ChannelSummary {
   id: string
   workspaceId: string
@@ -93,6 +135,8 @@ export interface ChannelSummary {
   channelType: ChannelType
   isEnabled: boolean
   credentialIdentifier: string
+  webhookMock: WebhookMockConfiguration
+  chaosRule: ChannelChaosConfiguration
   createdAt: string
   updatedAt: string
 }

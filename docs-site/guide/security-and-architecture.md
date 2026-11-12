@@ -18,6 +18,9 @@ NotifyTrap is engineered as a **modular monolith** running inside one desktop bi
   - Captured HTTP requests scrub `authorization`, `proxy-authorization`, `x-channel-key`, `x-api-key`, `cookie`, and `set-cookie` headers, plus sensitive query params (`channel_key`, `token`, `api_key`, `apikey`, `secret`, `password`, `authorization`), replacing them with `[REDACTED]`.
 - **Bounded Resource & Retention Controls**:
   - Bounded SMTP line reads, 60-second idle session timeouts, max 64 concurrent SMTP sessions, configurable HTTP payload caps, and automatic retention pruning on startup and settings save.
+- **Strict Loopback-Only Webhook Replay & Chaos Simulation (`v1.3.0`)**:
+  - Webhook replay runs directly over `tokio::net::TcpStream` (`infrastructure/http/loopback_replay.rs`) and strictly permits only `http://127.0.0.1`, `http://localhost`, and `http://[::1]` targets without userinfo or fragments, enforcing bounded 5s connect / 10s I/O timeouts and a 1 MiB response cap.
+  - Per-channel Webhook Mock & Chaos Rules (`webhook_mock_json`, `chaos_rule_json`, migration `0004_add_channel_rules.sql`) stay strictly local to the embedded HTTP/SMTP listeners.
 
 ## Modular Monolith Layers
 

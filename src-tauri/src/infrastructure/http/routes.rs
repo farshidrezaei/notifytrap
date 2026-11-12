@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::body::Bytes;
 use axum::extract::{DefaultBodyLimit, Path, Query, State};
-use axum::http::{HeaderMap, Method, StatusCode, Uri};
+use axum::http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get, post};
 use axum::{Json, Router};
@@ -11,7 +12,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::application::application_state::ApplicationServices;
-use crate::domain::channel::{ChannelSummary, ChannelType};
+use crate::domain::channel::{
+    ChannelChaosConfiguration, ChannelSummary, ChannelType, WebhookMockConfiguration,
+    should_trigger_chaos_failure,
+};
 use crate::domain::errors::ApplicationError;
 use crate::domain::notification::CaptureNotificationInput;
 use crate::domain::validation::{
@@ -159,6 +163,14 @@ impl HttpCaptureError {
             message: message.into(),
         }
     }
+
+    pub(super) fn chaos_failure(status_code: StatusCode, message: String) -> Self {
+        Self {
+            status_code,
+            code: "CHAOS_SIMULATED_FAILURE",
+            message,
+        }
+    }
 }
 
 impl IntoResponse for HttpCaptureError {
@@ -218,6 +230,7 @@ async fn handle_sms_capture(
     payload_result: Result<Json<SmsCapturePayload>, axum::extract::rejection::JsonRejection>,
 ) -> Result<(StatusCode, Json<CaptureReceiptResponse>), HttpCaptureError> {
     let channel = authenticate_header_channel(&headers, &state, ChannelType::Sms)?;
+    apply_channel_chaos_if_enabled(&channel.chaos_rule).await?;
     let test_run_identifier = extract_test_run_identifier(&headers)?;
     let Json(payload) = payload_result.map_err(HttpCaptureError::from_json_rejection)?;
 
@@ -269,6 +282,7 @@ async fn handle_push_capture(
     payload_result: Result<Json<PushCapturePayload>, axum::extract::rejection::JsonRejection>,
 ) -> Result<(StatusCode, Json<CaptureReceiptResponse>), HttpCaptureError> {
     let channel = authenticate_header_channel(&headers, &state, ChannelType::Push)?;
+    apply_channel_chaos_if_enabled(&channel.chaos_rule).await?;
     let test_run_identifier = extract_test_run_identifier(&headers)?;
     let Json(payload) = payload_result.map_err(HttpCaptureError::from_json_rejection)?;
 
@@ -323,7 +337,7 @@ async fn handle_webhook_root_capture(
     uri: Uri,
     headers: HeaderMap,
     body_bytes: Bytes,
-) -> Result<(StatusCode, Json<CaptureReceiptResponse>), HttpCaptureError> {
+) -> Result<Response, HttpCaptureError> {
     process_webhook_capture(
         &state,
         &credential_identifier,
@@ -334,6 +348,7 @@ async fn handle_webhook_root_capture(
         &headers,
         &body_bytes,
     )
+    .await
 }
 
 async fn handle_webhook_subpath_capture(
@@ -344,7 +359,7 @@ async fn handle_webhook_subpath_capture(
     uri: Uri,
     headers: HeaderMap,
     body_bytes: Bytes,
-) -> Result<(StatusCode, Json<CaptureReceiptResponse>), HttpCaptureError> {
+) -> Result<Response, HttpCaptureError> {
     process_webhook_capture(
         &state,
         &credential_identifier,
@@ -355,10 +370,11 @@ async fn handle_webhook_subpath_capture(
         &headers,
         &body_bytes,
     )
+    .await
 }
 
 #[allow(clippy::too_many_arguments)]
-fn process_webhook_capture(
+async fn process_webhook_capture(
     state: &HttpCaptureState,
     credential_identifier: &str,
     subpath: Option<&str>,
@@ -367,11 +383,12 @@ fn process_webhook_capture(
     uri: &Uri,
     headers: &HeaderMap,
     body_bytes: &Bytes,
-) -> Result<(StatusCode, Json<CaptureReceiptResponse>), HttpCaptureError> {
+) -> Result<Response, HttpCaptureError> {
     let validated_identifier = validate_slug(credential_identifier)
         .map_err(|error| HttpCaptureError::bad_request(error.to_string()))?;
     let channel =
         authenticate_webhook_channel(state, &validated_identifier, headers, query_parameters)?;
+    apply_channel_chaos_if_enabled(&channel.chaos_rule).await?;
     let test_run_identifier = extract_test_run_identifier(headers)?;
 
     let raw_body_text = String::from_utf8_lossy(body_bytes).to_string();
@@ -413,7 +430,8 @@ fn process_webhook_capture(
         raw_body_text.clone()
     };
 
-    persist_and_emit(
+    let webhook_mock = channel.webhook_mock.clone();
+    let receipt = persist_and_emit(
         state,
         CaptureNotificationInput {
             workspace_id: channel.workspace_id,
@@ -431,7 +449,62 @@ fn process_webhook_capture(
             received_at: None,
             attachments: Vec::new(),
         },
-    )
+    )?;
+
+    if webhook_mock.is_enabled {
+        return Ok(build_webhook_mock_response(&webhook_mock).await);
+    }
+
+    Ok(receipt.into_response())
+}
+
+async fn apply_channel_chaos_if_enabled(
+    chaos_rule: &ChannelChaosConfiguration,
+) -> Result<(), HttpCaptureError> {
+    if !chaos_rule.is_enabled {
+        return Ok(());
+    }
+    if chaos_rule.latency_milliseconds > 0 {
+        tokio::time::sleep(Duration::from_millis(chaos_rule.latency_milliseconds)).await;
+    }
+    if should_trigger_chaos_failure(chaos_rule.failure_rate_percent) {
+        let status = StatusCode::from_u16(chaos_rule.http_error_status_code)
+            .unwrap_or(StatusCode::SERVICE_UNAVAILABLE);
+        return Err(HttpCaptureError::chaos_failure(
+            status,
+            chaos_rule.error_message.clone(),
+        ));
+    }
+    Ok(())
+}
+
+async fn build_webhook_mock_response(mock: &WebhookMockConfiguration) -> Response {
+    if mock.delay_milliseconds > 0 {
+        tokio::time::sleep(Duration::from_millis(mock.delay_milliseconds)).await;
+    }
+    let status = StatusCode::from_u16(mock.status_code).unwrap_or(StatusCode::OK);
+    let mut builder = Response::builder().status(status);
+    let mut has_content_type = false;
+
+    for (name, value) in &mock.headers {
+        if name.eq_ignore_ascii_case("content-type") {
+            has_content_type = true;
+        }
+        if let (Ok(header_name), Ok(header_value)) = (
+            HeaderName::from_bytes(name.as_bytes()),
+            HeaderValue::from_str(value),
+        ) {
+            builder = builder.header(header_name, header_value);
+        }
+    }
+
+    if !has_content_type && !mock.body.trim().is_empty() {
+        builder = builder.header(axum::http::header::CONTENT_TYPE, "application/json");
+    }
+
+    builder
+        .body(axum::body::Body::from(mock.body.clone()))
+        .unwrap_or_else(|_| (status, mock.body.clone()).into_response())
 }
 
 fn persist_and_emit(

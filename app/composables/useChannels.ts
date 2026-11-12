@@ -3,6 +3,7 @@ import type {
   ChannelSummary,
   CreateChannelPayload,
   CreatedChannelResult,
+  UpdateChannelRulesInput,
 } from '~/types/application'
 import { invokeTauriCommand, isTauriRuntime } from '~/utils/tauriClient'
 
@@ -77,6 +78,16 @@ export function useChannels() {
     return updated
   }
 
+  async function updateChannelRules(input: UpdateChannelRulesInput): Promise<ChannelSummary> {
+    const updated = await invokeTauriCommand<ChannelSummary>('update_channel_rules', {
+      input,
+    })
+    channels.value = channels.value.map((channel) =>
+      channel.id === updated.id ? updated : channel,
+    )
+    return updated
+  }
+
   async function revealCredential(channelId: string): Promise<ChannelCredentialReveal> {
     const reveal = await invokeTauriCommand<ChannelCredentialReveal>('reveal_channel_credential', {
       channelId,
@@ -118,6 +129,7 @@ export function useChannels() {
     refreshChannels,
     createChannel,
     toggleChannelEnabled,
+    updateChannelRules,
     revealCredential,
     rotateCredential,
     hideCredential,

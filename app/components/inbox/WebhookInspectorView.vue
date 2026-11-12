@@ -44,6 +44,7 @@ const queryText = computed(() => {
 })
 
 const activeTab = ref<'body' | 'headers' | 'query'>('body')
+const isReplayModalOpen = ref(false)
 
 const tabItems = computed<TabsItem[]>(() => [
   { label: t('inbox.webhook.tabs.body'), value: 'body' },
@@ -67,6 +68,14 @@ const tabItems = computed<TabsItem[]>(() => [
         <code dir="ltr" class="font-mono">{{ contentType }}</code>
         <span>•</span>
         <span dir="ltr" class="font-mono">{{ formatByteSize(bodyByteCount) }}</span>
+        <UButton
+          size="xs"
+          color="primary"
+          variant="soft"
+          icon="i-lucide-repeat"
+          :label="t('inbox.webhook.replayButton')"
+          @click="isReplayModalOpen = true"
+        />
       </div>
     </div>
 
@@ -76,7 +85,7 @@ const tabItems = computed<TabsItem[]>(() => [
 
     <UTabs v-model="activeTab" :items="tabItems" size="xs" />
 
-    <template v-if="activeTab === 'body'">
+    <div v-if="activeTab === 'body'" key="body">
       <SharedCodeBlock
         v-if="formattedJsonBody || rawTextBody"
         :code="formattedJsonBody || rawTextBody"
@@ -90,9 +99,9 @@ const tabItems = computed<TabsItem[]>(() => [
       >
         {{ t('inbox.webhook.emptyBody') }}
       </div>
-    </template>
+    </div>
 
-    <div v-else-if="activeTab === 'headers'" class="max-h-[380px] overflow-auto rounded-lg border border-default">
+    <div v-else-if="activeTab === 'headers'" key="headers" class="max-h-[380px] overflow-auto rounded-lg border border-default">
       <table class="w-full text-xs">
         <tbody class="divide-y divide-default">
           <tr v-for="entry in headerRows" :key="entry.name">
@@ -107,7 +116,7 @@ const tabItems = computed<TabsItem[]>(() => [
       </table>
     </div>
 
-    <template v-else>
+    <div v-else key="query">
       <SharedCodeBlock
         v-if="queryText"
         :code="queryText"
@@ -120,6 +129,12 @@ const tabItems = computed<TabsItem[]>(() => [
       >
         {{ t('inbox.webhook.emptyQuery') }}
       </div>
-    </template>
+    </div>
+
+    <InboxWebhookReplayModal
+      v-model:open="isReplayModalOpen"
+      :notification-id="notification.id"
+      :subpath="subpath"
+    />
   </div>
 </template>

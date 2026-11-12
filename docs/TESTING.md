@@ -51,6 +51,10 @@
 - **v1.2.0 Additions**:
   - Rust unit test (`preserves_cid_images_and_strips_remote_images_and_scripts`) verifying `cid:` inline image survival alongside remote tracker/XSS removal.
   - Vitest unit suite (`tests/phase2InspectorPro.spec.ts`) verifying GSM-7/UCS-2 SMS segment math, offline email accessibility/delivery auditing, LCS diff computation, raster MIME preview safety (blocking SVG inline preview), `cid:` resolution, and Dark Client CSP sandbox generation.
+- **v1.3.0 Additions**:
+  - Rust unit test (`allows_strict_loopback_targets_and_rejects_external_hosts`) verifying loopback-only replay URL validation (`127.0.0.1`, `localhost`, `[::1]`) and rejection of external hosts, HTTPS, userinfo, and fragments.
+  - End-to-end Axum/SMTP integration test (`webhook_mock_loopback_replay_and_chaos_rules_end_to_end`) verifying webhook mock responses (`201` + custom headers/body + SQLite capture), ephemeral `127.0.0.1` webhook replay + external URL rejection, HTTP `429` chaos failure injection, and SMTP `451` chaos failure injection.
+  - Vitest unit suite (`tests/phase3MockReplayChaos.spec.ts`) verifying frontend loopback URL validation, default replay target construction, and mock header JSON parsing.
 
 ---
 

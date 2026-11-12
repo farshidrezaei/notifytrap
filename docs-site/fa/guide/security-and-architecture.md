@@ -32,3 +32,7 @@ title: امنیت و معماری
 ### ۴. استخراج آفلاین OTP و کوئری‌های ایزوله
 - کدهای OTP و لینک‌های تایید به‌صورت قطعی در ماژول `domain/verification_extractor.rs` هنگام خواندن استخراج می‌شوند و توکن اضافی در دیتابیس ذخیره نمی‌شود.
 - برچسب تست `X-NotifyTrap-Run` (مایگریشن `0003_add_test_run_identifier.sql`) و مسیرهای `GET /api/v1/notifications*` با اعتبارسنجی ثابت‌زمان کلید کانال ایزوله شده‌اند.
+
+### ۵. بازپخش انحصاری Loopback و قوانین Chaos (`v1.3.0`)
+- بازپخش وب‌هوک مستقیماً روی `tokio::net::TcpStream` (`infrastructure/http/loopback_replay.rs`) اجرا می‌شود و منحصراً آدرس‌های `http://127.0.0.1`، `http://localhost` و `http://[::1]` (بدون userinfo و fragment) را با سقف پاسخ ۱ مگابایت می‌پذیرد.
+- تنظیمات Mock و Chaos در ستون‌های `webhook_mock_json` و `chaos_rule_json` (مایگریشن `0004_add_channel_rules.sql`) ذخیره شده و فقط روی شنونده‌های محلی HTTP و SMTP اعمال می‌شوند.

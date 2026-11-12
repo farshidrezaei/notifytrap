@@ -7,7 +7,7 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 
 use crate::application::application_state::ApplicationServices;
-use crate::domain::channel::{ChannelSummary, ChannelType};
+use crate::domain::channel::{ChannelSummary, ChannelType, should_trigger_chaos_failure};
 use crate::domain::notification::CaptureNotificationInput;
 use crate::events::{EventPublisher, NotificationCapturedEvent};
 use crate::infrastructure::smtp::mime_parser::parse_smtp_message;
@@ -221,6 +221,27 @@ pub async fn handle_smtp_connection(
                             transaction.envelope_sender.take().unwrap_or_default();
                         let envelope_recipients =
                             std::mem::take(&mut transaction.envelope_recipients);
+
+                        if channel.chaos_rule.is_enabled {
+                            if channel.chaos_rule.latency_milliseconds > 0 {
+                                tokio::time::sleep(Duration::from_millis(
+                                    channel.chaos_rule.latency_milliseconds,
+                                ))
+                                .await;
+                            }
+                            if should_trigger_chaos_failure(channel.chaos_rule.failure_rate_percent)
+                            {
+                                let smtp_reply = format!(
+                                    "{} {}",
+                                    channel.chaos_rule.smtp_error_code,
+                                    channel.chaos_rule.error_message
+                                );
+                                if write_line(&mut write_half, &smtp_reply).await.is_err() {
+                                    return;
+                                }
+                                continue;
+                            }
+                        }
 
                         let parsed =
                             parse_smtp_message(&raw_bytes, &envelope_sender, &envelope_recipients);

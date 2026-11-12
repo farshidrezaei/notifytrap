@@ -2,6 +2,15 @@
 
 All notable changes to **NotifyTrap** are documented in this file.
 
+## [1.3.0] - 2026-11-12
+
+### Added
+- **Per-Channel Webhook Mock Responses**: Configure custom HTTP status codes (`100..599`), response headers (up to 32 validated headers), response bodies (up to 64 KiB), and artificial response delays (`0..10000 ms`) on any Webhook channel (`Channels -> Rules`). Incoming webhook captures are persisted to SQLite first before returning the configured mock response.
+- **Strict Loopback-Only Webhook Replay**: Replay captured webhook requests directly from `Inbox -> Webhook -> Replay` to local development targets (`http://127.0.0.1`, `http://localhost`, `http://[::1]`) over `tokio::net::TcpStream` with bounded 5s connect / 10s I/O timeouts and a 1 MiB response cap. External hosts, userinfo, and fragments are strictly rejected.
+- **HTTP & SMTP Chaos Rules**: Inject per-channel artificial latency (`0..10000 ms`) and probabilistic failure rates (`0..100%`) with custom HTTP (`400..599`) or SMTP (`400..599`) error codes across SMS, Push, Webhook, and SMTP `DATA` ingestion to test client retry and backoff logic locally.
+- **Database Migration & Channel Rule UI**: Added SQLite migration `0004_add_channel_rules.sql` (`webhook_mock_json`, `chaos_rule_json`), `ChannelRulesModal.vue` with active `Mock` / `Chaos` badges on `ChannelCredentialCard.vue`, and `WebhookReplayModal.vue` with full `en` (LTR) and `fa` (RTL) translations.
+- **Tests**: Added Rust unit test `allows_strict_loopback_targets_and_rejects_external_hosts`, end-to-end integration test `webhook_mock_loopback_replay_and_chaos_rules_end_to_end`, and Vitest suite `tests/phase3MockReplayChaos.spec.ts`.
+
 ## [1.2.0] - 2026-11-12
 
 ### Added

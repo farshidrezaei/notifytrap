@@ -267,7 +267,17 @@
         "query": "کوئری"
       },
       "emptyBody": "بدنه درخواست خالی بوده است.",
-      "emptyQuery": "هیچ پارامتر کوئری‌ای ارسال نشده است."
+      "emptyQuery": "هیچ پارامتر کوئری‌ای ارسال نشده است.",
+      "replayButton": "بازپخش",
+      "replayModal": {
+        "title": "بازپخش لوپ‌بک وب‌هوک",
+        "description": "بازپخش این وب‌هوک ثبت‌شده فقط به سمت سرور محلی لوپ‌بک (127.0.0.1، localhost یا [::1]).",
+        "targetUrlLabel": "آدرس مقصد لوپ‌بک",
+        "targetUrlPlaceholder": "http://127.0.0.1:3000/webhooks/stripe",
+        "sendButton": "ارسال بازپخش",
+        "invalidLoopbackUrl": "آدرس مقصد باید با http:// و فقط روی 127.0.0.1، localhost یا [::1] باشد.",
+        "emptyResponseBody": "سرور مقصد بدنه‌ای برنگرداند."
+      }
     },
     "verification": {
       "detectedTitle": "کدها و لینک‌های استخراج‌شده",
@@ -364,7 +374,8 @@
       "deleteChannel": "حذف کانال",
       "showSnippet": "کد اتصال",
       "hideSnippet": "بستن کد اتصال",
-      "copySnippet": "کپی کد اتصال"
+      "copySnippet": "کپی کد اتصال",
+      "rules": "قوانین"
     },
     "card": {
       "identifierLabel": "شناسه دسترسی",
@@ -387,7 +398,19 @@
       "identifierPlaceholder": "transactional-mailer",
       "enabledLabel": "وضعیت فعالیت",
       "enabledHint": "امکان دریافت پیام‌های ورودی بلافاصله پس از ساخت فعال باشد.",
-      "submit": "ایجاد کانال"
+      "submit": "ایجاد کانال",
+      "protocolDescriptions": {
+        "email": "SMTP · ایمیل، پیوست و پیش‌نمایش",
+        "sms": "HTTP · پیامک، OTP و شمارش بخش",
+        "push": "HTTP · اعلان iOS، اندروید و وب",
+        "webhook": "HTTP · تمام متدها، Mock و Replay"
+      },
+      "protocolTransports": {
+        "email": "SMTP",
+        "sms": "POST",
+        "push": "POST",
+        "webhook": "ANY"
+      }
     },
     "rotateModal": {
       "title": "تغییر توکن کانال؟",
@@ -403,6 +426,29 @@
       "disabledTitle": "کانال متوقف شد",
       "rotatedTitle": "توکن کانال تغییر یافت",
       "deletedTitle": "کانال حذف شد"
+    },
+    "rulesModal": {
+      "title": "قوانین کانال: {name}",
+      "description": "پیکربندی پاسخ mock وب‌هوک و شبیه‌سازی خطای گذرا (Chaos) برای این کانال.",
+      "mockSectionTitle": "پاسخ Mock وب‌هوک",
+      "mockSectionDescription": "پس از ثبت وب‌هوک ورودی، کد وضعیت، هدرها، بدنه و تاخیر دلخواه را برگردانید.",
+      "mockEnabledLabel": "فعال‌سازی پاسخ mock وب‌هوک",
+      "mockStatusLabel": "کد وضعیت HTTP",
+      "mockDelayLabel": "تاخیر پاسخ (میلی‌ثانیه)",
+      "mockHeadersLabel": "هدرهای پاسخ (JSON)",
+      "mockBodyLabel": "بدنه پاسخ",
+      "chaosSectionTitle": "شبیه‌سازی خطای گذرا (Chaos)",
+      "chaosSectionDescription": "تزریق تاخیر و خطای تصادفی برای تست منطق تلاش مجدد (Retry) و Backoff اپلیکیشن.",
+      "chaosEnabledLabel": "فعال‌سازی شبیه‌سازی Chaos",
+      "chaosFailureRateLabel": "نرخ خطا (٪)",
+      "chaosLatencyLabel": "تاخیر تزریقی (میلی‌ثانیه)",
+      "chaosHttpCodeLabel": "کد خطای HTTP",
+      "chaosSmtpCodeLabel": "کد خطای SMTP",
+      "chaosMessageLabel": "پیام خطای شبیه‌سازی‌شده",
+      "invalidHeadersJson": "هدرهای پاسخ باید یک آبجکت JSON معتبر با نام هدرهای استاندارد باشد.",
+      "savedTitle": "قوانین کانال ذخیره شد",
+      "mockBadge": "Mock {code}",
+      "chaosBadge": "Chaos {rate}%"
     }
   },
   "settings": {

@@ -6,7 +6,7 @@ use crate::application::application_state::ApplicationState;
 use crate::domain::errors::CommandErrorPayload;
 use crate::domain::notification::{
     Notification, NotificationAttachmentContent, NotificationDetail, NotificationPage,
-    NotificationQuery, NotificationStatus,
+    NotificationQuery, NotificationStatus, WebhookReplayInput, WebhookReplayResult,
 };
 
 #[tauri::command]
@@ -60,6 +60,19 @@ pub fn update_notification_status(
         .services
         .notifications
         .update_notification_status(&notification_id, status)
+        .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
+pub async fn replay_webhook_notification(
+    state: State<'_, ApplicationState>,
+    input: WebhookReplayInput,
+) -> Result<WebhookReplayResult, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .replay_webhook_notification(input)
+        .await
         .map_err(|error| error.to_command_payload())
 }
 

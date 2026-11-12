@@ -63,6 +63,34 @@ pub struct NotificationAttachmentContent {
     pub content_base64: String,
 }
 
+/// HTTP header key/value entry returned from a strict loopback webhook replay.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ReplayHeaderEntry {
+    pub name: String,
+    pub value: String,
+}
+
+/// Validated request to replay a captured webhook notification to a local loopback URL.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct WebhookReplayInput {
+    pub notification_id: String,
+    pub target_url: String,
+}
+
+/// Response snapshot captured from executing a strict loopback webhook replay.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct WebhookReplayResult {
+    pub target_url: String,
+    pub method: String,
+    pub status_code: u16,
+    pub duration_milliseconds: u64,
+    pub response_headers: Vec<ReplayHeaderEntry>,
+    pub response_body: String,
+}
+
 /// Normalized notification record captured for local inspection.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

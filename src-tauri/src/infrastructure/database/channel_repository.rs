@@ -1,6 +1,8 @@
 use rusqlite::{Connection, Row, params};
 
-use crate::domain::channel::{ChannelRecord, ChannelType};
+use crate::domain::channel::{
+    ChannelChaosConfiguration, ChannelRecord, ChannelType, WebhookMockConfiguration,
+};
 use crate::domain::errors::ApplicationError;
 use crate::infrastructure::database::sqlite_helpers::{map_sqlite_write_error, query_optional_row};
 
@@ -13,13 +15,20 @@ impl SqliteChannelRepository {
         channel: &ChannelRecord,
     ) -> Result<(), ApplicationError> {
         let is_enabled_flag: i64 = if channel.is_enabled { 1 } else { 0 };
+        let webhook_mock_json = serde_json::to_string(&channel.webhook_mock).map_err(|error| {
+            ApplicationError::Internal(format!("Failed to serialize webhook mock rule: {error}"))
+        })?;
+        let chaos_rule_json = serde_json::to_string(&channel.chaos_rule).map_err(|error| {
+            ApplicationError::Internal(format!("Failed to serialize chaos rule: {error}"))
+        })?;
+
         connection
             .execute(
                 "INSERT INTO channels (
                     id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    created_at, updated_at
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                    webhook_mock_json, chaos_rule_json, created_at, updated_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
                 params![
                     channel.id,
                     channel.workspace_id,
@@ -31,6 +40,8 @@ impl SqliteChannelRepository {
                     channel.credential_identifier,
                     channel.credential_hash,
                     channel.encrypted_credential,
+                    webhook_mock_json,
+                    chaos_rule_json,
                     channel.created_at,
                     channel.updated_at,
                 ],
@@ -48,7 +59,7 @@ impl SqliteChannelRepository {
         let mut statement = connection.prepare(
             "SELECT id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    created_at, updated_at
+                    webhook_mock_json, chaos_rule_json, created_at, updated_at
              FROM channels
              WHERE id = ?1",
         )?;
@@ -62,7 +73,7 @@ impl SqliteChannelRepository {
         let mut statement = connection.prepare(
             "SELECT id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    created_at, updated_at
+                    webhook_mock_json, chaos_rule_json, created_at, updated_at
              FROM channels
              WHERE credential_identifier = ?1",
         )?;
@@ -82,7 +93,7 @@ impl SqliteChannelRepository {
         let mut statement = connection.prepare(
             "SELECT id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    created_at, updated_at
+                    webhook_mock_json, chaos_rule_json, created_at, updated_at
              FROM channels
              WHERE workspace_id = ?1 AND project_id = ?2 AND environment_id = ?3
              ORDER BY created_at ASC, name ASC",
@@ -130,6 +141,28 @@ impl SqliteChannelRepository {
         Ok(affected > 0)
     }
 
+    pub fn update_rules(
+        connection: &Connection,
+        channel_id: &str,
+        webhook_mock: &WebhookMockConfiguration,
+        chaos_rule: &ChannelChaosConfiguration,
+        updated_at: &str,
+    ) -> Result<bool, ApplicationError> {
+        let webhook_mock_json = serde_json::to_string(webhook_mock).map_err(|error| {
+            ApplicationError::Internal(format!("Failed to serialize webhook mock rule: {error}"))
+        })?;
+        let chaos_rule_json = serde_json::to_string(chaos_rule).map_err(|error| {
+            ApplicationError::Internal(format!("Failed to serialize chaos rule: {error}"))
+        })?;
+        let affected = connection.execute(
+            "UPDATE channels
+             SET webhook_mock_json = ?2, chaos_rule_json = ?3, updated_at = ?4
+             WHERE id = ?1",
+            params![channel_id, webhook_mock_json, chaos_rule_json, updated_at],
+        )?;
+        Ok(affected > 0)
+    }
+
     pub fn delete_by_id(
         connection: &Connection,
         channel_id: &str,
@@ -146,6 +179,19 @@ fn map_channel_row(row: &Row<'_>) -> rusqlite::Result<ChannelRecord> {
         rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new(error))
     })?;
     let is_enabled_flag: i64 = row.get(6)?;
+    let raw_mock_json: String = row.get(10)?;
+    let raw_chaos_json: String = row.get(11)?;
+
+    let webhook_mock = if raw_mock_json.trim().is_empty() {
+        WebhookMockConfiguration::default()
+    } else {
+        serde_json::from_str(&raw_mock_json).unwrap_or_default()
+    };
+    let chaos_rule = if raw_chaos_json.trim().is_empty() {
+        ChannelChaosConfiguration::default()
+    } else {
+        serde_json::from_str(&raw_chaos_json).unwrap_or_default()
+    };
 
     Ok(ChannelRecord {
         id: row.get(0)?,
@@ -158,7 +204,9 @@ fn map_channel_row(row: &Row<'_>) -> rusqlite::Result<ChannelRecord> {
         credential_identifier: row.get(7)?,
         credential_hash: row.get(8)?,
         encrypted_credential: row.get(9)?,
-        created_at: row.get(10)?,
-        updated_at: row.get(11)?,
+        webhook_mock,
+        chaos_rule,
+        created_at: row.get(12)?,
+        updated_at: row.get(13)?,
     })
 }

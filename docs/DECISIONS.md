@@ -67,3 +67,10 @@
   2. Resolve `cid:` images in the frontend (`EmailInspectorView.vue` / `attachmentPreview.ts`) strictly using local `data:` URIs fetched from SQLite via `get_notification_attachment` with raster MIME allowlisting (`png`, `jpeg`, `gif`, `webp`, excluding `image/svg+xml` from inline preview rendering).
   3. Implement email quality auditing, SMS GSM-7/UCS-2 counting, and LCS notification diffing as pure deterministic frontend utilities rather than additional database columns or external requests.
 - **Consequences**: Authentic HTML email rendering with embedded logos and full attachment inspection without weakening `img-src data:; connect-src 'none'; script-src 'none';` sandbox isolation.
+
+## ADR-011: Strict Loopback-Only Replay over `TcpStream` & Per-Channel Rule JSON
+- **Context**: Developers need to replay captured webhooks against local services and simulate custom webhook responses or transient HTTP/SMTP failures without introducing external SSRF/egress risks or extra HTTP client dependencies.
+- **Decision**:
+  1. Implement `execute_loopback_http_replay` directly over `tokio::net::TcpStream` with strict `validate_loopback_target_url` enforcement (only `http://127.0.0.1`, `http://localhost`, and `http://[::1]` without userinfo or fragments, bounded 5s connect / 10s IO timeouts, and 1 MiB response cap).
+  2. Store `webhook_mock_json` and `chaos_rule_json` on `channels` (migration `0004_add_channel_rules.sql`) with domain-level validation in `channel_service.rs`.
+- **Consequences**: Zero external network egress, zero redirect-based SSRF, no new crate dependencies, and deterministic offline builds.

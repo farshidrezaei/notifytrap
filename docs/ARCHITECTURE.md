@@ -166,3 +166,8 @@ Default loopback binding: `127.0.0.1`. Default HTTP port: `4080`. Default SMTP p
 - **v1.2.0 (Phase 2 — Rich Inspector Pro: Email, SMS, Push & Diff)**:
   - Preserved `cid:` inline image references in `html_sanitizer.rs` (filtering out all remote `http://`/`https://` image tags) and added `get_notification_attachment` IPC command returning base64-encoded MIME payloads.
   - Added pure offline frontend analyzers (`smsAnalyzer.ts`, `emailAudit.ts`, `textDiff.ts`, `attachmentPreview.ts`) plus responsive Email viewport/Dark Client controls, inline `cid:` hydration, attachment preview modal (`EmailAttachmentModal.vue`), SMS GSM-7/UCS-2 segment meter, Push iOS/Android/Web Push device mockups, and notification diff modal (`NotificationDiffModal.vue`).
+- **v1.3.0 (Phase 3 — Webhook Mocking, Loopback Replay & Chaos Rules)**:
+  - Migration `0004_add_channel_rules.sql` adding `webhook_mock_json` and `chaos_rule_json` columns to `channels`.
+  - Per-channel configurable **Webhook Mock** responses (custom HTTP status `100..599`, headers, body, delay `0..10000 ms`) and **Chaos Rules** (latency `0..10000 ms`, failure rate `0..100%`, HTTP/SMTP error code `400..599`) enforced across Axum HTTP ingestion (`routes.rs`) and Tokio SMTP `DATA` (`session.rs`).
+  - Strict loopback-only HTTP/1.1 replay (`src-tauri/src/infrastructure/http/loopback_replay.rs`) over `tokio::net::TcpStream` restricted exclusively to `127.0.0.1`, `localhost`, and `[::1]` (rejecting external hosts, userinfo, and fragments).
+  - UI controls via `ChannelRulesModal.vue` (with active `Mock`/`Chaos` badges on `ChannelCredentialCard.vue`) and `WebhookReplayModal.vue` in `WebhookInspectorView.vue`.

@@ -30,8 +30,8 @@ features:
     title: Test Automation, OTP & Query API
     details: Event-driven /api/v1/notifications/wait long-polling, X-NotifyTrap-Run test tagging, automatic OTP & magic-link extraction, diff comparison, and .eml/JSON/cURL export.
   - icon: 🪝
-    title: Universal Webhook Trap
-    details: Captures ANY HTTP method on /api/v1/webhooks/{id}[/{subpath}] with redacted sensitive headers/query strings, JSON formatting, and syntax-highlighted payloads.
+    title: Webhook Trap, Mock & Loopback Replay
+    details: Captures ANY HTTP method on /api/v1/webhooks/{id}[/{subpath}], returns configurable mock responses, replays strictly to 127.0.0.1/localhost/[::1], and injects HTTP/SMTP chaos rules.
   - icon: 🔒
     title: Workspace Isolation & Security
     details: Explicit Workspace → Project → Environment → Channel hierarchy backed by AES-256-GCM credentials, OS keyring + 0o600 fallback, and strict loopback binding.

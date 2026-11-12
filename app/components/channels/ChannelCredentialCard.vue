@@ -30,6 +30,7 @@ const isLoadingSecret = ref(false)
 const isRotatingSecret = ref(false)
 const isDeletingChannel = ref(false)
 const isSnippetVisible = ref(false)
+const isRulesModalOpen = ref(false)
 const isRotateConfirmOpen = ref(false)
 const isDeleteConfirmOpen = ref(false)
 
@@ -175,6 +176,22 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
             >
               {{ props.channel.isEnabled ? t('channels.status.enabled') : t('channels.status.disabled') }}
             </UBadge>
+            <UBadge
+              v-if="props.channel.webhookMock?.isEnabled"
+              color="info"
+              variant="subtle"
+              size="xs"
+            >
+              {{ t('channels.rulesModal.mockBadge', { code: props.channel.webhookMock.statusCode }) }}
+            </UBadge>
+            <UBadge
+              v-if="props.channel.chaosRule?.isEnabled"
+              color="warning"
+              variant="subtle"
+              size="xs"
+            >
+              {{ t('channels.rulesModal.chaosBadge', { rate: props.channel.chaosRule.failureRatePercent }) }}
+            </UBadge>
           </div>
           <p class="text-xs text-muted">
             {{ t('channels.card.updatedAt', { date: formatShortTimestamp(props.channel.updatedAt, locale) }) }}
@@ -187,6 +204,15 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
             :disabled="isTogglingEnabled"
             :aria-label="t('channels.actions.toggleEnabled')"
             @update:model-value="handleToggleEnabled"
+          />
+
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-sliders-horizontal"
+            :label="t('channels.actions.rules')"
+            @click="isRulesModalOpen = true"
           />
 
           <UTooltip :text="t('channels.actions.rotateCredential')">
@@ -369,5 +395,10 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
         </div>
       </template>
     </UModal>
+
+    <ChannelsChannelRulesModal
+      v-model:open="isRulesModalOpen"
+      :channel="props.channel"
+    />
   </UCard>
 </template>

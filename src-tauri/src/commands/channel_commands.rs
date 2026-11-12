@@ -3,6 +3,7 @@ use tauri::State;
 use crate::application::application_state::ApplicationState;
 use crate::domain::channel::{
     ChannelCredentialReveal, ChannelSummary, CreateChannelInput, CreatedChannelResult,
+    UpdateChannelRulesInput,
 };
 use crate::domain::errors::CommandErrorPayload;
 
@@ -66,6 +67,18 @@ pub fn rotate_channel_credential(
         .services
         .channels
         .rotate_channel_credential(&channel_id)
+        .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
+pub fn update_channel_rules(
+    state: State<'_, ApplicationState>,
+    input: UpdateChannelRulesInput,
+) -> Result<ChannelSummary, CommandErrorPayload> {
+    state
+        .services
+        .channels
+        .update_channel_rules(input)
         .map_err(|error| error.to_command_payload())
 }
 

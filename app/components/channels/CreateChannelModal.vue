@@ -18,6 +18,21 @@ const { createChannel } = useChannels()
 const channelSchema = computed(() => createScopedChannelModalSchema(t))
 const isSubmitting = ref(false)
 
+const CHANNEL_PROTOCOL_ICONS: Record<ChannelType, string> = {
+  email: 'i-lucide-mail',
+  sms: 'i-lucide-message-square',
+  push: 'i-lucide-bell',
+  webhook: 'i-lucide-webhook',
+}
+
+interface ChannelProtocolCardItem {
+  value: ChannelType
+  label: string
+  description: string
+  iconName: string
+  transportTag: string
+}
+
 const formState = reactive<{
   name: string
   channelType: ChannelType
@@ -30,10 +45,13 @@ const formState = reactive<{
   isEnabled: true,
 })
 
-const channelTypeOptions = computed(() =>
+const channelProtocolItems = computed<ChannelProtocolCardItem[]>(() =>
   NOTIFICATION_CHANNEL_KINDS.map((kind) => ({
-    label: t(`channels.types.${kind}`),
     value: kind,
+    label: t(`channels.types.${kind}`),
+    description: t(`channels.createModal.protocolDescriptions.${kind}`),
+    iconName: CHANNEL_PROTOCOL_ICONS[kind],
+    transportTag: t(`channels.createModal.protocolTransports.${kind}`),
   })),
 )
 
@@ -45,6 +63,24 @@ watch(isModalOpen, (opened) => {
     formState.isEnabled = true
   }
 })
+
+function resolveProtocolCardStyle(channelType: ChannelType, isSelected: boolean): Record<string, string> | undefined {
+  if (!isSelected) {
+    return undefined
+  }
+  return {
+    borderColor: `var(--nt-channel-${channelType})`,
+    backgroundColor: `var(--nt-channel-${channelType}-bg)`,
+    boxShadow: `0 0 0 1px var(--nt-channel-${channelType})`,
+  }
+}
+
+function resolveProtocolIconStyle(channelType: ChannelType): Record<string, string> {
+  return {
+    color: `var(--nt-channel-${channelType})`,
+    backgroundColor: `var(--nt-channel-${channelType}-bg)`,
+  }
+}
 
 async function handleSubmitChannel(
   event: FormSubmitEvent<ValidatedScopedChannelModalForm>,
@@ -82,6 +118,7 @@ async function handleSubmitChannel(
     v-model:open="isModalOpen"
     :title="t('channels.createModal.title')"
     :description="t('channels.createModal.description')"
+    :ui="{ content: 'sm:max-w-xl' }"
   >
     <template #body>
       <UForm
@@ -91,6 +128,58 @@ async function handleSubmitChannel(
         class="space-y-4"
         @submit="handleSubmitChannel"
       >
+        <UFormField :label="t('channels.createModal.typeLabel')" name="channelType" required>
+          <URadioGroup
+            v-model="formState.channelType"
+            :items="channelProtocolItems"
+            value-key="value"
+            variant="list"
+            indicator="hidden"
+            :ui="{
+              fieldset: 'grid grid-cols-1 sm:grid-cols-2 gap-2.5',
+              item: 'w-full',
+              container: 'sr-only',
+              wrapper: 'w-full',
+              label: 'block w-full cursor-pointer',
+            }"
+          >
+            <template #label="{ item }">
+              <div
+                class="flex w-full flex-col gap-2 rounded-lg border border-default bg-default/60 p-3 transition-all hover:border-accented"
+                :style="resolveProtocolCardStyle(item.value, formState.channelType === item.value)"
+              >
+                <div class="flex items-center gap-2.5">
+                  <span
+                    class="inline-flex size-8 shrink-0 items-center justify-center rounded-md"
+                    :style="resolveProtocolIconStyle(item.value)"
+                  >
+                    <UIcon :name="item.iconName" class="size-4" />
+                  </span>
+                  <div class="min-w-0 flex-1 text-start">
+                    <div class="truncate text-sm font-semibold text-highlighted">
+                      {{ item.label }}
+                    </div>
+                  </div>
+                  <span
+                    dir="ltr"
+                    class="ms-auto shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
+                    :style="resolveProtocolIconStyle(item.value)"
+                  >
+                    {{ item.transportTag }}
+                  </span>
+                </div>
+                <p class="text-start text-xs text-muted">
+                  {{ item.description }}
+                </p>
+              </div>
+            </template>
+
+            <template #description>
+              <span class="sr-only" />
+            </template>
+          </URadioGroup>
+        </UFormField>
+
         <UFormField :label="t('channels.createModal.nameLabel')" name="name" required>
           <UInput
             v-model="formState.name"
@@ -98,15 +187,6 @@ async function handleSubmitChannel(
             :maxlength="80"
             class="w-full"
             :placeholder="t('channels.createModal.namePlaceholder')"
-          />
-        </UFormField>
-
-        <UFormField :label="t('channels.createModal.typeLabel')" name="channelType" required>
-          <USelect
-            v-model="formState.channelType"
-            :items="channelTypeOptions"
-            value-key="value"
-            class="w-full"
           />
         </UFormField>
 
@@ -126,7 +206,7 @@ async function handleSubmitChannel(
         </SharedHintedFormField>
 
         <UFormField :label="t('channels.createModal.enabledLabel')" name="isEnabled">
-          <div class="flex items-center justify-between rounded-md border border-default px-3 py-2">
+          <div class="flex items-center justify-between gap-3 rounded-lg border border-default bg-elevated/40 px-3.5 py-2.5">
             <span class="text-xs text-muted">
               {{ t('channels.createModal.enabledHint') }}
             </span>
@@ -134,7 +214,7 @@ async function handleSubmitChannel(
           </div>
         </UFormField>
 
-        <div class="flex justify-end gap-2 pt-2">
+        <div class="flex items-center justify-end gap-2 border-t border-default pt-4">
           <UButton
             color="neutral"
             variant="ghost"

@@ -1,9 +1,11 @@
 use uuid::Uuid;
 
+use crate::domain::channel::ChannelType;
 use crate::domain::errors::ApplicationError;
 use crate::domain::notification::{
     CaptureNotificationInput, Notification, NotificationAttachment, NotificationAttachmentSummary,
     NotificationDetail, NotificationPage, NotificationQuery, NotificationStatus,
+    WebhookReplayInput, WebhookReplayResult,
 };
 use crate::domain::validation::{
     current_utc_timestamp, validate_optional_test_run_identifier, validate_pagination,
@@ -13,6 +15,9 @@ use crate::domain::verification_extractor::extract_verification_artifacts;
 use crate::infrastructure::database::channel_repository::SqliteChannelRepository;
 use crate::infrastructure::database::connection_manager::DatabaseConnectionManager;
 use crate::infrastructure::database::notification_repository::SqliteNotificationRepository;
+use crate::infrastructure::http::loopback_replay::{
+    execute_loopback_http_replay, validate_loopback_target_url,
+};
 
 /// Orchestrates notification capture, scoped inbox queries, status transitions, and retention cleanup.
 #[derive(Clone)]
@@ -265,4 +270,48 @@ impl NotificationService {
         let cutoff_timestamp = cutoff.to_rfc3339();
         self.prune_notifications_older_than(&cutoff_timestamp)
     }
+
+    /// Replays a captured webhook notification strictly against a local loopback URL.
+    pub async fn replay_webhook_notification(
+        &self,
+        input: WebhookReplayInput,
+    ) -> Result<WebhookReplayResult, ApplicationError> {
+        let notification_id = validate_uuid(&input.notification_id, "notificationId")?;
+        let target = validate_loopback_target_url(&input.target_url)?;
+        let detail = self.get_notification_detail(&notification_id)?;
+
+        if detail.notification.channel_type != ChannelType::Webhook {
+            return Err(ApplicationError::Validation(
+                "Only captured webhook notifications can be replayed".to_string(),
+            ));
+        }
+
+        let payload = &detail.notification.payload_json;
+        let method = payload
+            .get("method")
+            .and_then(|value| value.as_str())
+            .unwrap_or("POST");
+        let body_text = payload
+            .get("textBody")
+            .and_then(|value| value.as_str())
+            .unwrap_or(&detail.notification.raw_payload);
+        let captured_headers = extract_replay_headers(payload.get("headers"));
+
+        execute_loopback_http_replay(&target, method, &captured_headers, body_text).await
+    }
+}
+
+fn extract_replay_headers(raw_headers: Option<&serde_json::Value>) -> Vec<(String, String)> {
+    let mut headers = Vec::new();
+    let Some(map) = raw_headers.and_then(|value| value.as_object()) else {
+        return headers;
+    };
+    for (name, value) in map {
+        let text_value = match value {
+            serde_json::Value::String(text) => text.clone(),
+            other => other.to_string(),
+        };
+        headers.push((name.clone(), text_value));
+    }
+    headers
 }

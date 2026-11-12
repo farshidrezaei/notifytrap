@@ -28,9 +28,9 @@ features:
   - icon: 💬
     title: شمارنده SMS و پیش‌نمایش دستگاه Push
     details: تشخیص خودکار رمزنگاری GSM-7 / UCS-2 و محاسبه تعداد بخش‌های پیامک در کنار پیش‌نمایش کارت اعلان برای iOS، اندروید و وب پوش.
-  - icon: 🧪
-    title: اتوماسیون تست، OTP و Query API
-    details: اندپوینت همگام‌سازی لحظه‌ای /api/v1/notifications/wait، برچسب تست X-NotifyTrap-Run، استخراج خودکار کد OTP و لینک جادویی، مقایسه خط‌به‌خط و خروجی .eml/JSON/cURL.
+  - icon: 🪝
+    title: شبیه‌سازی Webhook، Replay لوکال و Chaos
+    details: شکار هر متد HTTP روی /api/v1/webhooks/{id} همراه با پاسخ Mock دلخواه، بازپخش امن فقط به 127.0.0.1/localhost/[::1] و تزریق تاخیر یا خطای تصادفی HTTP و SMTP.
   - icon: 🗂️
     title: جداسازی کامل با Workspace و Project
     details: تفکیک پروژه‌ها، محیط‌ها (Local، Development، Testing، Staging) و کلیدهای کانال تا پیام‌های اپلیکیشن‌های مختلف هیچ‌وقت با هم قاطی نشوند.

@@ -24,6 +24,11 @@ const MIGRATIONS: &[SqlMigration] = &[
         name: "0003_add_test_run_identifier",
         sql: include_str!("0003_add_test_run_identifier.sql"),
     },
+    SqlMigration {
+        version: 4,
+        name: "0004_add_channel_rules",
+        sql: include_str!("0004_add_channel_rules.sql"),
+    },
 ];
 
 /// Applies all unapplied SQLite migrations atomically in ascending version order.
@@ -82,10 +87,10 @@ mod tests {
             .expect("pragma");
 
         apply_all_migrations(&mut connection).expect("first migration run");
-        assert_eq!(current_migration_version(&connection).expect("version"), 3);
+        assert_eq!(current_migration_version(&connection).expect("version"), 4);
 
         apply_all_migrations(&mut connection).expect("second idempotent migration run");
-        assert_eq!(current_migration_version(&connection).expect("version"), 3);
+        assert_eq!(current_migration_version(&connection).expect("version"), 4);
     }
 
     #[test]
@@ -128,8 +133,8 @@ mod tests {
             )
             .expect("seed v1 rows");
 
-        apply_all_migrations(&mut connection).expect("upgrade v1 -> v3");
-        assert_eq!(current_migration_version(&connection).expect("version"), 3);
+        apply_all_migrations(&mut connection).expect("upgrade v1 -> v4");
+        assert_eq!(current_migration_version(&connection).expect("version"), 4);
 
         let workspace_name: String = connection
             .query_row("SELECT name FROM workspaces WHERE id = 'w1'", [], |row| {

@@ -6,6 +6,8 @@ import type {
   NotificationDetail,
   NotificationPage,
   NotificationStatus,
+  WebhookReplayInput,
+  WebhookReplayResult,
 } from '~/types/application'
 import {
   invokeTauriCommand,
@@ -183,6 +185,14 @@ export function useNotifications() {
     })
   }
 
+  async function replayWebhookNotification(
+    input: WebhookReplayInput,
+  ): Promise<WebhookReplayResult> {
+    return invokeTauriCommand<WebhookReplayResult>('replay_webhook_notification', {
+      input,
+    })
+  }
+
   function patchSummaryStatus(notificationId: string, status: NotificationStatus): void {
     if (!notificationPage.value) {
       return
@@ -212,6 +222,7 @@ export function useNotifications() {
     selectNotification,
     fetchNotificationDetailById,
     fetchNotificationAttachment,
+    replayWebhookNotification,
     updateNotificationStatus,
     deleteNotification,
     clearScopeNotifications,

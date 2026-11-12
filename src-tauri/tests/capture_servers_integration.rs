@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -10,8 +11,13 @@ use tokio::net::TcpStream;
 use notifytrap_lib::application::application_state::ApplicationServices;
 use notifytrap_lib::application::capture_servers::CaptureServerCoordinator;
 use notifytrap_lib::configuration::server_configuration::ServerConfiguration;
-use notifytrap_lib::domain::channel::{ChannelType, CreateChannelInput};
-use notifytrap_lib::domain::notification::{NotificationQuery, NotificationStatus};
+use notifytrap_lib::domain::channel::{
+    ChannelChaosConfiguration, ChannelType, CreateChannelInput, UpdateChannelRulesInput,
+    WebhookMockConfiguration,
+};
+use notifytrap_lib::domain::notification::{
+    NotificationQuery, NotificationStatus, WebhookReplayInput,
+};
 use notifytrap_lib::domain::project::CreateProjectInput;
 use notifytrap_lib::domain::workspace::CreateWorkspaceInput;
 use notifytrap_lib::events::BroadcastEventPublisher;
@@ -824,6 +830,241 @@ async fn http_query_wait_run_tag_and_verification_extraction_end_to_end() {
         smtp_query_json["items"][0]["verificationArtifacts"][0]["value"],
         "654321"
     );
+
+    harness
+        .coordinator
+        .shutdown_all(Some(&*harness.event_publisher))
+        .await;
+}
+
+#[tokio::test]
+async fn webhook_mock_loopback_replay_and_chaos_rules_end_to_end() {
+    let harness = setup_capture_harness(1024 * 1024, 4096).await;
+
+    let webhook_channel = harness
+        .services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: harness.workspace_id.clone(),
+            project_id: harness.project_id.clone(),
+            environment_id: harness.environment_id.clone(),
+            name: "Stripe Mock Hook".to_string(),
+            channel_type: ChannelType::Webhook,
+            credential_identifier: Some("stripe-mock-hook".to_string()),
+            is_enabled: Some(true),
+        })
+        .expect("create webhook channel");
+
+    let email_channel = harness
+        .services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: harness.workspace_id.clone(),
+            project_id: harness.project_id.clone(),
+            environment_id: harness.environment_id.clone(),
+            name: "Chaos Email".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: Some("chaos-email".to_string()),
+            is_enabled: Some(true),
+        })
+        .expect("create email channel");
+
+    // 1. Configure custom webhook mock response (201 + custom header + custom JSON body)
+    let mut mock_headers = BTreeMap::new();
+    mock_headers.insert("X-Mock-Reply".to_string(), "stripe-ok".to_string());
+    let updated_webhook = harness
+        .services
+        .channels
+        .update_channel_rules(UpdateChannelRulesInput {
+            channel_id: webhook_channel.channel.id.clone(),
+            webhook_mock: WebhookMockConfiguration {
+                is_enabled: true,
+                status_code: 201,
+                headers: mock_headers,
+                body: r#"{"acknowledged":true,"source":"local-mock"}"#.to_string(),
+                delay_milliseconds: 0,
+            },
+            chaos_rule: ChannelChaosConfiguration::default(),
+        })
+        .expect("update webhook mock rules");
+    assert!(updated_webhook.webhook_mock.is_enabled);
+    assert_eq!(updated_webhook.webhook_mock.status_code, 201);
+
+    let (mock_status, mock_body) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        &format!(
+            "/api/v1/webhooks/{}/checkout",
+            webhook_channel.credential.credential_identifier
+        ),
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &webhook_channel.credential.composite_key),
+            ("X-Replay-Signature", "sig_local_123"),
+        ],
+        r#"{"event":"checkout.completed"}"#,
+    )
+    .await;
+    assert_eq!(mock_status, 201);
+    assert_eq!(mock_body, r#"{"acknowledged":true,"source":"local-mock"}"#);
+
+    let stored_page = harness
+        .services
+        .notifications
+        .query_notifications(NotificationQuery {
+            workspace_id: harness.workspace_id.clone(),
+            project_id: harness.project_id.clone(),
+            environment_id: harness.environment_id.clone(),
+            channel_id: None,
+            channel_type: Some(ChannelType::Webhook),
+            status: None,
+            test_run_identifier: None,
+            recipient_contains: None,
+            subject_contains: None,
+            since: None,
+            search_query: None,
+            limit: Some(10),
+            offset: Some(0),
+        })
+        .expect("query stored mocked webhook");
+    assert_eq!(stored_page.total_count, 1);
+    let captured_webhook_id = stored_page.items[0].id.clone();
+
+    // 2. Strict loopback replay against an ephemeral 127.0.0.1 receiver
+    let replay_listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind local replay receiver");
+    let replay_port = replay_listener.local_addr().expect("local addr").port();
+    let receiver_task = tokio::spawn(async move {
+        let (mut socket, _) = replay_listener.accept().await.expect("accept replay");
+        let mut request_buf = [0_u8; 4096];
+        let read_len = socket.read(&mut request_buf).await.expect("read replay");
+        let request_text = String::from_utf8_lossy(&request_buf[..read_len]).to_string();
+        let response = "HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\nContent-Length: 19\r\n\r\n{\"replayed\":\"done\"}";
+        socket
+            .write_all(response.as_bytes())
+            .await
+            .expect("write replay");
+        socket.flush().await.expect("flush replay");
+        request_text
+    });
+
+    let replay_result = harness
+        .services
+        .notifications
+        .replay_webhook_notification(WebhookReplayInput {
+            notification_id: captured_webhook_id.clone(),
+            target_url: format!("http://127.0.0.1:{replay_port}/local-receiver"),
+        })
+        .await
+        .expect("loopback replay succeeds");
+    assert_eq!(replay_result.status_code, 202);
+    assert_eq!(replay_result.method, "POST");
+    assert_eq!(replay_result.response_body, r#"{"replayed":"done"}"#);
+
+    let received_raw = receiver_task.await.expect("receiver task");
+    assert!(received_raw.starts_with("POST /local-receiver HTTP/1.1\r\n"));
+    assert!(
+        received_raw
+            .to_ascii_lowercase()
+            .contains("x-replay-signature: sig_local_123")
+    );
+    assert!(received_raw.contains(r#"{"event":"checkout.completed"}"#));
+
+    // Reject non-loopback replay targets
+    let external_replay_error = harness
+        .services
+        .notifications
+        .replay_webhook_notification(WebhookReplayInput {
+            notification_id: captured_webhook_id,
+            target_url: "http://example.com/webhook".to_string(),
+        })
+        .await
+        .expect_err("external host replay must be rejected");
+    assert!(external_replay_error.to_string().contains("127.0.0.1"));
+
+    // 3. Chaos failure injection on HTTP webhook (429) and SMTP email (451)
+    harness
+        .services
+        .channels
+        .update_channel_rules(UpdateChannelRulesInput {
+            channel_id: webhook_channel.channel.id.clone(),
+            webhook_mock: WebhookMockConfiguration::default(),
+            chaos_rule: ChannelChaosConfiguration {
+                is_enabled: true,
+                latency_milliseconds: 0,
+                failure_rate_percent: 100,
+                http_error_status_code: 429,
+                smtp_error_code: 451,
+                error_message: "Rate limit simulated".to_string(),
+            },
+        })
+        .expect("enable webhook chaos");
+
+    let (chaos_http_status, chaos_http_body) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        &format!(
+            "/api/v1/webhooks/{}/checkout",
+            webhook_channel.credential.credential_identifier
+        ),
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &webhook_channel.credential.composite_key),
+        ],
+        r#"{"attempt":2}"#,
+    )
+    .await;
+    assert_eq!(chaos_http_status, 429);
+    assert!(chaos_http_body.contains("CHAOS_SIMULATED_FAILURE"));
+
+    harness
+        .services
+        .channels
+        .update_channel_rules(UpdateChannelRulesInput {
+            channel_id: email_channel.channel.id.clone(),
+            webhook_mock: WebhookMockConfiguration::default(),
+            chaos_rule: ChannelChaosConfiguration {
+                is_enabled: true,
+                latency_milliseconds: 0,
+                failure_rate_percent: 100,
+                http_error_status_code: 503,
+                smtp_error_code: 451,
+                error_message: "Transient mailbox unavailable".to_string(),
+            },
+        })
+        .expect("enable smtp chaos");
+
+    {
+        let stream = TcpStream::connect(harness.smtp_address)
+            .await
+            .expect("connect smtp");
+        let (read_half, mut write_half) = stream.into_split();
+        let mut reader = BufReader::new(read_half);
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 220);
+        write_smtp_command(&mut write_half, "EHLO localhost").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 250);
+        let auth_plain = STANDARD.encode(format!(
+            "\0{}\0{}",
+            email_channel.channel.credential_identifier, email_channel.credential.secret_token
+        ));
+        write_smtp_command(&mut write_half, &format!("AUTH PLAIN {auth_plain}")).await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 235);
+        write_smtp_command(&mut write_half, "MAIL FROM:<ci@notifytrap.local>").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 250);
+        write_smtp_command(&mut write_half, "RCPT TO:<qa@notifytrap.local>").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 250);
+        write_smtp_command(&mut write_half, "DATA").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 354);
+        write_half
+            .write_all(b"From: ci@notifytrap.local\r\nTo: qa@notifytrap.local\r\nSubject: Chaos\r\n\r\nHello\r\n.\r\n")
+            .await
+            .expect("write smtp data");
+        write_half.flush().await.expect("flush smtp");
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 451);
+        write_smtp_command(&mut write_half, "QUIT").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 221);
+    }
 
     harness
         .coordinator

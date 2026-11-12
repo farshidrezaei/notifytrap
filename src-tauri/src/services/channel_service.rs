@@ -3,11 +3,13 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::channel::{
-    ChannelCredentialReveal, ChannelRecord, ChannelSummary, CreateChannelInput,
-    CreatedChannelResult,
+    ChannelChaosConfiguration, ChannelCredentialReveal, ChannelRecord, ChannelSummary, ChannelType,
+    CreateChannelInput, CreatedChannelResult, UpdateChannelRulesInput, WebhookMockConfiguration,
 };
 use crate::domain::errors::ApplicationError;
-use crate::domain::validation::{current_utc_timestamp, validate_name, validate_uuid};
+use crate::domain::validation::{
+    current_utc_timestamp, validate_bounded_text, validate_name, validate_uuid,
+};
 use crate::infrastructure::database::channel_repository::SqliteChannelRepository;
 use crate::infrastructure::database::connection_manager::DatabaseConnectionManager;
 use crate::infrastructure::database::environment_repository::SqliteEnvironmentRepository;
@@ -63,6 +65,8 @@ impl ChannelService {
             credential_identifier: generated.credential_identifier.clone(),
             credential_hash: generated.credential_hash,
             encrypted_credential: generated.encrypted_credential,
+            webhook_mock: WebhookMockConfiguration::default(),
+            chaos_rule: ChannelChaosConfiguration::default(),
             created_at: now.clone(),
             updated_at: now,
         };
@@ -120,6 +124,38 @@ impl ChannelService {
         self.database_manager.with_connection(|connection| {
             let did_update =
                 SqliteChannelRepository::set_enabled(connection, &channel_id, is_enabled, &now)?;
+            if !did_update {
+                return Err(ApplicationError::NotFound("Channel".to_string()));
+            }
+            let updated = SqliteChannelRepository::find_by_id(connection, &channel_id)?
+                .ok_or_else(|| ApplicationError::NotFound("Channel".to_string()))?;
+            Ok(updated.to_summary())
+        })
+    }
+
+    pub fn update_channel_rules(
+        &self,
+        input: UpdateChannelRulesInput,
+    ) -> Result<ChannelSummary, ApplicationError> {
+        let channel_id = validate_uuid(&input.channel_id, "channelId")?;
+        let now = current_utc_timestamp();
+
+        let existing = self.database_manager.with_connection(|connection| {
+            SqliteChannelRepository::find_by_id(connection, &channel_id)?
+                .ok_or_else(|| ApplicationError::NotFound("Channel".to_string()))
+        })?;
+
+        let validated_mock = validate_webhook_mock(existing.channel_type, input.webhook_mock)?;
+        let validated_chaos = validate_chaos_rule(input.chaos_rule)?;
+
+        self.database_manager.with_connection(|connection| {
+            let did_update = SqliteChannelRepository::update_rules(
+                connection,
+                &channel_id,
+                &validated_mock,
+                &validated_chaos,
+                &now,
+            )?;
             if !did_update {
                 return Err(ApplicationError::NotFound("Channel".to_string()));
             }
@@ -272,4 +308,88 @@ fn verify_scope_hierarchy(
     }
 
     Ok(())
+}
+
+const MAXIMUM_MOCK_HEADERS: usize = 32;
+const MAXIMUM_MOCK_BODY_BYTES: usize = 65_536;
+const MAXIMUM_SIMULATED_DELAY_MILLISECONDS: u64 = 10_000;
+
+fn validate_webhook_mock(
+    channel_type: ChannelType,
+    mut configuration: WebhookMockConfiguration,
+) -> Result<WebhookMockConfiguration, ApplicationError> {
+    if channel_type != ChannelType::Webhook && configuration.is_enabled {
+        return Err(ApplicationError::Validation(
+            "Custom webhook mock responses are only supported on webhook channels".to_string(),
+        ));
+    }
+    if !(100..=599).contains(&configuration.status_code) {
+        return Err(ApplicationError::Validation(
+            "Webhook mock HTTP status code must be between 100 and 599".to_string(),
+        ));
+    }
+    if configuration.delay_milliseconds > MAXIMUM_SIMULATED_DELAY_MILLISECONDS {
+        return Err(ApplicationError::Validation(format!(
+            "Webhook mock delay must not exceed {MAXIMUM_SIMULATED_DELAY_MILLISECONDS} ms"
+        )));
+    }
+    if configuration.body.len() > MAXIMUM_MOCK_BODY_BYTES {
+        return Err(ApplicationError::Validation(format!(
+            "Webhook mock body must not exceed {MAXIMUM_MOCK_BODY_BYTES} bytes"
+        )));
+    }
+    if configuration.headers.len() > MAXIMUM_MOCK_HEADERS {
+        return Err(ApplicationError::Validation(format!(
+            "Webhook mock headers must not exceed {MAXIMUM_MOCK_HEADERS} entries"
+        )));
+    }
+
+    let mut sanitized_headers = std::collections::BTreeMap::new();
+    for (raw_name, raw_value) in configuration.headers {
+        let name = validate_bounded_text(&raw_name, "mockHeaderName", 1, 128, false)?;
+        if !name.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '-' || character == '_'
+        }) {
+            return Err(ApplicationError::Validation(format!(
+                "Invalid mock response header name: {name}"
+            )));
+        }
+        let value = validate_bounded_text(&raw_value, "mockHeaderValue", 0, 1024, false)?;
+        sanitized_headers.insert(name, value);
+    }
+    configuration.headers = sanitized_headers;
+    Ok(configuration)
+}
+
+fn validate_chaos_rule(
+    mut configuration: ChannelChaosConfiguration,
+) -> Result<ChannelChaosConfiguration, ApplicationError> {
+    if configuration.latency_milliseconds > MAXIMUM_SIMULATED_DELAY_MILLISECONDS {
+        return Err(ApplicationError::Validation(format!(
+            "Chaos latency must not exceed {MAXIMUM_SIMULATED_DELAY_MILLISECONDS} ms"
+        )));
+    }
+    if configuration.failure_rate_percent > 100 {
+        return Err(ApplicationError::Validation(
+            "Chaos failure rate must be between 0 and 100 percent".to_string(),
+        ));
+    }
+    if !(400..=599).contains(&configuration.http_error_status_code) {
+        return Err(ApplicationError::Validation(
+            "Chaos HTTP error status code must be between 400 and 599".to_string(),
+        ));
+    }
+    if !(400..=599).contains(&configuration.smtp_error_code) {
+        return Err(ApplicationError::Validation(
+            "Chaos SMTP error code must be between 400 and 599".to_string(),
+        ));
+    }
+    configuration.error_message = validate_bounded_text(
+        &configuration.error_message,
+        "chaosErrorMessage",
+        1,
+        240,
+        false,
+    )?;
+    Ok(configuration)
 }

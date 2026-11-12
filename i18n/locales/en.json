@@ -267,7 +267,17 @@
         "query": "Query"
       },
       "emptyBody": "Request body was empty.",
-      "emptyQuery": "No query string parameters were attached."
+      "emptyQuery": "No query string parameters were attached.",
+      "replayButton": "Replay",
+      "replayModal": {
+        "title": "Loopback Webhook Replay",
+        "description": "Replay this captured webhook strictly to a local loopback HTTP server (127.0.0.1, localhost, or [::1]).",
+        "targetUrlLabel": "Loopback Target URL",
+        "targetUrlPlaceholder": "http://127.0.0.1:3000/webhooks/stripe",
+        "sendButton": "Send Replay",
+        "invalidLoopbackUrl": "Target URL must use http:// and target 127.0.0.1, localhost, or [::1].",
+        "emptyResponseBody": "Target responded with an empty body."
+      }
     },
     "verification": {
       "detectedTitle": "Extracted Verification",
@@ -364,7 +374,8 @@
       "deleteChannel": "Delete Channel",
       "showSnippet": "Integration Snippet",
       "hideSnippet": "Hide Snippet",
-      "copySnippet": "Copy Snippet"
+      "copySnippet": "Copy Snippet",
+      "rules": "Rules"
     },
     "card": {
       "identifierLabel": "Credential Identifier",
@@ -387,7 +398,19 @@
       "identifierPlaceholder": "transactional-mailer",
       "enabledLabel": "Activation State",
       "enabledHint": "Allow this channel to capture incoming payloads immediately.",
-      "submit": "Create Channel"
+      "submit": "Create Channel",
+      "protocolDescriptions": {
+        "email": "SMTP · HTML, MIME & attachments",
+        "sms": "HTTP · OTP & segment meter",
+        "push": "HTTP · iOS, Android & Web Push",
+        "webhook": "HTTP · Any method, mock & replay"
+      },
+      "protocolTransports": {
+        "email": "SMTP",
+        "sms": "POST",
+        "push": "POST",
+        "webhook": "ANY"
+      }
     },
     "rotateModal": {
       "title": "Rotate Channel Secret?",
@@ -403,6 +426,29 @@
       "disabledTitle": "Channel Paused",
       "rotatedTitle": "Credential Rotated",
       "deletedTitle": "Channel Deleted"
+    },
+    "rulesModal": {
+      "title": "Channel Rules: {name}",
+      "description": "Configure custom webhook mock responses and transient chaos failure simulation.",
+      "mockSectionTitle": "Webhook Mock Response",
+      "mockSectionDescription": "Return a custom HTTP status, headers, body, and latency after capturing incoming webhooks.",
+      "mockEnabledLabel": "Enable webhook mock response",
+      "mockStatusLabel": "HTTP Status Code",
+      "mockDelayLabel": "Response Delay (ms)",
+      "mockHeadersLabel": "Response Headers (JSON)",
+      "mockBodyLabel": "Response Body",
+      "chaosSectionTitle": "Chaos Failure Simulation",
+      "chaosSectionDescription": "Inject artificial latency and transient errors to test application retry and backoff behavior.",
+      "chaosEnabledLabel": "Enable chaos simulation",
+      "chaosFailureRateLabel": "Failure Rate (%)",
+      "chaosLatencyLabel": "Injected Latency (ms)",
+      "chaosHttpCodeLabel": "HTTP Error Status",
+      "chaosSmtpCodeLabel": "SMTP Error Code",
+      "chaosMessageLabel": "Simulated Error Message",
+      "invalidHeadersJson": "Response headers must be a valid JSON object with alphanumeric/hyphen header names.",
+      "savedTitle": "Channel rules updated",
+      "mockBadge": "Mock {code}",
+      "chaosBadge": "Chaos {rate}%"
     }
   },
   "settings": {
