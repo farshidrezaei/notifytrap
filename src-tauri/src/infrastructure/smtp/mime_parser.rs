@@ -5,6 +5,7 @@ use crate::domain::notification::CaptureAttachmentInput;
 use crate::infrastructure::security::html_sanitizer::sanitize_email_html;
 
 const PREVIEW_MAX_CHARACTERS: usize = 160;
+const HEADER_TEST_RUN_IDENTIFIER: &str = "x-notifytrap-run";
 
 /// Normalized parsed email representation extracted from an RFC 5322 MIME payload.
 #[derive(Debug, Clone)]
@@ -13,6 +14,7 @@ pub struct ParsedSmtpEmail {
     pub recipient: String,
     pub subject: String,
     pub preview_text: String,
+    pub test_run_identifier: Option<String>,
     pub payload_json: Value,
     pub attachments: Vec<CaptureAttachmentInput>,
 }
@@ -32,6 +34,7 @@ pub fn parse_smtp_message(
             recipient: primary_recipient,
             subject: "(Unparsable MIME Message)".to_string(),
             preview_text: truncate_preview(&fallback_text, PREVIEW_MAX_CHARACTERS),
+            test_run_identifier: None,
             payload_json: json!({
                 "from": [envelope_sender],
                 "to": envelope_recipients,
@@ -80,6 +83,22 @@ pub fn parse_smtp_message(
     } else {
         sanitize_email_html(&raw_html)
     };
+
+    let test_run_identifier = message
+        .headers()
+        .iter()
+        .find(|header| {
+            header
+                .name()
+                .as_str()
+                .eq_ignore_ascii_case(HEADER_TEST_RUN_IDENTIFIER)
+        })
+        .map(|header| {
+            String::from_utf8_lossy(header.raw_value())
+                .trim()
+                .to_string()
+        })
+        .filter(|value| !value.is_empty());
 
     let headers: Vec<Value> = message
         .headers()
@@ -171,6 +190,7 @@ pub fn parse_smtp_message(
             subject
         },
         preview_text: truncate_preview(&preview_source, PREVIEW_MAX_CHARACTERS),
+        test_run_identifier,
         payload_json,
         attachments,
     }

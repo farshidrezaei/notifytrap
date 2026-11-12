@@ -130,6 +130,14 @@ export interface NotificationAttachmentSummary {
   createdAt: string
 }
 
+export type VerificationArtifactKind = 'otpCode' | 'verificationLink'
+
+export interface VerificationArtifact {
+  kind: VerificationArtifactKind
+  value: string
+  label: string
+}
+
 export interface NotificationSummary {
   id: string
   workspaceId: string
@@ -142,6 +150,8 @@ export interface NotificationSummary {
   sender: string
   subject: string
   previewText: string
+  testRunIdentifier: string
+  verificationArtifacts: readonly VerificationArtifact[]
   receivedAt: string
 }
 
@@ -159,13 +169,15 @@ export interface Notification {
   previewText: string
   payloadJson: Record<string, unknown>
   rawPayload: string
+  testRunIdentifier: string
+  verificationArtifacts: readonly VerificationArtifact[]
   receivedAt: string
   createdAt: string
 }
 
 export interface NotificationDetail {
   notification: Notification
-  attachments: NotificationAttachmentSummary[]
+  attachments: readonly NotificationAttachmentSummary[]
 }
 
 export interface NotificationQuery {
@@ -175,6 +187,7 @@ export interface NotificationQuery {
   channelId?: string
   channelType?: ChannelType
   status?: NotificationStatus
+  testRunIdentifier?: string
   searchQuery?: string
   limit?: number
   offset?: number

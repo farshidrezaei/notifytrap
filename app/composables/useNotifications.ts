@@ -28,6 +28,7 @@ export function useNotifications() {
 
   const filterChannelType = useState<ChannelType | 'all'>('inbox-filter-channel-type', () => 'all')
   const filterStatus = useState<NotificationStatus | 'all'>('inbox-filter-status', () => 'all')
+  const filterTestRunIdentifier = useState<string>('inbox-filter-test-run', () => '')
   const filterSearchQuery = useState<string>('inbox-filter-search', () => '')
   const currentPage = useState<number>('inbox-current-page', () => 1)
 
@@ -60,6 +61,7 @@ export function useNotifications() {
           environmentId: activeEnvironmentId.value,
           channelType: filterChannelType.value === 'all' ? undefined : filterChannelType.value,
           status: filterStatus.value === 'all' ? undefined : filterStatus.value,
+          testRunIdentifier: filterTestRunIdentifier.value.trim() || undefined,
           searchQuery: filterSearchQuery.value.trim() || undefined,
           limit: DEFAULT_INBOX_PAGE_SIZE,
           offset,
@@ -177,6 +179,7 @@ export function useNotifications() {
     isLoadingDetail: readonly(isLoadingDetail),
     filterChannelType,
     filterStatus,
+    filterTestRunIdentifier,
     filterSearchQuery,
     currentPage,
     pageSize: DEFAULT_INBOX_PAGE_SIZE,

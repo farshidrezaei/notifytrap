@@ -149,7 +149,8 @@
     "filters": {
       "allChannels": "همه",
       "allStatuses": "همه وضعیت‌ها",
-      "searchPlaceholder": "جستجو در موضوع، گیرنده، متن..."
+      "searchPlaceholder": "جستجو در موضوع، گیرنده، متن...",
+      "runTagPlaceholder": "برچسب اجرا (X-NotifyTrap-Run)..."
     },
     "status": {
       "captured": "خوانده‌نشده",
@@ -217,6 +218,20 @@
       },
       "emptyBody": "بدنه درخواست خالی بوده است.",
       "emptyQuery": "هیچ پارامتر کوئری‌ای ارسال نشده است."
+    },
+    "verification": {
+      "detectedTitle": "کدها و لینک‌های استخراج‌شده",
+      "copiedOtpTitle": "کد تایید {code} کپی شد",
+      "copiedLinkTitle": "لینک تایید کپی شد"
+    },
+    "export": {
+      "menuLabel": "خروجی",
+      "downloadEml": "دانلود فایل .eml",
+      "downloadJson": "دانلود JSON",
+      "copyJson": "کپی JSON",
+      "copyCurl": "کپی دستور cURL",
+      "downloadedTitle": "فایل {format} ذخیره شد",
+      "copiedTitle": "محتوای {format} کپی شد"
     }
   },
   "workspaces": {

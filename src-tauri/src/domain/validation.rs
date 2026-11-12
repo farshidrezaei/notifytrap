@@ -11,6 +11,7 @@ pub const MINIMUM_SLUG_LENGTH: usize = 2;
 pub const MAXIMUM_SLUG_LENGTH: usize = 64;
 pub const MAXIMUM_DESCRIPTION_LENGTH: usize = 280;
 pub const MAXIMUM_SEARCH_QUERY_LENGTH: usize = 64;
+pub const MAXIMUM_TEST_RUN_IDENTIFIER_LENGTH: usize = 128;
 pub const MINIMUM_TCP_PORT: u16 = 1024;
 pub const MAXIMUM_TCP_PORT: u16 = 65535;
 pub const MAXIMUM_PAGE_SIZE: u32 = 200;
@@ -172,6 +173,30 @@ pub fn validate_tcp_port(port: u16, label: &str) -> Result<u16, ApplicationError
         )));
     }
     Ok(port)
+}
+
+/// Validates optional test run tag identifier from headers or inbox filters.
+pub fn validate_optional_test_run_identifier(
+    raw_identifier: Option<&str>,
+) -> Result<Option<String>, ApplicationError> {
+    let Some(identifier) = raw_identifier else {
+        return Ok(None);
+    };
+    let trimmed = identifier.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    if trimmed.chars().any(char::is_control) {
+        return Err(ApplicationError::Validation(
+            "Test run identifier must not contain control characters".to_string(),
+        ));
+    }
+    if trimmed.chars().count() > MAXIMUM_TEST_RUN_IDENTIFIER_LENGTH {
+        return Err(ApplicationError::Validation(format!(
+            "Test run identifier must be at most {MAXIMUM_TEST_RUN_IDENTIFIER_LENGTH} characters"
+        )));
+    }
+    Ok(Some(trimmed.to_string()))
 }
 
 /// Validates optional inbox search text length and blocks control bytes.

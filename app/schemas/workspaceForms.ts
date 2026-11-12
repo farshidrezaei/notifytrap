@@ -156,6 +156,12 @@ export function createInboxFilterFormSchema(translate: ValidationTranslator) {
     status: z.enum(INBOX_STATUS_FILTER_OPTIONS, {
       error: translate('validation.invalidSelection'),
     }),
+    testRunIdentifier: z
+      .string()
+      .trim()
+      .max(128, { error: translate('validation.maxLength', { max: 128 }) })
+      .optional()
+      .default(''),
     searchQuery: createSearchQueryField(translate),
   })
 }

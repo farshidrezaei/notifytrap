@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::channel::ChannelType;
 use crate::domain::errors::ApplicationError;
+use crate::domain::verification_extractor::{VerificationArtifact, extract_verification_artifacts};
 
 /// Processing state of a captured notification in the local inbox.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -71,6 +72,8 @@ pub struct Notification {
     pub preview_text: String,
     pub payload_json: serde_json::Value,
     pub raw_payload: String,
+    pub test_run_identifier: String,
+    pub verification_artifacts: Vec<VerificationArtifact>,
     pub received_at: String,
     pub created_at: String,
 }
@@ -90,6 +93,8 @@ pub struct NotificationSummary {
     pub sender: String,
     pub subject: String,
     pub preview_text: String,
+    pub test_run_identifier: String,
+    pub verification_artifacts: Vec<VerificationArtifact>,
     pub received_at: String,
 }
 
@@ -115,8 +120,20 @@ impl Notification {
             sender: self.sender.clone(),
             subject: self.subject.clone(),
             preview_text: self.preview_text.clone(),
+            test_run_identifier: self.test_run_identifier.clone(),
+            verification_artifacts: self.verification_artifacts.clone(),
             received_at: self.received_at.clone(),
         }
+    }
+
+    pub fn populate_verification_artifacts(&mut self) {
+        self.verification_artifacts = extract_verification_artifacts(
+            self.channel_type,
+            &self.subject,
+            &self.preview_text,
+            &self.payload_json,
+            &self.raw_payload,
+        );
     }
 }
 
@@ -144,22 +161,37 @@ pub struct CaptureNotificationInput {
     pub preview_text: String,
     pub payload_json: serde_json::Value,
     pub raw_payload: String,
+    pub test_run_identifier: Option<String>,
     pub received_at: Option<String>,
     pub attachments: Vec<CaptureAttachmentInput>,
 }
 
 /// Strictly scoped inbox filter query.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationQuery {
     pub workspace_id: String,
     pub project_id: String,
     pub environment_id: String,
+    #[serde(default)]
     pub channel_id: Option<String>,
+    #[serde(default)]
     pub channel_type: Option<ChannelType>,
+    #[serde(default)]
     pub status: Option<NotificationStatus>,
+    #[serde(default)]
+    pub test_run_identifier: Option<String>,
+    #[serde(default)]
+    pub recipient_contains: Option<String>,
+    #[serde(default)]
+    pub subject_contains: Option<String>,
+    #[serde(default)]
+    pub since: Option<String>,
+    #[serde(default)]
     pub search_query: Option<String>,
+    #[serde(default)]
     pub limit: Option<u32>,
+    #[serde(default)]
     pub offset: Option<u32>,
 }
 

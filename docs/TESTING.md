@@ -44,6 +44,10 @@
 - **No trivial assertions** (`assert!(result.is_some())` without verifying actual values).
 - **Deterministic fixtures** and isolated databases for every test.
 - Test failure paths with the same rigor as happy paths.
+- **v1.1.0 Additions**:
+  - Property-based (`proptest`) & table-driven OTP/magic-link extraction tests (`domain/verification_extractor.rs`).
+  - End-to-end Axum/SMTP integration test (`http_query_wait_run_tag_and_verification_extraction_end_to_end`) verifying `X-NotifyTrap-Run`, cross-channel `404` isolation, race-free `/api/v1/notifications/wait` wakeup, and `408 WAIT_TIMEOUT`.
+  - Vitest unit suite (`tests/notificationExport.spec.ts`) covering `.eml`, `JSON`, and secret-safe `cURL` export.
 
 ---
 

@@ -239,6 +239,7 @@ pub async fn handle_smtp_connection(
                                 preview_text: parsed.preview_text,
                                 payload_json: parsed.payload_json,
                                 raw_payload,
+                                test_run_identifier: parsed.test_run_identifier,
                                 received_at: None,
                                 attachments: parsed.attachments,
                             },

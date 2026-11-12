@@ -14,11 +14,17 @@ use crate::application::application_state::ApplicationServices;
 use crate::domain::channel::{ChannelSummary, ChannelType};
 use crate::domain::errors::ApplicationError;
 use crate::domain::notification::CaptureNotificationInput;
-use crate::domain::validation::{validate_bounded_text, validate_slug};
+use crate::domain::validation::{
+    validate_bounded_text, validate_optional_test_run_identifier, validate_slug,
+};
 use crate::events::{EventPublisher, NotificationCapturedEvent};
+use crate::infrastructure::http::query_routes::{
+    handle_get_notification_detail, handle_query_notifications, handle_wait_for_notification,
+};
 
 const HEADER_CHANNEL_KEY: &str = "x-channel-key";
 const HEADER_AUTHORIZATION: &str = "authorization";
+const HEADER_TEST_RUN_IDENTIFIER: &str = "x-notifytrap-run";
 const REDACTED_SECRET_PLACEHOLDER: &str = "[REDACTED]";
 const PREVIEW_MAX_CHARACTERS: usize = 160;
 
@@ -68,14 +74,14 @@ struct HttpErrorBody {
     message: String,
 }
 
-struct HttpCaptureError {
+pub(super) struct HttpCaptureError {
     status_code: StatusCode,
     code: &'static str,
     message: String,
 }
 
 impl HttpCaptureError {
-    fn from_application_error(error: ApplicationError) -> Self {
+    pub(super) fn from_application_error(error: ApplicationError) -> Self {
         match error {
             ApplicationError::Unauthorized => Self {
                 status_code: StatusCode::UNAUTHORIZED,
@@ -130,11 +136,27 @@ impl HttpCaptureError {
         }
     }
 
-    fn unauthorized() -> Self {
+    pub(super) fn unauthorized() -> Self {
         Self {
             status_code: StatusCode::UNAUTHORIZED,
             code: "UNAUTHORIZED",
             message: "Channel authentication failed".to_string(),
+        }
+    }
+
+    pub(super) fn not_found(entity: &str) -> Self {
+        Self {
+            status_code: StatusCode::NOT_FOUND,
+            code: "NOT_FOUND",
+            message: format!("{entity} not found"),
+        }
+    }
+
+    pub(super) fn request_timeout(message: impl Into<String>) -> Self {
+        Self {
+            status_code: StatusCode::REQUEST_TIMEOUT,
+            code: "WAIT_TIMEOUT",
+            message: message.into(),
         }
     }
 }
@@ -156,6 +178,15 @@ impl IntoResponse for HttpCaptureError {
 pub fn build_http_capture_router(state: HttpCaptureState, maximum_payload_bytes: usize) -> Router {
     Router::new()
         .route("/api/v1/health", get(handle_health))
+        .route("/api/v1/notifications", get(handle_query_notifications))
+        .route(
+            "/api/v1/notifications/wait",
+            get(handle_wait_for_notification),
+        )
+        .route(
+            "/api/v1/notifications/{notification_id}",
+            get(handle_get_notification_detail),
+        )
         .route("/api/v1/sms", post(handle_sms_capture))
         .route("/api/v1/push", post(handle_push_capture))
         .route(
@@ -187,6 +218,7 @@ async fn handle_sms_capture(
     payload_result: Result<Json<SmsCapturePayload>, axum::extract::rejection::JsonRejection>,
 ) -> Result<(StatusCode, Json<CaptureReceiptResponse>), HttpCaptureError> {
     let channel = authenticate_header_channel(&headers, &state, ChannelType::Sms)?;
+    let test_run_identifier = extract_test_run_identifier(&headers)?;
     let Json(payload) = payload_result.map_err(HttpCaptureError::from_json_rejection)?;
 
     let recipient = validate_bounded_text(&payload.to, "to", 3, 32, false)
@@ -224,6 +256,7 @@ async fn handle_sms_capture(
             preview_text: truncate_preview(&message_text, PREVIEW_MAX_CHARACTERS),
             payload_json: canonical_payload,
             raw_payload,
+            test_run_identifier,
             received_at: None,
             attachments: Vec::new(),
         },
@@ -236,6 +269,7 @@ async fn handle_push_capture(
     payload_result: Result<Json<PushCapturePayload>, axum::extract::rejection::JsonRejection>,
 ) -> Result<(StatusCode, Json<CaptureReceiptResponse>), HttpCaptureError> {
     let channel = authenticate_header_channel(&headers, &state, ChannelType::Push)?;
+    let test_run_identifier = extract_test_run_identifier(&headers)?;
     let Json(payload) = payload_result.map_err(HttpCaptureError::from_json_rejection)?;
 
     let device_token = validate_bounded_text(&payload.device_token, "device_token", 2, 512, false)
@@ -274,6 +308,7 @@ async fn handle_push_capture(
             preview_text: truncate_preview(&body, PREVIEW_MAX_CHARACTERS),
             payload_json: canonical_payload,
             raw_payload,
+            test_run_identifier,
             received_at: None,
             attachments: Vec::new(),
         },
@@ -337,6 +372,7 @@ fn process_webhook_capture(
         .map_err(|error| HttpCaptureError::bad_request(error.to_string()))?;
     let channel =
         authenticate_webhook_channel(state, &validated_identifier, headers, query_parameters)?;
+    let test_run_identifier = extract_test_run_identifier(headers)?;
 
     let raw_body_text = String::from_utf8_lossy(body_bytes).to_string();
     let parsed_body_json: Option<Value> = if raw_body_text.trim().is_empty() {
@@ -391,6 +427,7 @@ fn process_webhook_capture(
             preview_text: truncate_preview(&preview_source, PREVIEW_MAX_CHARACTERS),
             payload_json: canonical_payload,
             raw_payload: raw_body_text,
+            test_run_identifier,
             received_at: None,
             attachments: Vec::new(),
         },
@@ -482,7 +519,7 @@ fn authenticate_webhook_channel(
     Ok(channel)
 }
 
-fn extract_channel_key_from_headers(headers: &HeaderMap) -> Option<&str> {
+pub(super) fn extract_channel_key_from_headers(headers: &HeaderMap) -> Option<&str> {
     if let Some(channel_key_header) = headers
         .get(HEADER_CHANNEL_KEY)
         .and_then(|value| value.to_str().ok())
@@ -510,6 +547,14 @@ fn extract_channel_key_from_headers(headers: &HeaderMap) -> Option<&str> {
     }
 
     None
+}
+
+fn extract_test_run_identifier(headers: &HeaderMap) -> Result<Option<String>, HttpCaptureError> {
+    let raw_header = headers
+        .get(HEADER_TEST_RUN_IDENTIFIER)
+        .and_then(|value| value.to_str().ok());
+    validate_optional_test_run_identifier(raw_header)
+        .map_err(|error| HttpCaptureError::bad_request(error.to_string()))
 }
 
 fn is_sensitive_header_name(lowercase_name: &str) -> bool {

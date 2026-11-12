@@ -1,6 +1,6 @@
 [package]
 name = "notifytrap"
-version = "1.0.0"
+version = "1.1.0"
 description = "Local-first desktop utility for capturing, inspecting, and debugging application notifications."
 authors = ["NotifyTrap Contributors"]
 edition = "2024"

@@ -6,9 +6,10 @@ use crate::domain::notification::{
     NotificationDetail, NotificationPage, NotificationQuery, NotificationStatus,
 };
 use crate::domain::validation::{
-    current_utc_timestamp, validate_pagination, validate_rfc3339_timestamp, validate_search_query,
-    validate_uuid,
+    current_utc_timestamp, validate_optional_test_run_identifier, validate_pagination,
+    validate_rfc3339_timestamp, validate_search_query, validate_uuid,
 };
+use crate::domain::verification_extractor::extract_verification_artifacts;
 use crate::infrastructure::database::channel_repository::SqliteChannelRepository;
 use crate::infrastructure::database::connection_manager::DatabaseConnectionManager;
 use crate::infrastructure::database::notification_repository::SqliteNotificationRepository;
@@ -38,6 +39,16 @@ impl NotificationService {
             .received_at
             .filter(|timestamp| !timestamp.trim().is_empty())
             .unwrap_or_else(|| now.clone());
+        let test_run_identifier =
+            validate_optional_test_run_identifier(input.test_run_identifier.as_deref())?
+                .unwrap_or_default();
+        let verification_artifacts = extract_verification_artifacts(
+            input.channel_type,
+            &input.subject,
+            &input.preview_text,
+            &input.payload_json,
+            &input.raw_payload,
+        );
 
         let notification = Notification {
             id: Uuid::new_v4().to_string(),
@@ -53,6 +64,8 @@ impl NotificationService {
             preview_text: input.preview_text,
             payload_json: input.payload_json,
             raw_payload: input.raw_payload,
+            test_run_identifier,
+            verification_artifacts,
             received_at,
             created_at: now.clone(),
         };
@@ -128,6 +141,20 @@ impl NotificationService {
             } else {
                 query.channel_id = None;
             }
+        }
+        query.test_run_identifier =
+            validate_optional_test_run_identifier(query.test_run_identifier.as_deref())?;
+        query.recipient_contains = validate_search_query(query.recipient_contains.as_deref())?;
+        query.subject_contains = validate_search_query(query.subject_contains.as_deref())?;
+        if let Some(since_timestamp) = query
+            .since
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            query.since = Some(validate_rfc3339_timestamp(since_timestamp, "since")?);
+        } else {
+            query.since = None;
         }
         query.search_query = validate_search_query(query.search_query.as_deref())?;
         let (limit, offset) = validate_pagination(query.limit, query.offset)?;

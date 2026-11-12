@@ -13,6 +13,7 @@ const { hasActiveScope } = useWorkspaceContext()
 const {
   filterChannelType,
   filterStatus,
+  filterTestRunIdentifier,
   filterSearchQuery,
   currentPage,
   isLoadingList,
@@ -24,10 +25,12 @@ const filterSchema = computed(() => createInboxFilterFormSchema(t))
 const filterFormState = reactive<{
   channelType: ChannelType | 'all'
   status: NotificationStatus | 'all'
+  testRunIdentifier: string
   searchQuery: string
 }>({
   channelType: filterChannelType.value,
   status: filterStatus.value,
+  testRunIdentifier: filterTestRunIdentifier.value,
   searchQuery: filterSearchQuery.value,
 })
 
@@ -68,7 +71,7 @@ async function handleStatusChange(): Promise<void> {
 
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(
-  () => filterFormState.searchQuery,
+  () => [filterFormState.searchQuery, filterFormState.testRunIdentifier],
   () => {
     const parsed = filterSchema.value.safeParse(filterFormState)
     if (!parsed.success) {
@@ -79,6 +82,7 @@ watch(
     }
     searchDebounceTimer = setTimeout(() => {
       filterSearchQuery.value = parsed.data.searchQuery
+      filterTestRunIdentifier.value = parsed.data.testRunIdentifier
       currentPage.value = 1
       void refreshInbox()
     }, 220)
@@ -144,6 +148,17 @@ async function handleConfirmClear(): Promise<void> {
             size="xs"
             class="w-36"
             @update:model-value="handleStatusChange"
+          />
+        </UFormField>
+
+        <UFormField name="testRunIdentifier">
+          <UInput
+            v-model="filterFormState.testRunIdentifier"
+            :maxlength="128"
+            size="xs"
+            icon="i-lucide-tag"
+            class="w-40"
+            :placeholder="t('inbox.filters.runTagPlaceholder')"
           />
         </UFormField>
 

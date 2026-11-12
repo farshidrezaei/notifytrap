@@ -1,9 +1,19 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+import type { VerificationArtifact } from '~/types/application'
+import { copyTextToClipboard } from '~/utils/clipboard'
 import { formatShortTimestamp } from '~/utils/formatters'
+import {
+  buildNotificationCurlExport,
+  buildNotificationEmlExport,
+  buildNotificationJsonExport,
+  triggerTextFileDownload,
+} from '~/utils/notificationExport'
 import { extractCommandErrorMessage } from '~/utils/tauriClient'
 
 const { t, locale } = useI18n()
 const toast = useToast()
+const { health } = useApplicationHealth()
 const {
   selectedDetail,
   isLoadingDetail,
@@ -16,6 +26,96 @@ const isDeleteConfirmOpen = ref(false)
 const isDeleting = ref(false)
 
 const currentNotification = computed(() => selectedDetail.value?.notification ?? null)
+const verificationArtifacts = computed<readonly VerificationArtifact[]>(
+  () => currentNotification.value?.verificationArtifacts ?? [],
+)
+
+const exportMenuItems = computed<DropdownMenuItem[][]>(() => {
+  const detail = selectedDetail.value
+  if (!detail) {
+    return []
+  }
+
+  const httpEndpoint = health.value?.httpEndpoint ?? '127.0.0.1:8080'
+  const curlCommand = buildNotificationCurlExport(detail, httpEndpoint)
+  const fileBaseName = `notifytrap-${detail.notification.channelType}-${detail.notification.id.slice(0, 8)}`
+
+  const primaryActions: DropdownMenuItem[] = [
+    {
+      label: t('inbox.export.downloadEml'),
+      icon: 'i-lucide-mail',
+      onSelect: () => {
+        triggerTextFileDownload(
+          `${fileBaseName}.eml`,
+          buildNotificationEmlExport(detail),
+          'message/rfc822;charset=utf-8',
+        )
+        toast.add({
+          title: t('inbox.export.downloadedTitle', { format: '.eml' }),
+          color: 'success',
+          icon: 'i-lucide-download',
+        })
+      },
+    },
+    {
+      label: t('inbox.export.downloadJson'),
+      icon: 'i-lucide-file-json',
+      onSelect: () => {
+        triggerTextFileDownload(
+          `${fileBaseName}.json`,
+          buildNotificationJsonExport(detail),
+          'application/json;charset=utf-8',
+        )
+        toast.add({
+          title: t('inbox.export.downloadedTitle', { format: 'JSON' }),
+          color: 'success',
+          icon: 'i-lucide-download',
+        })
+      },
+    },
+    {
+      label: t('inbox.export.copyJson'),
+      icon: 'i-lucide-copy',
+      onSelect: async () => {
+        await copyValueWithFeedback(
+          buildNotificationJsonExport(detail),
+          t('inbox.export.copiedTitle', { format: 'JSON' }),
+        )
+      },
+    },
+  ]
+
+  if (curlCommand) {
+    primaryActions.push({
+      label: t('inbox.export.copyCurl'),
+      icon: 'i-lucide-terminal',
+      onSelect: async () => {
+        await copyValueWithFeedback(
+          curlCommand,
+          t('inbox.export.copiedTitle', { format: 'cURL' }),
+        )
+      },
+    })
+  }
+
+  return [primaryActions]
+})
+
+async function copyValueWithFeedback(value: string, successTitle: string): Promise<void> {
+  const didCopy = await copyTextToClipboard(value)
+  toast.add({
+    title: didCopy ? successTitle : t('common.copyFailedTitle'),
+    color: didCopy ? 'success' : 'error',
+    icon: didCopy ? 'i-lucide-check' : 'i-lucide-alert-circle',
+  })
+}
+
+async function handleCopyArtifact(artifact: VerificationArtifact): Promise<void> {
+  const title = artifact.kind === 'otpCode'
+    ? t('inbox.verification.copiedOtpTitle', { code: artifact.value })
+    : t('inbox.verification.copiedLinkTitle')
+  await copyValueWithFeedback(artifact.value, title)
+}
 
 async function handleStatusTransition(status: 'captured' | 'read' | 'archived'): Promise<void> {
   if (!currentNotification.value) {
@@ -85,6 +185,15 @@ async function handleConfirmDelete(): Promise<void> {
             <UBadge color="neutral" variant="subtle" size="xs">
               {{ t(`inbox.status.${currentNotification.status}`) }}
             </UBadge>
+            <UBadge
+              v-if="currentNotification.testRunIdentifier"
+              color="secondary"
+              variant="subtle"
+              size="xs"
+              icon="i-lucide-tag"
+            >
+              {{ currentNotification.testRunIdentifier }}
+            </UBadge>
             <span class="text-xs text-muted">
               {{ formatShortTimestamp(currentNotification.receivedAt, locale) }}
             </span>
@@ -127,6 +236,17 @@ async function handleConfirmDelete(): Promise<void> {
             @click="handleStatusTransition('archived')"
           />
 
+          <UDropdownMenu :items="exportMenuItems">
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-download"
+              trailing-icon="i-lucide-chevron-down"
+              :label="t('inbox.export.menuLabel')"
+            />
+          </UDropdownMenu>
+
           <UTooltip :text="t('inbox.actions.deleteNotification')">
             <UButton
               size="xs"
@@ -138,6 +258,32 @@ async function handleConfirmDelete(): Promise<void> {
               @click="isDeleteConfirmOpen = true"
             />
           </UTooltip>
+        </div>
+      </div>
+
+      <div
+        v-if="verificationArtifacts.length > 0"
+        class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2"
+      >
+        <span class="text-xs font-medium text-toned">
+          {{ t('inbox.verification.detectedTitle') }}
+        </span>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <UButton
+            v-for="(artifact, index) in verificationArtifacts"
+            :key="`${artifact.kind}-${index}`"
+            size="xs"
+            :color="artifact.kind === 'otpCode' ? 'primary' : 'neutral'"
+            :variant="artifact.kind === 'otpCode' ? 'soft' : 'outline'"
+            :icon="artifact.kind === 'otpCode' ? 'i-lucide-key-round' : 'i-lucide-link'"
+            trailing-icon="i-lucide-copy"
+            class="max-w-full"
+            @click="handleCopyArtifact(artifact)"
+          >
+            <span class="truncate max-w-64 font-mono">
+              {{ artifact.value }}
+            </span>
+          </UButton>
         </div>
       </div>
 

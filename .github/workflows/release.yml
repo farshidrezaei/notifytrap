@@ -157,11 +157,32 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Publish draft release after all OS builds succeed
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Publish draft release with changelog notes after all OS builds succeed
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ needs.prepare_release.outputs.release_id }}
         run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          NOTES=""
+          if [ -f CHANGELOG.md ]; then
+            NOTES=$(awk -v ver="## [${VERSION}]" '
+              index($0, ver) == 1 { capture=1; next }
+              capture && /^## \[/ { exit }
+              capture { print }
+            ' CHANGELOG.md | sed '/./,$!d')
+          fi
+          if [ -z "${NOTES}" ]; then
+            NOTES="Cross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts."
+          else
+            NOTES="${NOTES}
+
+---
+Cross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts."
+          fi
           gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
             -F draft=false \
+            -f body="${NOTES}" \
             --jq '{id, tag_name, draft, html_url}'

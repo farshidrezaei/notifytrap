@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { VerificationArtifact } from '~/types/application'
+import { copyTextToClipboard } from '~/utils/clipboard'
 import { formatShortTimestamp } from '~/utils/formatters'
 
 const { t, locale } = useI18n()
+const toast = useToast()
 const {
   notificationPage,
   selectedDetail,
@@ -16,9 +19,22 @@ const items = computed(() => notificationPage.value?.items ?? [])
 const totalCount = computed(() => notificationPage.value?.totalCount ?? 0)
 const selectedId = computed(() => selectedDetail.value?.notification.id ?? null)
 
+function firstOtpArtifact(artifacts: readonly VerificationArtifact[]): VerificationArtifact | undefined {
+  return artifacts.find((artifact) => artifact.kind === 'otpCode')
+}
+
 async function handlePageUpdate(nextPage: number): Promise<void> {
   currentPage.value = nextPage
   await refreshInbox()
+}
+
+async function handleCopyOtp(code: string): Promise<void> {
+  const didCopy = await copyTextToClipboard(code)
+  toast.add({
+    title: didCopy ? t('inbox.verification.copiedOtpTitle', { code }) : t('common.copyFailedTitle'),
+    color: didCopy ? 'success' : 'error',
+    icon: didCopy ? 'i-lucide-check' : 'i-lucide-alert-circle',
+  })
 }
 </script>
 
@@ -35,23 +51,35 @@ async function handlePageUpdate(nextPage: number): Promise<void> {
     </div>
 
     <div v-else class="flex-1 divide-y divide-default overflow-y-auto">
-      <button
+      <div
         v-for="item in items"
         :key="item.id"
-        type="button"
+        role="button"
+        tabindex="0"
         :aria-pressed="selectedId === item.id"
-        class="flex w-full flex-col gap-1.5 p-3 text-start transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        class="flex w-full cursor-pointer flex-col gap-1.5 p-3 text-start transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         :class="selectedId === item.id ? 'bg-primary/10' : ''"
         @click="selectNotification(item.id)"
+        @keydown.enter.prevent="selectNotification(item.id)"
+        @keydown.space.prevent="selectNotification(item.id)"
       >
         <div class="flex items-center justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-2">
+          <div class="flex min-w-0 flex-wrap items-center gap-1.5">
             <span
               v-if="item.status === 'captured'"
               class="size-2 shrink-0 rounded-full bg-primary"
               :aria-label="t('inbox.status.captured')"
             />
             <SharedChannelBadge :channel-type="item.channelType" />
+            <UBadge
+              v-if="item.testRunIdentifier"
+              color="secondary"
+              variant="subtle"
+              size="xs"
+              icon="i-lucide-tag"
+            >
+              {{ item.testRunIdentifier }}
+            </UBadge>
             <UBadge
               v-if="item.status === 'archived'"
               color="neutral"
@@ -67,12 +95,24 @@ async function handlePageUpdate(nextPage: number): Promise<void> {
           </span>
         </div>
 
-        <p
-          class="truncate text-xs text-highlighted"
-          :class="item.status === 'captured' ? 'font-semibold' : 'font-medium'"
-        >
-          {{ item.subject || item.recipient || t('inbox.noSubject') }}
-        </p>
+        <div class="flex items-center justify-between gap-2">
+          <p
+            class="min-w-0 truncate text-xs text-highlighted"
+            :class="item.status === 'captured' ? 'font-semibold' : 'font-medium'"
+          >
+            {{ item.subject || item.recipient || t('inbox.noSubject') }}
+          </p>
+
+          <UButton
+            v-if="firstOtpArtifact(item.verificationArtifacts)"
+            size="xs"
+            color="primary"
+            variant="soft"
+            icon="i-lucide-key-round"
+            :label="firstOtpArtifact(item.verificationArtifacts)?.value"
+            @click.stop="handleCopyOtp(firstOtpArtifact(item.verificationArtifacts)!.value)"
+          />
+        </div>
 
         <p class="truncate text-xs text-muted">
           {{ item.recipient }}
@@ -81,7 +121,7 @@ async function handlePageUpdate(nextPage: number): Promise<void> {
         <p v-if="item.previewText" class="line-clamp-2 text-[11px] text-toned">
           {{ item.previewText }}
         </p>
-      </button>
+      </div>
     </div>
 
     <div

@@ -46,3 +46,13 @@
 - **Context**: NotifyTrap targets Linux (`.deb`, `.rpm`, `.AppImage`), Windows (`.exe`, `.msi`), and macOS (`.dmg`), and requires cryptographically verified in-app updates with non-blocking background detection and toast actions while staying strictly offline-safe on boot.
 - **Decision**: Adopt official Tauri 2 plugins `tauri-plugin-updater` + `tauri-plugin-process` with `bundle.createUpdaterArtifacts: true` and Ed25519 signature verification (`plugins.updater.pubkey`), paired with `.github/workflows/release.yml` using `tauri-apps/tauri-action@v0`. Run silent background checks once after mount when `app.auto_update_check_enabled` is true (never blocking startup and never raising noisy offline errors), surfacing an actionable toast (`Download & Update` / `View Details`) only when a newer signed release is found.
 - **Consequences**: Tamper-proof binary upgrades across Windows, macOS, and Linux AppImage without paid vendor certificates required for manifest verification, plus full control in Settings. Linux `.deb`/`.rpm` installs continue upgrading through standard distro/release installers.
+
+---
+
+## ADR-006: Event-Driven HTTP Wait API & Pure Verification Extraction (`v1.1.0`)
+
+- **Status**: Accepted
+- **Decision**:
+  1. Extend `EventPublisher` (`TauriEventPublisher` and `BroadcastEventPublisher`) with a Tokio `broadcast::Receiver<NotificationCapturedEvent>` subscription channel so `GET /api/v1/notifications/wait` subscribes before its initial SQLite lookup and wakes instantaneously on matching captures without polling `sleep`.
+  2. Compute `verificationArtifacts` (OTP codes and verification/magic links) deterministically in pure Rust (`domain/verification_extractor.rs`) on read/capture instead of persisting duplicated extracted tokens, ensuring backwards compatibility with existing v1.0.0 SQLite rows.
+- **Consequences**: Zero-polling E2E test synchronization (`408 WAIT_TIMEOUT` on expiry), strict channel-key scoping on all query/wait endpoints, and automatic extraction across existing and newly captured notifications.

@@ -5,4 +5,5 @@ pub mod notification;
 pub mod project;
 pub mod settings;
 pub mod validation;
+pub mod verification_extractor;
 pub mod workspace;

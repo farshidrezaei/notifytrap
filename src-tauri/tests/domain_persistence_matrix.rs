@@ -334,6 +334,7 @@ fn matrix_channel_credentials_auth_rotation_and_scope_isolation() {
             preview_text: "Code 482-910".to_string(),
             payload_json: json!({ "code": "482-910" }),
             raw_payload: "Subject: Verification".to_string(),
+            test_run_identifier: Some("suite-alpha-1".to_string()),
             received_at: None,
             attachments: vec![CaptureAttachmentInput {
                 filename: "invoice.pdf".to_string(),
@@ -365,6 +366,7 @@ fn matrix_channel_credentials_auth_rotation_and_scope_isolation() {
             search_query: None,
             limit: Some(25),
             offset: Some(0),
+            ..NotificationQuery::default()
         })
         .expect("query beta inbox");
     assert_eq!(beta_page.total_count, 0);
@@ -382,6 +384,7 @@ fn matrix_channel_credentials_auth_rotation_and_scope_isolation() {
             search_query: Some("100% Verification_Code".to_string()),
             limit: Some(10),
             offset: Some(0),
+            ..NotificationQuery::default()
         })
         .expect("query alpha inbox");
     assert_eq!(alpha_search.total_count, 1);
@@ -581,6 +584,7 @@ fn retention_cleanup_deletes_expired_notifications_and_preserves_recent_records(
             preview_text: "Expired record".to_string(),
             payload_json: json!({ "textBody": "old" }),
             raw_payload: "old".to_string(),
+            test_run_identifier: None,
             received_at: Some("2020-01-01T00:00:00Z".to_string()),
             attachments: vec![CaptureAttachmentInput {
                 filename: "expired.txt".to_string(),
@@ -606,6 +610,7 @@ fn retention_cleanup_deletes_expired_notifications_and_preserves_recent_records(
             preview_text: "Recent record".to_string(),
             payload_json: json!({ "textBody": "fresh" }),
             raw_payload: "fresh".to_string(),
+            test_run_identifier: None,
             received_at: None,
             attachments: Vec::new(),
         })

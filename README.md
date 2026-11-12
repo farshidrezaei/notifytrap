@@ -213,6 +213,9 @@ Start-Process $installer -Wait
 | **SMS Capture** | `POST http://127.0.0.1:4080/api/v1/sms` | `X-Channel-Key` or `Authorization: Bearer` | Captures SMS payloads |
 | **Push Capture** | `POST http://127.0.0.1:4080/api/v1/push` | `X-Channel-Key` or `Authorization: Bearer` | Captures mobile/web push payloads |
 | **Webhook Capture** | `ANY http://127.0.0.1:4080/api/v1/webhooks/{id}[/{subpath}]` | `X-Channel-Key`, `Authorization: Bearer`, or `?channel_key=` | Captures arbitrary HTTP webhook calls |
+| **Query Notifications** | `GET http://127.0.0.1:4080/api/v1/notifications` | `X-Channel-Key` or `Authorization: Bearer` | Lists captured notifications scoped to the channel (supports `run_id`, `recipient`, `subject`, `since`, `status`, `search`) |
+| **Wait for Notification** | `GET http://127.0.0.1:4080/api/v1/notifications/wait` | `X-Channel-Key` or `Authorization: Bearer` | Event-driven long-poll (`timeout_ms`, default `5000`, max `30000`) for E2E tests |
+| **Notification Detail** | `GET http://127.0.0.1:4080/api/v1/notifications/{id}` | `X-Channel-Key` or `Authorization: Bearer` | Fetches full detail + extracted `verificationArtifacts` (OTP & magic links) |
 
 Successful HTTP ingestion returns `202 Accepted` with `{ notificationId, channelId, status, receivedAt }`. Validation or credential failures return structured `{ code, message }` errors.
 
@@ -313,6 +316,19 @@ curl -X POST "http://127.0.0.1:4080/api/v1/webhooks/billing-hook/stripe/events" 
     "amount": 4900
   }'
 ```
+
+### Test Automation, Run Tagging & OTP Extraction
+
+- Tag any HTTP capture (`POST /api/v1/sms`, `/push`, `/webhooks/*`) or SMTP email with header `X-NotifyTrap-Run: ci-run-42` to isolate and filter test runs in the Inbox or API.
+- Query or long-poll captured messages without `sleep` in Playwright, Cypress, Pest, or Pytest:
+
+```bash
+# Wait up to 10s for a verification email/SMS tagged with run_id=ci-run-42
+curl -fsS "http://127.0.0.1:4080/api/v1/notifications/wait?run_id=ci-run-42&timeout_ms=10000" \
+  -H "X-Channel-Key: sms-local.ntsec_your_secret_token"
+```
+
+- Responses and Inbox cards automatically expose `verificationArtifacts` (extracted English/Persian OTP codes and verification/magic links) plus one-click `.eml`, `JSON`, and `cURL` export in the Inspector.
 
 ---
 

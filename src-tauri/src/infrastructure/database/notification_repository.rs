@@ -8,6 +8,7 @@ use crate::domain::notification::{
     NotificationQuery, NotificationStatus, NotificationSummary,
 };
 use crate::domain::validation::{DEFAULT_PAGE_SIZE, MAXIMUM_PAGE_SIZE};
+use crate::domain::verification_extractor::extract_verification_artifacts;
 use crate::infrastructure::database::sqlite_helpers::query_optional_row;
 
 /// SQLite persistence operations for captured notifications and attachments.
@@ -26,8 +27,8 @@ impl SqliteNotificationRepository {
             "INSERT INTO notifications (
                 id, workspace_id, project_id, environment_id, channel_id, channel_type, status,
                 recipient, sender, subject, preview_text, payload_json, raw_payload,
-                received_at, created_at
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                test_run_identifier, received_at, created_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             params![
                 notification.id,
                 notification.workspace_id,
@@ -42,6 +43,7 @@ impl SqliteNotificationRepository {
                 notification.preview_text,
                 payload_text,
                 notification.raw_payload,
+                notification.test_run_identifier,
                 notification.received_at,
                 notification.created_at,
             ],
@@ -81,7 +83,7 @@ impl SqliteNotificationRepository {
         let mut statement = connection.prepare(
             "SELECT id, workspace_id, project_id, environment_id, channel_id, channel_type, status,
                     recipient, sender, subject, preview_text, payload_json, raw_payload,
-                    received_at, created_at
+                    test_run_identifier, received_at, created_at
              FROM notifications
              WHERE id = ?1",
         )?;
@@ -152,7 +154,8 @@ impl SqliteNotificationRepository {
 
         let list_sql = format!(
             "SELECT id, workspace_id, project_id, environment_id, channel_id, channel_type, status,
-                    recipient, sender, subject, preview_text, received_at
+                    recipient, sender, subject, preview_text, payload_json, raw_payload,
+                    test_run_identifier, received_at
              FROM notifications
              WHERE {where_clause}
              ORDER BY received_at DESC, id DESC
@@ -263,6 +266,48 @@ fn build_scope_where_clause(query: &NotificationQuery) -> (String, Vec<Box<dyn T
         clauses.push(format!("status = ?{}", parameters.len()));
     }
 
+    if let Some(test_run_identifier) = query
+        .test_run_identifier
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        parameters.push(Box::new(test_run_identifier.to_string()));
+        clauses.push(format!("test_run_identifier = ?{}", parameters.len()));
+    }
+
+    if let Some(recipient_filter) = query
+        .recipient_contains
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        let pattern = format!("%{}%", escape_sql_like(recipient_filter));
+        parameters.push(Box::new(pattern));
+        clauses.push(format!("recipient LIKE ?{} ESCAPE '\\'", parameters.len()));
+    }
+
+    if let Some(subject_filter) = query
+        .subject_contains
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        let pattern = format!("%{}%", escape_sql_like(subject_filter));
+        parameters.push(Box::new(pattern));
+        clauses.push(format!("subject LIKE ?{} ESCAPE '\\'", parameters.len()));
+    }
+
+    if let Some(since_timestamp) = query
+        .since
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        parameters.push(Box::new(since_timestamp.to_string()));
+        clauses.push(format!("received_at >= ?{}", parameters.len()));
+    }
+
     if let Some(search) = query
         .search_query
         .as_deref()
@@ -274,7 +319,7 @@ fn build_scope_where_clause(query: &NotificationQuery) -> (String, Vec<Box<dyn T
         parameters.push(Box::new(pattern));
         let index = parameters.len();
         clauses.push(format!(
-            "(recipient LIKE ?{index} ESCAPE '\\' OR sender LIKE ?{index} ESCAPE '\\' OR subject LIKE ?{index} ESCAPE '\\' OR preview_text LIKE ?{index} ESCAPE '\\')"
+            "(recipient LIKE ?{index} ESCAPE '\\' OR sender LIKE ?{index} ESCAPE '\\' OR subject LIKE ?{index} ESCAPE '\\' OR preview_text LIKE ?{index} ESCAPE '\\' OR test_run_identifier LIKE ?{index} ESCAPE '\\')"
         ));
     }
 
@@ -306,6 +351,17 @@ fn map_notification_row(row: &Row<'_>) -> rusqlite::Result<Notification> {
         rusqlite::Error::FromSqlConversionFailure(11, rusqlite::types::Type::Text, Box::new(error))
     })?;
 
+    let subject: String = row.get(9)?;
+    let preview_text: String = row.get(10)?;
+    let raw_payload: String = row.get(12)?;
+    let verification_artifacts = extract_verification_artifacts(
+        channel_type,
+        &subject,
+        &preview_text,
+        &payload_json,
+        &raw_payload,
+    );
+
     Ok(Notification {
         id: row.get(0)?,
         workspace_id: row.get(1)?,
@@ -316,12 +372,14 @@ fn map_notification_row(row: &Row<'_>) -> rusqlite::Result<Notification> {
         status,
         recipient: row.get(7)?,
         sender: row.get(8)?,
-        subject: row.get(9)?,
-        preview_text: row.get(10)?,
+        subject,
+        preview_text,
         payload_json,
-        raw_payload: row.get(12)?,
-        received_at: row.get(13)?,
-        created_at: row.get(14)?,
+        raw_payload,
+        test_run_identifier: row.get(13)?,
+        verification_artifacts,
+        received_at: row.get(14)?,
+        created_at: row.get(15)?,
     })
 }
 
@@ -334,6 +392,20 @@ fn map_notification_summary_row(row: &Row<'_>) -> rusqlite::Result<NotificationS
     let status = NotificationStatus::parse(&raw_status).map_err(|error| {
         rusqlite::Error::FromSqlConversionFailure(6, rusqlite::types::Type::Text, Box::new(error))
     })?;
+    let raw_json: String = row.get(11)?;
+    let payload_json: serde_json::Value = serde_json::from_str(&raw_json).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(11, rusqlite::types::Type::Text, Box::new(error))
+    })?;
+    let subject: String = row.get(9)?;
+    let preview_text: String = row.get(10)?;
+    let raw_payload: String = row.get(12)?;
+    let verification_artifacts = extract_verification_artifacts(
+        channel_type,
+        &subject,
+        &preview_text,
+        &payload_json,
+        &raw_payload,
+    );
 
     Ok(NotificationSummary {
         id: row.get(0)?,
@@ -345,9 +417,11 @@ fn map_notification_summary_row(row: &Row<'_>) -> rusqlite::Result<NotificationS
         status,
         recipient: row.get(7)?,
         sender: row.get(8)?,
-        subject: row.get(9)?,
-        preview_text: row.get(10)?,
-        received_at: row.get(11)?,
+        subject,
+        preview_text,
+        test_run_identifier: row.get(13)?,
+        verification_artifacts,
+        received_at: row.get(14)?,
     })
 }
 

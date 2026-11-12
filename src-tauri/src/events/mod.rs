@@ -34,21 +34,28 @@ pub struct ServerStatusChangedEvent {
 pub trait EventPublisher: Send + Sync {
     fn emit_notification_captured(&self, payload: &NotificationCapturedEvent);
     fn emit_server_status_changed(&self, payload: &ServerStatusChangedEvent);
+    fn subscribe_notifications(&self) -> broadcast::Receiver<NotificationCapturedEvent>;
 }
 
-/// Tauri desktop IPC emitter forwarding backend events to active WebViews.
+/// Tauri desktop IPC emitter forwarding backend events to active WebViews and HTTP wait listeners.
 pub struct TauriEventPublisher {
     application_handle: AppHandle,
+    notifications_sender: broadcast::Sender<NotificationCapturedEvent>,
 }
 
 impl TauriEventPublisher {
     pub fn new(application_handle: AppHandle) -> Self {
-        Self { application_handle }
+        let (notifications_sender, _) = broadcast::channel(128);
+        Self {
+            application_handle,
+            notifications_sender,
+        }
     }
 }
 
 impl EventPublisher for TauriEventPublisher {
     fn emit_notification_captured(&self, payload: &NotificationCapturedEvent) {
+        let _ = self.notifications_sender.send(payload.clone());
         if let Err(error) = self
             .application_handle
             .emit(EventChannels::NOTIFICATION_CAPTURED, payload)
@@ -64,6 +71,10 @@ impl EventPublisher for TauriEventPublisher {
         {
             tracing::debug!("Unable to emit server status changed event: {error}");
         }
+    }
+
+    fn subscribe_notifications(&self) -> broadcast::Receiver<NotificationCapturedEvent> {
+        self.notifications_sender.subscribe()
     }
 }
 
@@ -105,5 +116,9 @@ impl EventPublisher for BroadcastEventPublisher {
 
     fn emit_server_status_changed(&self, payload: &ServerStatusChangedEvent) {
         let _ = self.status_sender.send(payload.clone());
+    }
+
+    fn subscribe_notifications(&self) -> broadcast::Receiver<NotificationCapturedEvent> {
+        self.notifications_sender.subscribe()
     }
 }

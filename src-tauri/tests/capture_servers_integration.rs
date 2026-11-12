@@ -599,6 +599,7 @@ async fn smtp_capture_server_authenticates_parses_mime_attachments_and_enforces_
             search_query: None,
             limit: Some(10),
             offset: Some(0),
+            ..NotificationQuery::default()
         })
         .expect("query captured emails");
     assert_eq!(page.total_count, 2);
@@ -619,6 +620,210 @@ async fn smtp_capture_server_authenticates_parses_mime_attachments_and_enforces_
         let read_bytes = reader.read_line(&mut probe_line).await.unwrap_or(0);
         assert_eq!(read_bytes, 0, "server must close oversized command line");
     }
+
+    harness
+        .coordinator
+        .shutdown_all(Some(&*harness.event_publisher))
+        .await;
+}
+
+#[tokio::test]
+async fn http_query_wait_run_tag_and_verification_extraction_end_to_end() {
+    let harness = setup_capture_harness(2 * 1024 * 1024, 2 * 1024 * 1024).await;
+
+    let sms_channel = harness
+        .services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: harness.workspace_id.clone(),
+            project_id: harness.project_id.clone(),
+            environment_id: harness.environment_id.clone(),
+            name: "Automation SMS".to_string(),
+            channel_type: ChannelType::Sms,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("create sms channel");
+
+    let email_channel = harness
+        .services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: harness.workspace_id.clone(),
+            project_id: harness.project_id.clone(),
+            environment_id: harness.environment_id.clone(),
+            name: "Automation Email".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("create email channel");
+
+    // 1. Capture SMS with X-NotifyTrap-Run and Persian/English OTP + magic link
+    let sms_body = json!({
+        "to": "+989120001122",
+        "from": "NotifyAuth",
+        "message": "کد تایید شما: ۴۸۲۹۱۰ — https://app.example.local/auth/verify?token=run1"
+    })
+    .to_string();
+
+    let (capture_status, capture_response_text) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        "/api/v1/sms",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &sms_channel.credential.composite_key),
+            ("X-NotifyTrap-Run", "ci-run-42"),
+        ],
+        &sms_body,
+    )
+    .await;
+    assert_eq!(capture_status, 202);
+    let capture_json: Value = serde_json::from_str(&capture_response_text).expect("receipt json");
+    let first_sms_id = capture_json["notificationId"]
+        .as_str()
+        .expect("notification id")
+        .to_string();
+
+    // 2. Query API scoped by run_id returns verificationArtifacts & testRunIdentifier
+    let (query_status, query_body) = send_raw_http_request(
+        harness.http_address,
+        "GET",
+        "/api/v1/notifications?run_id=ci-run-42",
+        &[("X-Channel-Key", &sms_channel.credential.composite_key)],
+        "",
+    )
+    .await;
+    assert_eq!(query_status, 200);
+    let query_json: Value = serde_json::from_str(&query_body).expect("query json");
+    assert_eq!(query_json["totalCount"], 1);
+    assert_eq!(query_json["items"][0]["testRunIdentifier"], "ci-run-42");
+    let artifacts = query_json["items"][0]["verificationArtifacts"]
+        .as_array()
+        .expect("verificationArtifacts array");
+    assert!(artifacts.iter().any(|item| item["value"] == "482910"));
+    assert!(
+        artifacts
+            .iter()
+            .any(|item| item["value"] == "https://app.example.local/auth/verify?token=run1")
+    );
+
+    // 3. Cross-channel detail lookup is strictly isolated (404)
+    let (cross_status, _) = send_raw_http_request(
+        harness.http_address,
+        "GET",
+        &format!("/api/v1/notifications/{first_sms_id}"),
+        &[("X-Channel-Key", &email_channel.credential.composite_key)],
+        "",
+    )
+    .await;
+    assert_eq!(cross_status, 404);
+
+    // 4. Wait endpoint wakes immediately on concurrent capture without polling sleep
+    let wait_headers = [(
+        "X-Channel-Key",
+        sms_channel.credential.composite_key.as_str(),
+    )];
+    let wait_future = send_raw_http_request(
+        harness.http_address,
+        "GET",
+        "/api/v1/notifications/wait?run_id=ci-run-99&timeout_ms=3000",
+        &wait_headers,
+        "",
+    );
+    let trigger_future = async {
+        tokio::task::yield_now().await;
+        let delayed_sms = json!({
+            "to": "+989120003344",
+            "message": "Your login code is 991122"
+        })
+        .to_string();
+        send_raw_http_request(
+            harness.http_address,
+            "POST",
+            "/api/v1/sms",
+            &[
+                ("Content-Type", "application/json"),
+                ("X-Channel-Key", &sms_channel.credential.composite_key),
+                ("X-NotifyTrap-Run", "ci-run-99"),
+            ],
+            &delayed_sms,
+        )
+        .await
+    };
+    let ((wait_status, wait_body), (trigger_status, _)) = tokio::join!(wait_future, trigger_future);
+    assert_eq!(trigger_status, 202);
+    assert_eq!(wait_status, 200);
+    let wait_json: Value = serde_json::from_str(&wait_body).expect("wait detail json");
+    assert_eq!(wait_json["notification"]["testRunIdentifier"], "ci-run-99");
+    assert_eq!(
+        wait_json["notification"]["verificationArtifacts"][0]["value"],
+        "991122"
+    );
+
+    // 5. Wait endpoint returns 408 WAIT_TIMEOUT when no matching item arrives
+    let (timeout_status, timeout_body) = send_raw_http_request(
+        harness.http_address,
+        "GET",
+        "/api/v1/notifications/wait?run_id=never-arrives&timeout_ms=80",
+        &[("X-Channel-Key", &sms_channel.credential.composite_key)],
+        "",
+    )
+    .await;
+    assert_eq!(timeout_status, 408);
+    let timeout_json: Value = serde_json::from_str(&timeout_body).expect("timeout json");
+    assert_eq!(timeout_json["code"], "WAIT_TIMEOUT");
+
+    // 6. SMTP capture preserves X-NotifyTrap-Run header
+    {
+        let stream = TcpStream::connect(harness.smtp_address)
+            .await
+            .expect("connect smtp");
+        let (read_half, mut write_half) = stream.into_split();
+        let mut reader = BufReader::new(read_half);
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 220);
+        write_smtp_command(&mut write_half, "EHLO localhost").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 250);
+        let auth_plain = STANDARD.encode(format!(
+            "\0{}\0{}",
+            email_channel.channel.credential_identifier, email_channel.credential.secret_token
+        ));
+        write_smtp_command(&mut write_half, &format!("AUTH PLAIN {auth_plain}")).await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 235);
+        write_smtp_command(&mut write_half, "MAIL FROM:<ci@notifytrap.local>").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 250);
+        write_smtp_command(&mut write_half, "RCPT TO:<qa@notifytrap.local>").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 250);
+        write_smtp_command(&mut write_half, "DATA").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 354);
+        write_half
+            .write_all(
+                b"From: ci@notifytrap.local\r\nTo: qa@notifytrap.local\r\nSubject: Reset Password\r\nX-NotifyTrap-Run: smtp-suite-7\r\n\r\nUse code 654321.\r\n.\r\n",
+            )
+            .await
+            .expect("write smtp data");
+        write_half.flush().await.expect("flush smtp");
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 250);
+        write_smtp_command(&mut write_half, "QUIT").await;
+        assert_eq!(read_smtp_reply(&mut reader).await.0, 221);
+    }
+
+    let (smtp_query_status, smtp_query_body) = send_raw_http_request(
+        harness.http_address,
+        "GET",
+        "/api/v1/notifications?run_id=smtp-suite-7",
+        &[("X-Channel-Key", &email_channel.credential.composite_key)],
+        "",
+    )
+    .await;
+    assert_eq!(smtp_query_status, 200);
+    let smtp_query_json: Value = serde_json::from_str(&smtp_query_body).expect("smtp query json");
+    assert_eq!(smtp_query_json["totalCount"], 1);
+    assert_eq!(
+        smtp_query_json["items"][0]["verificationArtifacts"][0]["value"],
+        "654321"
+    );
 
     harness
         .coordinator
