@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TabsItem } from '@nuxt/ui'
+import InboxDeviceFrameWrapper from '~/components/inbox/DeviceFrameWrapper.vue'
 import type {
   Notification,
   NotificationAttachmentContent,
@@ -14,9 +15,10 @@ import {
 import { auditCapturedEmail } from '~/utils/emailAudit'
 import { buildSandboxedEmailDocument, escapeEmailHtml } from '~/utils/emailSandbox'
 import { formatByteSize } from '~/utils/formatters'
+import { inspectMjmlContent } from '~/utils/mjmlInspector'
 import { extractCommandErrorMessage } from '~/utils/tauriClient'
 
-type EmailViewportMode = 'desktop' | 'tablet' | 'mobile'
+type EmailViewportMode = 'desktop' | 'iphone' | 'pixel' | 'ipad'
 
 const props = defineProps<{
   notification: Notification
@@ -120,20 +122,21 @@ const sandboxDocument = computed(() =>
   }),
 )
 
-const viewportContainerClass = computed(() => {
-  if (viewportMode.value === 'mobile') {
-    return 'mx-auto w-full max-w-[375px]'
-  }
-  if (viewportMode.value === 'tablet') {
-    return 'mx-auto w-full max-w-[768px]'
-  }
-  return 'w-full'
-})
+const mjmlInspection = computed(() =>
+  inspectMjmlContent(rawHtml.value || textBody.value || props.notification.rawPayload),
+)
+
+const mjmlSandboxDocument = computed(() =>
+  buildSandboxedEmailDocument(mjmlInspection.value.compiledHtml, {
+    isDarkTheme: colorMode.value === 'dark',
+    simulateEmailDarkMode: isEmailDarkSimulated.value,
+  }),
+)
 
 const auditReport = computed(() => auditCapturedEmail(props.notification, props.attachments))
 
 const activeTab = ref<
-  'htmlPreview' | 'plainText' | 'rawHtml' | 'headers' | 'attachments' | 'audit' | 'rawSource'
+  'htmlPreview' | 'plainText' | 'rawHtml' | 'headers' | 'attachments' | 'audit' | 'rawSource' | 'mjml'
 >('htmlPreview')
 
 watch(
@@ -144,18 +147,29 @@ watch(
   { immediate: true },
 )
 
-const tabItems = computed<TabsItem[]>(() => [
-  { label: t('inbox.email.tabs.htmlPreview'), value: 'htmlPreview' },
-  { label: t('inbox.email.tabs.plainText'), value: 'plainText' },
-  { label: t('inbox.email.tabs.rawHtml'), value: 'rawHtml' },
-  { label: `${t('inbox.email.tabs.headers')} (${headerRows.value.length})`, value: 'headers' },
-  {
-    label: `${t('inbox.email.tabs.attachments')} (${props.attachments.length})`,
-    value: 'attachments',
-  },
-  { label: t('inbox.email.tabs.audit'), value: 'audit' },
-  { label: t('inbox.email.tabs.rawSource'), value: 'rawSource' },
-])
+const tabItems = computed<TabsItem[]>(() => {
+  const items: TabsItem[] = [
+    { label: t('inbox.email.tabs.htmlPreview'), value: 'htmlPreview' },
+    { label: t('inbox.email.tabs.plainText'), value: 'plainText' },
+    { label: t('inbox.email.tabs.rawHtml'), value: 'rawHtml' },
+    { label: `${t('inbox.email.tabs.headers')} (${headerRows.value.length})`, value: 'headers' },
+    {
+      label: `${t('inbox.email.tabs.attachments')} (${props.attachments.length})`,
+      value: 'attachments',
+    },
+    { label: t('inbox.email.tabs.audit'), value: 'audit' },
+    { label: t('inbox.email.tabs.rawSource'), value: 'rawSource' },
+  ]
+
+  if (mjmlInspection.value.isMjml) {
+    items.splice(3, 0, {
+      label: `${t('inbox.email.tabs.mjml')} (${mjmlInspection.value.totalTagCount})`,
+      value: 'mjml',
+    })
+  }
+
+  return items
+})
 
 function canPreviewAttachment(attachment: NotificationAttachmentSummary): boolean {
   return isSafePreviewableImageMime(attachment.contentType)
@@ -206,6 +220,19 @@ async function handleDownloadAttachment(attachment: NotificationAttachmentSummar
     loadingAttachmentId.value = null
   }
 }
+
+async function handleCopyCompiledMjml(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(mjmlInspection.value.compiledHtml)
+    toast.add({
+      title: t('inbox.email.mjml.copiedSuccess'),
+      color: 'success',
+      icon: 'i-lucide-check',
+    })
+  } catch {
+    // Clipboard permission denied fallback
+  }
+}
 </script>
 
 <template>
@@ -235,9 +262,9 @@ async function handleDownloadAttachment(attachment: NotificationAttachmentSummar
 
     <UTabs v-model="activeTab" :items="tabItems" size="xs" />
 
-    <div v-if="activeTab === 'htmlPreview'" key="htmlPreview" class="space-y-2">
+    <div v-if="activeTab === 'htmlPreview'" key="htmlPreview" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-default bg-muted/30 px-2.5 py-1.5">
-        <div class="flex items-center gap-1">
+        <div class="flex flex-wrap items-center gap-1">
           <UButton
             size="xs"
             :color="viewportMode === 'desktop' ? 'primary' : 'neutral'"
@@ -248,19 +275,27 @@ async function handleDownloadAttachment(attachment: NotificationAttachmentSummar
           />
           <UButton
             size="xs"
-            :color="viewportMode === 'tablet' ? 'primary' : 'neutral'"
-            :variant="viewportMode === 'tablet' ? 'soft' : 'ghost'"
-            icon="i-lucide-tablet"
-            :label="t('inbox.email.viewport.tablet')"
-            @click="viewportMode = 'tablet'"
+            :color="viewportMode === 'iphone' ? 'primary' : 'neutral'"
+            :variant="viewportMode === 'iphone' ? 'soft' : 'ghost'"
+            icon="i-lucide-smartphone"
+            :label="t('inbox.email.viewport.iphone')"
+            @click="viewportMode = 'iphone'"
           />
           <UButton
             size="xs"
-            :color="viewportMode === 'mobile' ? 'primary' : 'neutral'"
-            :variant="viewportMode === 'mobile' ? 'soft' : 'ghost'"
+            :color="viewportMode === 'pixel' ? 'primary' : 'neutral'"
+            :variant="viewportMode === 'pixel' ? 'soft' : 'ghost'"
             icon="i-lucide-smartphone"
-            :label="t('inbox.email.viewport.mobile')"
-            @click="viewportMode = 'mobile'"
+            :label="t('inbox.email.viewport.pixel')"
+            @click="viewportMode = 'pixel'"
+          />
+          <UButton
+            size="xs"
+            :color="viewportMode === 'ipad' ? 'primary' : 'neutral'"
+            :variant="viewportMode === 'ipad' ? 'soft' : 'ghost'"
+            icon="i-lucide-tablet"
+            :label="t('inbox.email.viewport.ipad')"
+            @click="viewportMode = 'ipad'"
           />
         </div>
 
@@ -269,15 +304,29 @@ async function handleDownloadAttachment(attachment: NotificationAttachmentSummar
           :color="isEmailDarkSimulated ? 'primary' : 'neutral'"
           :variant="isEmailDarkSimulated ? 'soft' : 'outline'"
           :icon="isEmailDarkSimulated ? 'i-lucide-moon' : 'i-lucide-sun'"
-          :label="t('inbox.email.viewport.simulateDark')"
+          :label="isEmailDarkSimulated ? t('inbox.email.viewport.simulateLight') : t('inbox.email.viewport.simulateDark')"
           @click="isEmailDarkSimulated = !isEmailDarkSimulated"
         />
       </div>
 
-      <div class="overflow-x-auto rounded-lg border border-default bg-muted/20 p-2">
-        <div
-          class="overflow-hidden rounded-md border border-default transition-all"
-          :class="viewportContainerClass"
+      <div class="overflow-x-auto rounded-lg border border-default bg-muted/20 p-4">
+        <!-- Desktop full width view -->
+        <div v-if="viewportMode === 'desktop'" class="w-full overflow-hidden rounded-md border border-default">
+          <iframe
+            sandbox=""
+            referrerpolicy="no-referrer"
+            :title="notification.subject || t('inbox.email.tabs.htmlPreview')"
+            :srcdoc="sandboxDocument"
+            class="h-[420px] w-full border-0 bg-default"
+          />
+        </div>
+
+        <!-- Simulated mobile/tablet device bezel frame -->
+        <InboxDeviceFrameWrapper
+          v-else
+          :device="viewportMode"
+          :show-status-bar="true"
+          :show-home-indicator="true"
         >
           <iframe
             sandbox=""
@@ -286,6 +335,69 @@ async function handleDownloadAttachment(attachment: NotificationAttachmentSummar
             :srcdoc="sandboxDocument"
             class="h-[420px] w-full border-0 bg-default"
           />
+        </InboxDeviceFrameWrapper>
+      </div>
+    </div>
+
+    <!-- MJML Inspector Tab -->
+    <div v-else-if="activeTab === 'mjml'" key="mjml" class="space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-default bg-muted/30 px-3 py-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <UBadge color="primary" variant="subtle" size="xs">
+            {{ t('inbox.email.mjml.badge') }}
+          </UBadge>
+          <span class="text-xs text-muted">
+            {{ t('inbox.email.mjml.tagsCount', { count: mjmlInspection.totalTagCount }) }}
+          </span>
+          <div class="flex flex-wrap gap-1">
+            <UBadge
+              v-for="tag in mjmlInspection.tagSummaries.slice(0, 5)"
+              :key="tag.name"
+              color="neutral"
+              variant="outline"
+              size="xs"
+              class="font-mono"
+            >
+              &lt;{{ tag.name }}&gt; ({{ tag.count }})
+            </UBadge>
+          </div>
+        </div>
+
+        <UButton
+          size="xs"
+          color="primary"
+          variant="soft"
+          icon="i-lucide-copy"
+          :label="t('inbox.email.mjml.copyCompiled')"
+          @click="handleCopyCompiledMjml"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div class="space-y-1.5">
+          <h4 class="text-xs font-semibold text-muted">
+            {{ t('inbox.email.mjml.sourceTitle') }}
+          </h4>
+          <SharedCodeBlock
+            :code="rawHtml || textBody"
+            language="html"
+            max-height-class="max-h-[420px]"
+          />
+        </div>
+
+        <div class="space-y-1.5">
+          <h4 class="text-xs font-semibold text-muted">
+            {{ t('inbox.email.mjml.previewTitle') }}
+          </h4>
+          <div class="overflow-hidden rounded-lg border border-default bg-muted/20">
+            <iframe
+              sandbox=""
+              referrerpolicy="no-referrer"
+              :title="t('inbox.email.mjml.previewTitle')"
+              :srcdoc="mjmlSandboxDocument"
+              class="h-[420px] w-full border-0 bg-default"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -380,7 +492,7 @@ async function handleDownloadAttachment(attachment: NotificationAttachmentSummar
     </div>
 
     <div v-else-if="activeTab === 'audit'" key="audit" class="space-y-3">
-      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <div class="rounded-lg border border-default bg-muted/30 p-2.5 text-xs">
           <p class="text-[11px] text-muted">{{ t('inbox.email.audit.metrics.size') }}</p>
           <p dir="ltr" class="mt-0.5 font-mono font-semibold text-highlighted">
@@ -398,6 +510,12 @@ async function handleDownloadAttachment(attachment: NotificationAttachmentSummar
         <div class="rounded-lg border border-default bg-muted/30 p-2.5 text-xs">
           <p class="text-[11px] text-muted">{{ t('inbox.email.audit.metrics.missingAlt') }}</p>
           <p class="mt-0.5 font-mono font-semibold text-highlighted">{{ auditReport.missingAltCount }}</p>
+        </div>
+        <div class="rounded-lg border border-default bg-muted/30 p-2.5 text-xs">
+          <p class="text-[11px] text-muted">{{ t('inbox.email.audit.metrics.placeholders') }}</p>
+          <p class="mt-0.5 font-mono font-semibold" :class="auditReport.unrenderedPlaceholderCount > 0 ? 'text-amber-500' : 'text-emerald-500'">
+            {{ auditReport.unrenderedPlaceholderCount }}
+          </p>
         </div>
       </div>
 

@@ -198,7 +198,8 @@
         "headers": "هدرها",
         "attachments": "پیوست‌ها",
         "rawSource": "سورس خام",
-        "audit": "ممیزی"
+        "audit": "ممیزی",
+        "mjml": "ام‌جی‌ام‌ال"
       },
       "emptyPlainText": "این پیام بخش متن ساده ندارد.",
       "emptyRawHtml": "این پیام بخش HTML ندارد.",
@@ -207,9 +208,13 @@
       "inlineAttachment": "درون‌متنی",
       "viewport": {
         "desktop": "دسکتاپ",
+        "iphone": "آیفون ۱۵",
+        "pixel": "پیکسل ۸",
+        "ipad": "آیپد مینی",
         "tablet": "تبلت",
         "mobile": "موبایل",
-        "simulateDark": "کلاینت تیره"
+        "simulateDark": "حالت تاریک",
+        "simulateLight": "حالت روشن"
       },
       "attachments": {
         "preview": "پیش‌نمایش",
@@ -223,7 +228,8 @@
           "size": "حجم پیام",
           "links": "لینک‌ها",
           "images": "تصاویر",
-          "missingAlt": "بدون متن جایگزین"
+          "missingAlt": "بدون متن جایگزین",
+          "placeholders": "متغیرها"
         },
         "severity": {
           "pass": "تایید",
@@ -244,8 +250,18 @@
           "listUnsubscribePresent": "سربرگ List-Unsubscribe در ایمیل وجود دارد.",
           "listUnsubscribeMissing": "سربرگ List-Unsubscribe در ایمیل وجود ندارد.",
           "compactSize": "حجم پیام ({kilobytes} کیلوبایت) مناسب است و بریده نمی‌شود.",
-          "largeHtmlSize": "حجم پیام ({kilobytes} کیلوبایت) بیش از ۱۰۰ کیلوبایت است و ممکن است در برخی کلاینت‌ها بریده شود."
+          "largeHtmlSize": "حجم پیام ({kilobytes} کیلوبایت) بیش از ۱۰۰ کیلوبایت است و ممکن است در برخی کلاینت‌ها بریده شود.",
+          "unrenderedPlaceholdersFound": "{count} متغیر پرنشده در قالب شناسایی شد: {samples}.",
+          "noPlaceholdersFound": "هیچ متغیر پرنشده‌ای در قالب مشاهده نشد."
         }
+      },
+      "mjml": {
+        "badge": "قالب MJML",
+        "sourceTitle": "سورس MJML",
+        "previewTitle": "پیش‌نمایش HTML کامپایل‌شده",
+        "tagsCount": "{count} تگ MJML",
+        "copyCompiled": "کپی HTML",
+        "copiedSuccess": "کد HTML کامپایل‌شده در کلیپ‌بورد کپی شد"
       }
     },
     "sms": {
@@ -255,7 +271,16 @@
       "charactersCount": "{count} کاراکتر",
       "metadataLabel": "متادیتای JSON",
       "segmentsCount": "{count} بخش",
-      "unitsSummary": "{units} از {limit} واحد ({remaining} باقیمانده در بخش فعلی)"
+      "unitsSummary": "{units} از {limit} واحد ({remaining} باقیمانده در بخش فعلی)",
+      "views": {
+        "conversation": "گفتگو",
+        "lockScreen": "صفحه قفل"
+      },
+      "simulator": {
+        "delivered": "تحویل داده شد",
+        "notificationTitle": "پیام‌ها",
+        "replyAction": "پاسخ"
+      }
     },
     "push": {
       "badgeLabel": "نشانگر: {value}",
@@ -265,6 +290,16 @@
         "ios": "آیفون (iOS)",
         "android": "اندروید",
         "web": "وب پوش"
+      },
+      "views": {
+        "banner": "بنر اعلان",
+        "lockScreen": "صفحه قفل",
+        "notificationShade": "پنل اعلان‌ها"
+      },
+      "simulator": {
+        "now": "اکنون",
+        "actionOpen": "باز کردن",
+        "actionDismiss": "بستن"
       }
     },
     "webhook": {

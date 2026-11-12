@@ -193,3 +193,12 @@ jobs:
           jq -n --arg body "${NOTES}" '{draft: false, body: $body}' | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
             --input - \
             --jq '{id, tag_name, draft, html_url}'
+
+      - name: Broadcast Release to Telegram Channel
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.prepare_release.outputs.release_id }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/send-telegram-release.mjs

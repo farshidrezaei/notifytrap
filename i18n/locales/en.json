@@ -198,7 +198,8 @@
         "headers": "Headers",
         "attachments": "Attachments",
         "rawSource": "Raw Source",
-        "audit": "Audit"
+        "audit": "Audit",
+        "mjml": "MJML"
       },
       "emptyPlainText": "No plain-text part in this message.",
       "emptyRawHtml": "No HTML part in this message.",
@@ -207,9 +208,13 @@
       "inlineAttachment": "Inline",
       "viewport": {
         "desktop": "Desktop",
+        "iphone": "iPhone 15",
+        "pixel": "Pixel 8",
+        "ipad": "iPad Mini",
         "tablet": "Tablet",
         "mobile": "Mobile",
-        "simulateDark": "Dark Client"
+        "simulateDark": "Dark Client",
+        "simulateLight": "Light Client"
       },
       "attachments": {
         "preview": "Preview",
@@ -223,7 +228,8 @@
           "size": "Payload Size",
           "links": "Links",
           "images": "Images",
-          "missingAlt": "Missing Alt"
+          "missingAlt": "Missing Alt",
+          "placeholders": "Variables"
         },
         "severity": {
           "pass": "Pass",
@@ -244,8 +250,18 @@
           "listUnsubscribePresent": "List-Unsubscribe header is present.",
           "listUnsubscribeMissing": "List-Unsubscribe header is absent.",
           "compactSize": "Payload size ({kilobytes} KB) is compact and unlikely to clip.",
-          "largeHtmlSize": "Payload size ({kilobytes} KB) exceeds 100 KB and may be clipped in some clients."
+          "largeHtmlSize": "Payload size ({kilobytes} KB) exceeds 100 KB and may be clipped in some clients.",
+          "unrenderedPlaceholdersFound": "{count} unrendered variable(s) detected: {samples}.",
+          "noPlaceholdersFound": "No unrendered template variables detected."
         }
+      },
+      "mjml": {
+        "badge": "MJML Template",
+        "sourceTitle": "MJML Source",
+        "previewTitle": "Transpiled HTML Preview",
+        "tagsCount": "{count} MJML tags",
+        "copyCompiled": "Copy HTML",
+        "copiedSuccess": "Compiled HTML copied to clipboard"
       }
     },
     "sms": {
@@ -255,7 +271,16 @@
       "charactersCount": "{count} characters",
       "metadataLabel": "Metadata JSON",
       "segmentsCount": "{count} segment(s)",
-      "unitsSummary": "{units}/{limit} units ({remaining} left in current segment)"
+      "unitsSummary": "{units}/{limit} units ({remaining} left in current segment)",
+      "views": {
+        "conversation": "Conversation",
+        "lockScreen": "Lock Screen"
+      },
+      "simulator": {
+        "delivered": "Delivered",
+        "notificationTitle": "Messages",
+        "replyAction": "Reply"
+      }
     },
     "push": {
       "badgeLabel": "Badge: {value}",
@@ -265,6 +290,16 @@
         "ios": "iOS",
         "android": "Android",
         "web": "Web Push"
+      },
+      "views": {
+        "banner": "Banner",
+        "lockScreen": "Lock Screen",
+        "notificationShade": "Notification Shade"
+      },
+      "simulator": {
+        "now": "now",
+        "actionOpen": "Open",
+        "actionDismiss": "Dismiss"
       }
     },
     "webhook": {

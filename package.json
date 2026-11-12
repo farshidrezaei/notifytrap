@@ -12,6 +12,7 @@
     "typecheck": "nuxt typecheck",
     "validate:i18n": "node scripts/validate-i18n.mjs",
     "test:unit": "vitest run",
+    "tester": "node scripts/tester-tui.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

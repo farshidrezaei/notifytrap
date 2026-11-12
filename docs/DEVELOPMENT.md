@@ -69,6 +69,12 @@ GitHub Actions workflow [`.github/workflows/release.yml`](../.github/workflows/r
 3. Add GitHub Actions Repository Secrets:
    - `TAURI_SIGNING_PRIVATE_KEY` (contents of private key)
    - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (passphrase chosen during generation)
+   - `TELEGRAM_BOT_TOKEN` (Telegram Bot API token for release announcements)
+   - `TELEGRAM_CHAT_ID` (Telegram channel username or ID, e.g. `@notifytrap`)
+
+4. Official Community Channel:
+   - Telegram Channel: [https://t.me/notifytrap](https://t.me/notifytrap) (@notifytrap)
+   - Automatically receives release announcements with changelog highlights once multi-platform builds pass completely and release is published.
 
 ---
 

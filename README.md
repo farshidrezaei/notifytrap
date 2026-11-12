@@ -12,6 +12,9 @@
   <a href="https://farshidrezaei.github.io/notifytrap/">
     <img src="https://img.shields.io/badge/docs-GitHub%20Pages%20(EN%20%7C%20FA)-4f46e5" alt="Documentation" />
   </a>
+  <a href="https://t.me/notifytrap">
+    <img src="https://img.shields.io/badge/Telegram-Channel-2CA5E0?logo=telegram&logoColor=white" alt="Telegram Channel" />
+  </a>
   <a href="https://github.com/farshidrezaei/notifytrap/actions/workflows/ci.yml">
     <img src="https://github.com/farshidrezaei/notifytrap/actions/workflows/ci.yml/badge.svg" alt="CI" />
   </a>
@@ -421,6 +424,7 @@ cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 
 - **Documentation & Community**
   - [Online Documentation (English & فارسی RTL)](https://farshidrezaei.github.io/notifytrap/)
+  - [Telegram Channel & Release Announcements (@notifytrap)](https://t.me/notifytrap)
   - [Engineering Constitution (`AGENTS.md`)](AGENTS.md)
   - [Architecture & Contracts](docs/ARCHITECTURE.md)
   - [Architectural Decisions (ADRs)](docs/DECISIONS.md)

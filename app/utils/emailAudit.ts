@@ -1,4 +1,5 @@
 import type { Notification, NotificationAttachmentSummary } from '~/types/application'
+import { scanForUnrenderedPlaceholders } from './templateLinter'
 
 export type AuditSeverity = 'pass' | 'warning' | 'info'
 
@@ -17,6 +18,7 @@ export interface EmailAuditReport {
   missingAltCount: number
   remoteImageCount: number
   relativeLinkCount: number
+  unrenderedPlaceholderCount: number
 }
 
 /**
@@ -142,6 +144,23 @@ export function auditCapturedEmail(
       : 'inbox.email.audit.findings.listUnsubscribeMissing',
   })
 
+  const placeholderScan = scanForUnrenderedPlaceholders(
+    notification.subject,
+    textBody,
+    rawHtml,
+  )
+  findings.push({
+    id: 'unrenderedPlaceholders',
+    severity: placeholderScan.hasUnrenderedPlaceholders ? 'warning' : 'pass',
+    translationKey: placeholderScan.hasUnrenderedPlaceholders
+      ? 'inbox.email.audit.findings.unrenderedPlaceholdersFound'
+      : 'inbox.email.audit.findings.noPlaceholdersFound',
+    params: {
+      count: placeholderScan.totalCount,
+      samples: placeholderScan.sampleDisplay,
+    },
+  })
+
   const rawBytes = new TextEncoder().encode(notification.rawPayload).byteLength
   const isLargeEmail = rawBytes > 102_400
   findings.push({
@@ -161,6 +180,7 @@ export function auditCapturedEmail(
     missingAltCount,
     remoteImageCount,
     relativeLinkCount,
+    unrenderedPlaceholderCount: placeholderScan.totalCount,
   }
 }
 
