@@ -73,7 +73,7 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           TAG="v${VERSION}"
-          EXISTING_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id" | head -n 1 || true)
+          EXISTING_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq ".[] | select(.tag_name == \"${TAG}\") | .id" | head -n 1 || true)
           if [ -n "${EXISTING_ID}" ]; then
             echo "Found existing draft release ${EXISTING_ID} for ${TAG}"
             echo "release_id=${EXISTING_ID}" >> "${GITHUB_OUTPUT}"
@@ -179,7 +179,6 @@ jobs:
           else
             NOTES=$(printf '%s\n\nCross-platform desktop installers for Linux (.deb, .rpm, .AppImage), Windows (.exe, .msi), and macOS (.dmg), plus signed updater artifacts.\n' "${NOTES}")
           fi
-          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
-            -F draft=false \
-            -f body="${NOTES}" \
+          jq -n --arg body "${NOTES}" '{draft: false, body: $body}' | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            --input - \
             --jq '{id, tag_name, draft, html_url}'
