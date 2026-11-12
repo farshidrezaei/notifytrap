@@ -161,20 +161,20 @@ async function handleSaveRules(): Promise<void> {
             :label="t('channels.rulesModal.mockHeadersLabel')"
             :error="headersError ?? undefined"
           >
-            <UTextarea
+            <SharedCodeEditor
               v-model="mockHeadersText"
-              :rows="3"
-              dir="ltr"
-              class="w-full font-mono text-xs"
+              language="json"
+              :min-rows="3"
+              placeholder='{"X-Mock-Source": "notifytrap"}'
             />
           </UFormField>
 
           <UFormField :label="t('channels.rulesModal.mockBodyLabel')">
-            <UTextarea
+            <SharedCodeEditor
               v-model="mockState.body"
-              :rows="4"
-              dir="ltr"
-              class="w-full font-mono text-xs"
+              language="auto"
+              :min-rows="4"
+              placeholder='{"ok": true}'
             />
           </UFormField>
         </div>

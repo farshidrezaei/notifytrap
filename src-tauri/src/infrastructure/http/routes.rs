@@ -22,6 +22,7 @@ use crate::domain::validation::{
     validate_bounded_text, validate_optional_test_run_identifier, validate_slug,
 };
 use crate::events::{EventPublisher, NotificationCapturedEvent};
+use crate::infrastructure::http::mcp_routes::handle_mcp_json_rpc;
 use crate::infrastructure::http::query_routes::{
     handle_get_notification_detail, handle_query_notifications, handle_wait_for_notification,
 };
@@ -164,6 +165,10 @@ impl HttpCaptureError {
         }
     }
 
+    pub(super) fn message(&self) -> &str {
+        &self.message
+    }
+
     pub(super) fn chaos_failure(status_code: StatusCode, message: String) -> Self {
         Self {
             status_code,
@@ -190,6 +195,7 @@ impl IntoResponse for HttpCaptureError {
 pub fn build_http_capture_router(state: HttpCaptureState, maximum_payload_bytes: usize) -> Router {
     Router::new()
         .route("/api/v1/health", get(handle_health))
+        .route("/api/v1/mcp", post(handle_mcp_json_rpc))
         .route("/api/v1/notifications", get(handle_query_notifications))
         .route(
             "/api/v1/notifications/wait",

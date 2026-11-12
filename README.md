@@ -12,6 +12,9 @@
   <a href="https://farshidrezaei.github.io/notifytrap/">
     <img src="https://img.shields.io/badge/docs-GitHub%20Pages%20(EN%20%7C%20FA)-4f46e5" alt="Documentation" />
   </a>
+  <a href="https://github.com/farshidrezaei/notifytrap/actions/workflows/ci.yml">
+    <img src="https://github.com/farshidrezaei/notifytrap/actions/workflows/ci.yml/badge.svg" alt="CI" />
+  </a>
   <a href="https://github.com/farshidrezaei/notifytrap/actions/workflows/release.yml">
     <img src="https://github.com/farshidrezaei/notifytrap/actions/workflows/release.yml/badge.svg" alt="Build and Release" />
   </a>
@@ -21,7 +24,7 @@
   <img src="https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-blue" alt="Platforms" />
   <img src="https://img.shields.io/badge/stack-Tauri%202%20%C2%B7%20Rust%20%C2%B7%20Nuxt%204%20%C2%B7%20SQLite-4f46e5" alt="Tech Stack" />
   <img src="https://img.shields.io/badge/i18n-English%20(LTR)%20%7C%20%D9%81%D8%A7%D8%B1%D8%B3%DB%8C%20(RTL)-0891b2" alt="Languages" />
-  <a href="src-tauri/Cargo.toml">
+  <a href="LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-15803d" alt="MIT License" />
   </a>
 </p>
@@ -67,6 +70,10 @@ During local development and staging verification, applications frequently emit 
   - **Push (HTTP)**: `POST /api/v1/push` capturing device token, platform, notification title/body, badge count, custom payload data, and iOS / Android / Web Push device previews.
   - **Webhook (HTTP)**: `ANY /api/v1/webhooks/{credential_identifier}[/{subpath}]` supporting every HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), subpaths, request headers, query strings, JSON/raw request bodies, configurable **Webhook Mock Responses** (status code, headers, body, delay), and **Strict Loopback-Only Replay** (`127.0.0.1` / `localhost` / `[::1]`).
   - **Chaos & Failure Simulation**: Per-channel latency injection (`0..10000 ms`) and probabilistic failure rules (`0..100%` rate with custom HTTP `400..599` or SMTP `400..599` error codes) for testing retry and backoff logic locally.
+- **Desktop DX, Structured Search, CLI & Local MCP (`v1.4.0`)**:
+  - **Structured Search & Saved Filters**: Filter with `channel:`, `status:`, `run:`, `to:`, `from:`, `subject:`, `otp:true`, `-negation`, quoted phrases, and `/regex/`, plus per-project Saved Filters.
+  - **System Tray & Keyboard Navigation**: Optional minimize-to-tray, OS desktop notifications, `Ctrl/Cmd+K` Command Palette, and `j`/`k`/`/` Inbox shortcuts.
+  - **Built-in Local MCP Server & `notifytrap-cli`**: Channel-scoped JSON-RPC 2.0 MCP endpoint (`POST /api/v1/mcp`) and `notifytrap-cli` (`tail`, `wait-otp`, `export`, `mcp`).
 - **Scoped Multi-Project Organization**: Organize captures across **Workspaces → Projects → Environments (`local`, `development`, `testing`, `staging`) → Channels**, each with its own generated `<credential_identifier>.<secret_token>`.
 - **Real-Time Unified Inbox & Diff Inspector**: Live desktop event streaming (`notification:captured`), channel/status/run-tag (`X-NotifyTrap-Run`) filtering, automatic OTP & magic-link extraction, one-click `.eml` / redacted `JSON` / `cURL` export, side-by-side notification diffing, search, pagination, and syntax highlighting (`JSON`, `HTML`, `Bash`, `.ENV`, `MIME / HTTP`).
 - **First-Class Bilingual & Dual-Theme UI**:
@@ -412,13 +419,42 @@ cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 
 ---
 
-## Documentation
+- **Documentation & Community**
+  - [Online Documentation (English & فارسی RTL)](https://farshidrezaei.github.io/notifytrap/)
+  - [Engineering Constitution (`AGENTS.md`)](AGENTS.md)
+  - [Architecture & Contracts](docs/ARCHITECTURE.md)
+  - [Architectural Decisions (ADRs)](docs/DECISIONS.md)
+  - [Design System & Tokens](docs/DESIGN-SYSTEM.md)
+  - [Internationalization & RTL Guide](docs/I18N.md)
+  - [Testing Matrix & Strategy](docs/TESTING.md)
+  - [Development, CI Signing & Release Guide](docs/DEVELOPMENT.md)
+  - [Contributing Guide (`CONTRIBUTING.md`)](CONTRIBUTING.md)
+  - [Security Policy (`SECURITY.md`)](SECURITY.md)
+  - [Code of Conduct (`CODE_OF_CONDUCT.md`)](CODE_OF_CONDUCT.md)
+  - [MIT License (`LICENSE`)](LICENSE)
 
-- **Online Documentation (English & فارسی RTL):** [farshidrezaei.github.io/notifytrap](https://farshidrezaei.github.io/notifytrap/)
-- [Engineering Constitution (`AGENTS.md`)](AGENTS.md)
-- [Architecture & Contracts](docs/ARCHITECTURE.md)
-- [Architectural Decisions (ADRs)](docs/DECISIONS.md)
-- [Design System & Tokens](docs/DESIGN-SYSTEM.md)
-- [Internationalization & RTL Guide](docs/I18N.md)
-- [Testing Matrix & Strategy](docs/TESTING.md)
-- [Development, CI Signing & Release Guide](docs/DEVELOPMENT.md)
+---
+
+## CLI Companion, Local MCP & Desktop DX
+
+### `notifytrap-cli`
+
+```bash
+# Tail recent notifications for a channel
+notifytrap-cli tail --channel-key <CREDENTIAL_ID>.<SECRET> --run-id ci-42
+
+# Block until an OTP arrives and print the extracted code
+OTP=$(notifytrap-cli wait-otp --channel-key <CREDENTIAL_ID>.<SECRET> --run-id ci-42)
+
+# Export a notification detail JSON
+notifytrap-cli export <NOTIFICATION_ID> --channel-key <CREDENTIAL_ID>.<SECRET>
+
+# Run stdio MCP JSON-RPC 2.0 bridge for AI coding agents
+notifytrap-cli mcp --channel-key <CREDENTIAL_ID>.<SECRET>
+```
+
+### Structured Search & Keyboard Shortcuts
+
+- **Search qualifiers**: `channel:email|sms|push|webhook`, `status:captured|read|archived`, `run:<id>`, `to:<recipient>`, `from:<sender>`, `subject:<text>`, `otp:true|false`, `"quoted phrase"`, `-negation`, and bounded `/regex/`.
+- **Keyboard shortcuts**: `Ctrl/Cmd+K` opens the Command Palette anywhere; `j` / `k` navigates Inbox messages; `/` focuses the search bar.
+- **System Tray & Native OS Alerts**: Live unread count badge on the System Tray icon and taskbar/dock, optional minimize-to-tray on close, and native OS desktop notifications on capture (configurable in **Settings**).

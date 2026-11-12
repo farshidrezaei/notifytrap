@@ -1,6 +1,7 @@
 [package]
 name = "notifytrap"
-version = "1.3.0"
+version = "1.4.0"
+default-run = "notifytrap"
 description = "Local-first desktop utility for capturing, inspecting, and debugging application notifications."
 authors = ["NotifyTrap Contributors"]
 edition = "2024"
@@ -10,11 +11,20 @@ license = "MIT"
 name = "notifytrap_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[[bin]]
+name = "notifytrap"
+path = "src/main.rs"
+
+[[bin]]
+name = "notifytrap-cli"
+path = "src/bin/notifytrap_cli.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-notification = "2"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
@@ -36,6 +46,7 @@ rand = "0.10"
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 mail-parser = "1"
 ammonia = "4"
+regex = "1"
 
 [dev-dependencies]
 tempfile = "3"

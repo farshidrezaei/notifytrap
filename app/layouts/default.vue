@@ -10,26 +10,44 @@ const {
 const { refreshChannels } = useChannels()
 const { refreshInbox, ensureLiveSubscription } = useNotifications()
 const { runBackgroundUpdateCheck } = useAppUpdater()
+const { loadDesktopPreferences } = useDesktopPreferences()
+const { loadSavedFilters } = useSavedFilters()
 
 const isSidebarOpen = ref(true)
+const isCommandPaletteOpen = ref(false)
+
+function handleGlobalKeydown(event: KeyboardEvent): void {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault()
+    isCommandPaletteOpen.value = !isCommandPaletteOpen.value
+  }
+}
 
 watch(
   [activeWorkspaceId, activeProjectId, activeEnvironmentId],
   async () => {
-    await Promise.all([refreshChannels(), refreshInbox()])
+    await Promise.all([refreshChannels(), refreshInbox(), loadSavedFilters()])
   },
 )
 
 onMounted(async () => {
-  await Promise.all([refreshHealth(), initializeWorkspace()])
-  await Promise.all([refreshChannels(), refreshInbox(), ensureLiveSubscription()])
+  window.addEventListener('keydown', handleGlobalKeydown)
+  await Promise.all([refreshHealth(), initializeWorkspace(), loadDesktopPreferences()])
+  await Promise.all([refreshChannels(), refreshInbox(), loadSavedFilters(), ensureLiveSubscription()])
   void runBackgroundUpdateCheck()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
 
 <template>
   <div class="flex h-screen w-screen flex-col overflow-hidden bg-muted">
-    <LayoutDesktopAppBar v-model:is-sidebar-open="isSidebarOpen" />
+    <LayoutDesktopAppBar
+      v-model:is-sidebar-open="isSidebarOpen"
+      @open-command-palette="isCommandPaletteOpen = true"
+    />
 
     <div class="relative flex min-h-0 flex-1 overflow-hidden">
       <USidebar
@@ -82,5 +100,6 @@ onMounted(async () => {
     </div>
 
     <LayoutDesktopStatusFooter />
+    <SharedCommandPaletteModal v-model:open="isCommandPaletteOpen" />
   </div>
 </template>

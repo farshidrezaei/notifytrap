@@ -1,10 +1,11 @@
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::sync::{Semaphore, watch};
-use tokio::task::JoinHandle;
+use tokio::task::{JoinHandle, JoinSet};
 
 use crate::application::application_state::ApplicationServices;
 use crate::configuration::server_configuration::ServerConfiguration;
@@ -13,6 +14,7 @@ use crate::events::EventPublisher;
 use crate::infrastructure::smtp::session::handle_smtp_connection;
 
 const MAXIMUM_CONCURRENT_SMTP_CONNECTIONS: usize = 64;
+const SMTP_SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Handle to a running Tokio local SMTP capture server supporting graceful shutdown.
 pub struct RunningSmtpServer {
@@ -47,6 +49,8 @@ impl RunningSmtpServer {
         let (shutdown_sender, mut shutdown_receiver) = watch::channel(false);
 
         let task_handle = tokio::spawn(async move {
+            let mut active_connections: JoinSet<()> = JoinSet::new();
+
             loop {
                 tokio::select! {
                     biased;
@@ -55,6 +59,7 @@ impl RunningSmtpServer {
                             break;
                         }
                     }
+                    Some(_) = active_connections.join_next(), if !active_connections.is_empty() => {}
                     accept_result = listener.accept() => {
                         match accept_result {
                             Ok((mut stream, _peer_address)) => {
@@ -66,13 +71,15 @@ impl RunningSmtpServer {
                                 };
                                 let session_services = services.clone();
                                 let session_publisher = event_publisher.clone();
-                                tokio::spawn(async move {
+                                let session_shutdown_receiver = shutdown_receiver.clone();
+                                active_connections.spawn(async move {
                                     let _connection_permit = permit;
                                     handle_smtp_connection(
                                         stream,
                                         session_services,
                                         session_publisher,
                                         maximum_message_bytes,
+                                        session_shutdown_receiver,
                                     ).await;
                                 });
                             }
@@ -82,6 +89,18 @@ impl RunningSmtpServer {
                             }
                         }
                     }
+                }
+            }
+
+            if !active_connections.is_empty() {
+                let drain_result = tokio::time::timeout(SMTP_SHUTDOWN_DRAIN_TIMEOUT, async {
+                    while active_connections.join_next().await.is_some() {}
+                })
+                .await;
+
+                if drain_result.is_err() {
+                    active_connections.abort_all();
+                    while active_connections.join_next().await.is_some() {}
                 }
             }
         });

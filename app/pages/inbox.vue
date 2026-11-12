@@ -7,6 +7,54 @@ const {
   hasActiveScope,
   isInitializing: isWorkspaceInitializing,
 } = useWorkspaceContext()
+const {
+  notificationPage,
+  selectedDetail,
+  selectNotification,
+} = useNotifications()
+
+function handleInboxKeydown(event: KeyboardEvent): void {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return
+  }
+  const target = event.target as HTMLElement | null
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
+    return
+  }
+
+  if (event.key === '/') {
+    event.preventDefault()
+    const input = document.getElementById('inbox-search-input') as HTMLInputElement | null
+    input?.focus()
+    return
+  }
+
+  const items = notificationPage.value?.items ?? []
+  if (items.length === 0) {
+    return
+  }
+
+  if (event.key === 'j' || event.key === 'k') {
+    event.preventDefault()
+    const currentId = selectedDetail.value?.notification.id
+    const currentIndex = currentId ? items.findIndex((item) => item.id === currentId) : -1
+    const nextIndex = event.key === 'j'
+      ? Math.min(items.length - 1, currentIndex + 1)
+      : Math.max(0, currentIndex <= 0 ? 0 : currentIndex - 1)
+    const nextItem = items[nextIndex]
+    if (nextItem) {
+      void selectNotification(nextItem.id)
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleInboxKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleInboxKeydown)
+})
 </script>
 
 <template>

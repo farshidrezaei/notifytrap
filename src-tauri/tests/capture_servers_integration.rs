@@ -1071,3 +1071,126 @@ async fn webhook_mock_loopback_replay_and_chaos_rules_end_to_end() {
         .shutdown_all(Some(&*harness.event_publisher))
         .await;
 }
+
+#[tokio::test]
+async fn structured_search_and_local_mcp_json_rpc_end_to_end() {
+    let harness = setup_capture_harness(1024 * 1024, 4096).await;
+
+    let sms_channel = harness
+        .services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: harness.workspace_id.clone(),
+            project_id: harness.project_id.clone(),
+            environment_id: harness.environment_id.clone(),
+            name: "MCP SMS".to_string(),
+            channel_type: ChannelType::Sms,
+            credential_identifier: Some("mcp-sms".to_string()),
+            is_enabled: Some(true),
+        })
+        .expect("create sms channel");
+
+    let (status_1, _) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        "/api/v1/sms",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &sms_channel.credential.composite_key),
+            ("X-NotifyTrap-Run", "mcp-run-1"),
+        ],
+        r#"{"to":"+989120001111","from":"Auth","message":"Your verification code is 774123"}"#,
+    )
+    .await;
+    assert_eq!(status_1, 202);
+
+    let (status_2, _) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        "/api/v1/sms",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &sms_channel.credential.composite_key),
+            ("X-NotifyTrap-Run", "mcp-run-2"),
+        ],
+        r#"{"to":"+989120002222","from":"Promo","message":"Weekly newsletter digest"}"#,
+    )
+    .await;
+    assert_eq!(status_2, 202);
+
+    // Structured search: channel:sms otp:true /774[0-9]{3}/
+    let (search_status, search_body) = send_raw_http_request(
+        harness.http_address,
+        "GET",
+        "/api/v1/notifications?search=channel%3Asms%20otp%3Atrue%20%2F774%5B0-9%5D%7B3%7D%2F",
+        &[("X-Channel-Key", &sms_channel.credential.composite_key)],
+        "",
+    )
+    .await;
+    assert_eq!(search_status, 200);
+    let search_json: Value = serde_json::from_str(&search_body).expect("search json");
+    assert_eq!(search_json["totalCount"], 1);
+    assert_eq!(search_json["items"][0]["testRunIdentifier"], "mcp-run-1");
+
+    // MCP initialize
+    let (mcp_init_status, mcp_init_body) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        "/api/v1/mcp",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &sms_channel.credential.composite_key),
+        ],
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#,
+    )
+    .await;
+    assert_eq!(mcp_init_status, 200);
+    let mcp_init_json: Value = serde_json::from_str(&mcp_init_body).expect("mcp init json");
+    assert_eq!(
+        mcp_init_json["result"]["serverInfo"]["name"],
+        "notifytrap-local-mcp"
+    );
+
+    // MCP tools/list
+    let (mcp_list_status, mcp_list_body) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        "/api/v1/mcp",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &sms_channel.credential.composite_key),
+        ],
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#,
+    )
+    .await;
+    assert_eq!(mcp_list_status, 200);
+    let mcp_list_json: Value = serde_json::from_str(&mcp_list_body).expect("mcp list json");
+    assert_eq!(
+        mcp_list_json["result"]["tools"].as_array().map(Vec::len),
+        Some(4)
+    );
+
+    // MCP tools/call -> extract_otp_codes
+    let (mcp_call_status, mcp_call_body) = send_raw_http_request(
+        harness.http_address,
+        "POST",
+        "/api/v1/mcp",
+        &[
+            ("Content-Type", "application/json"),
+            ("X-Channel-Key", &sms_channel.credential.composite_key),
+        ],
+        r#"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"extract_otp_codes","arguments":{"run_id":"mcp-run-1"}}}"#,
+    )
+    .await;
+    assert_eq!(mcp_call_status, 200);
+    let mcp_call_json: Value = serde_json::from_str(&mcp_call_body).expect("mcp call json");
+    let text_payload = mcp_call_json["result"]["content"][0]["text"]
+        .as_str()
+        .expect("mcp tool text");
+    assert!(text_payload.contains("774123"));
+
+    harness
+        .coordinator
+        .shutdown_all(Some(&*harness.event_publisher))
+        .await;
+}

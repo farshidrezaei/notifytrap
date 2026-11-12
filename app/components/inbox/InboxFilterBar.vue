@@ -4,7 +4,7 @@ import {
   NOTIFICATION_CHANNEL_KINDS,
 } from '~/schemas/workspaceForms'
 import type { ChannelType, NotificationStatus } from '~/types/application'
-import { INPUT_MASKS } from '~/utils/inputMasks'
+import type { SavedInboxFilter } from '~/utils/savedFilters'
 import { extractCommandErrorMessage } from '~/utils/tauriClient'
 
 const { t } = useI18n()
@@ -36,6 +36,37 @@ const filterFormState = reactive<{
 
 const isClearConfirmOpen = ref(false)
 const isClearing = ref(false)
+const isSavePopoverOpen = ref(false)
+const newFilterName = ref('')
+const { savedFilters, saveFilter, deleteSavedFilter } = useSavedFilters()
+
+async function handleSaveCurrentFilter(): Promise<void> {
+  if (!newFilterName.value.trim()) {
+    return
+  }
+  await saveFilter({
+    name: newFilterName.value,
+    channelType: filterFormState.channelType,
+    status: filterFormState.status,
+    testRunIdentifier: filterFormState.testRunIdentifier,
+    searchQuery: filterFormState.searchQuery,
+  })
+  newFilterName.value = ''
+  isSavePopoverOpen.value = false
+}
+
+async function handleApplySavedFilter(saved: SavedInboxFilter): Promise<void> {
+  filterFormState.channelType = saved.channelType
+  filterFormState.status = saved.status
+  filterFormState.testRunIdentifier = saved.testRunIdentifier
+  filterFormState.searchQuery = saved.searchQuery
+  filterChannelType.value = saved.channelType
+  filterStatus.value = saved.status
+  filterTestRunIdentifier.value = saved.testRunIdentifier
+  filterSearchQuery.value = saved.searchQuery
+  currentPage.value = 1
+  await refreshInbox()
+}
 
 const channelFilters = computed<Array<{ label: string; value: ChannelType | 'all' }>>(() => [
   { label: t('inbox.filters.allChannels'), value: 'all' },
@@ -164,15 +195,84 @@ async function handleConfirmClear(): Promise<void> {
 
         <UFormField name="searchQuery">
           <UInput
+            id="inbox-search-input"
             v-model="filterFormState.searchQuery"
-            v-maska="INPUT_MASKS.searchKeyword"
-            :maxlength="64"
+            :maxlength="160"
             size="xs"
             icon="i-lucide-search"
-            class="w-56"
+            class="w-60"
             :placeholder="t('inbox.filters.searchPlaceholder')"
           />
         </UFormField>
+
+        <UPopover>
+          <UTooltip :text="t('inbox.filters.syntaxHintTitle')">
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              square
+              icon="i-lucide-help-circle"
+              :aria-label="t('inbox.filters.syntaxHintTitle')"
+            />
+          </UTooltip>
+          <template #content>
+            <div class="w-72 space-y-2 p-3 text-xs">
+              <p class="font-semibold text-highlighted">
+                {{ t('inbox.filters.syntaxHintTitle') }}
+              </p>
+              <p class="text-muted">
+                {{ t('inbox.filters.syntaxHintDescription') }}
+              </p>
+              <code dir="ltr" class="block rounded bg-muted px-2 py-1.5 font-mono text-[11px] text-default">
+                channel:email status:captured otp:true -spam /order-[0-9]+/
+              </code>
+            </div>
+          </template>
+        </UPopover>
+
+        <UPopover v-model:open="isSavePopoverOpen">
+          <UTooltip :text="t('inbox.filters.saveFilterButton')">
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="outline"
+              square
+              icon="i-lucide-bookmark-plus"
+              :disabled="!hasActiveScope"
+              :aria-label="t('inbox.filters.saveFilterButton')"
+            />
+          </UTooltip>
+          <template #content>
+            <div class="flex w-64 flex-col gap-2 p-3">
+              <p class="text-xs font-semibold text-highlighted">
+                {{ t('inbox.filters.saveFilterTitle') }}
+              </p>
+              <UInput
+                v-model="newFilterName"
+                size="xs"
+                :maxlength="40"
+                :placeholder="t('inbox.filters.saveFilterPlaceholder')"
+                @keydown.enter.prevent="handleSaveCurrentFilter"
+              />
+              <div class="flex justify-end gap-1.5">
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  :label="t('common.cancel')"
+                  @click="isSavePopoverOpen = false"
+                />
+                <UButton
+                  size="xs"
+                  color="primary"
+                  :label="t('common.save')"
+                  @click="handleSaveCurrentFilter"
+                />
+              </div>
+            </div>
+          </template>
+        </UPopover>
 
         <UTooltip :text="t('common.refresh')">
           <UButton
@@ -202,6 +302,36 @@ async function handleConfirmClear(): Promise<void> {
         </UTooltip>
       </div>
     </UForm>
+
+    <div
+      v-if="savedFilters.length > 0"
+      class="flex flex-wrap items-center gap-1.5 border-t border-default/60 pt-2"
+    >
+      <span class="text-[11px] font-medium text-muted">
+        {{ t('inbox.filters.savedFiltersLabel') }}
+      </span>
+      <div
+        v-for="saved in savedFilters"
+        :key="saved.id"
+        class="inline-flex items-center gap-1 rounded-md border border-default bg-default/70 px-2 py-0.5 text-xs"
+      >
+        <button
+          type="button"
+          class="font-medium text-default hover:text-primary"
+          @click="handleApplySavedFilter(saved)"
+        >
+          {{ saved.name }}
+        </button>
+        <button
+          type="button"
+          class="text-muted hover:text-error"
+          :aria-label="t('inbox.filters.deleteSavedFilter', { name: saved.name })"
+          @click="deleteSavedFilter(saved.id)"
+        >
+          <UIcon name="i-lucide-x" class="size-3" />
+        </button>
+      </div>
+    </div>
 
     <UModal
       v-model:open="isClearConfirmOpen"

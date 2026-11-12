@@ -9,6 +9,8 @@ pub mod services;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::Manager;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tracing_subscriber::EnvFilter;
 
 use crate::application::application_state::ApplicationState;
@@ -40,6 +42,7 @@ pub fn run() {
 
     let application_result = tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|application| {
             let data_directory = resolve_data_directory(application.handle()).map_err(|error| {
@@ -99,11 +102,34 @@ pub fn run() {
             }
 
             application.manage(application_state);
+
+            if let Err(error) = setup_system_tray(application.handle()) {
+                tracing::warn!("Unable to initialize system tray icon: {error}");
+            }
+
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let state = window.state::<ApplicationState>();
+                let should_minimize = state
+                    .services
+                    .settings
+                    .get_setting("desktop.minimizeToTray")
+                    .ok()
+                    .flatten()
+                    .is_some_and(|entry| entry.value == "true");
+                if should_minimize {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::system_commands::get_application_health,
             commands::system_commands::get_server_configuration,
+            commands::system_commands::sync_unread_badge,
+            commands::system_commands::send_native_notification,
             commands::workspace_commands::list_workspaces,
             commands::workspace_commands::create_workspace,
             commands::workspace_commands::update_workspace,
@@ -151,5 +177,63 @@ pub fn run() {
         Err(error) => {
             tracing::error!("Fatal Tauri runtime build error: {error}");
         }
+    }
+}
+
+fn setup_system_tray(application_handle: &tauri::AppHandle) -> Result<(), String> {
+    let show_item = MenuItem::with_id(
+        application_handle,
+        "tray-show",
+        "Show NotifyTrap",
+        true,
+        None::<&str>,
+    )
+    .map_err(|error| error.to_string())?;
+    let quit_item = MenuItem::with_id(
+        application_handle,
+        "tray-quit",
+        "Quit NotifyTrap",
+        true,
+        None::<&str>,
+    )
+    .map_err(|error| error.to_string())?;
+    let tray_menu = Menu::with_items(application_handle, &[&show_item, &quit_item])
+        .map_err(|error| error.to_string())?;
+
+    let mut builder = TrayIconBuilder::with_id("notifytrap-tray")
+        .menu(&tray_menu)
+        .tooltip("NotifyTrap")
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app_handle, event| match event.id.as_ref() {
+            "tray-show" => focus_main_window(app_handle),
+            "tray-quit" => app_handle.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                focus_main_window(tray.app_handle());
+            }
+        });
+
+    if let Some(icon) = application_handle.default_window_icon().cloned() {
+        builder = builder.icon(icon);
+    }
+
+    builder
+        .build(application_handle)
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+fn focus_main_window(application_handle: &tauri::AppHandle) {
+    if let Some(window) = application_handle.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
     }
 }

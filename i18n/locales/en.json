@@ -149,8 +149,15 @@
     "filters": {
       "allChannels": "All",
       "allStatuses": "All Statuses",
-      "searchPlaceholder": "Search subject, recipient, preview...",
-      "runTagPlaceholder": "Run tag (X-NotifyTrap-Run)..."
+      "searchPlaceholder": "Search or use channel:email otp:true /regex/...",
+      "runTagPlaceholder": "Run tag (X-NotifyTrap-Run)...",
+      "syntaxHintTitle": "Structured Search Syntax",
+      "syntaxHintDescription": "Combine qualifiers (channel:, status:, run:, to:, from:, subject:, otp:true), quoted phrases, -negation, and /regex/.",
+      "saveFilterButton": "Save current filter",
+      "saveFilterTitle": "Save Filter Preset",
+      "saveFilterPlaceholder": "e.g. Failed OTP Emails",
+      "savedFiltersLabel": "Saved:",
+      "deleteSavedFilter": "Delete saved filter {name}"
     },
     "status": {
       "captured": "Unread",
@@ -492,6 +499,20 @@
       "schemaLabel": "Database Schema",
       "architectureBadge": "Local Modular Monolith"
     },
+    "desktop": {
+      "title": "Desktop & System Tray",
+      "description": "Control background tray behavior and native OS notifications when NotifyTrap is minimized.",
+      "minimizeToTrayLabel": "Minimize to System Tray on close",
+      "minimizeToTrayHint": "Keep local capture servers running in the background when closing the main window.",
+      "nativeNotificationsLabel": "OS desktop notifications on capture",
+      "nativeNotificationsHint": "Show a native OS notification when a new payload arrives while the window is hidden."
+    },
+    "mcp": {
+      "title": "Local MCP Server & CLI Companion",
+      "description": "Connect AI coding assistants or CI scripts directly to NotifyTrap's local loopback MCP endpoint.",
+      "httpEndpointLabel": "Local MCP JSON-RPC Endpoint (requires X-Channel-Key)",
+      "cliBridgeLabel": "Stdio MCP Bridge Command (notifytrap-cli)"
+    },
     "updates": {
       "title": "Application Updates",
       "description": "Signed desktop updates verified locally before installation (Windows, macOS, and Linux AppImage).",
@@ -680,12 +701,27 @@
     "edit": "Edit",
     "delete": "Delete",
     "copy": "Copy",
+    "formatJson": "Format JSON",
     "copied": "Copied",
     "copiedTitle": "Copied to Clipboard",
     "copyFailedTitle": "Copy Unavailable",
     "errorTitle": "Action Failed",
     "unexpectedError": "An unexpected desktop command error occurred.",
     "retry": "Retry"
+  },
+  "commandPalette": {
+    "triggerTooltip": "Command Palette (Ctrl/Cmd+K)",
+    "placeholder": "Jump to page, switch theme/language, or apply saved filter...",
+    "groups": {
+      "navigation": "Navigation",
+      "actions": "Quick Actions",
+      "savedFilters": "Saved Inbox Filters"
+    },
+    "actions": {
+      "refreshInbox": "Refresh Inbox",
+      "toggleTheme": "Toggle Light / Dark Theme",
+      "switchLanguage": "Switch Language (EN / FA)"
+    }
   },
   "validation": {
     "required": "This field is required.",

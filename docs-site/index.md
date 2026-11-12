@@ -35,6 +35,9 @@ features:
   - icon: 🔒
     title: Workspace Isolation & Security
     details: Explicit Workspace → Project → Environment → Channel hierarchy backed by AES-256-GCM credentials, OS keyring + 0o600 fallback, and strict loopback binding.
+  - icon: ⌨️
+    title: Tray Badge, CLI, MCP & Search Syntax
+    details: System tray & taskbar unread badges, native OS notifications, Ctrl/Cmd+K Command Palette, structured /regex/ search, notifytrap-cli, and built-in local MCP server.
   - icon: 🌐
     title: Bilingual EN (LTR) & FA (RTL)
     details: Native Light and Dark themes, symmetrical RTL/LTR layout, bundled fonts, and automatic Persian/Arabic-Indic/Devanagari digit normalization with signed cross-platform updates.

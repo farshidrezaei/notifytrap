@@ -42,6 +42,15 @@ export function useNotifications() {
     return notificationPage.value.items.filter((item) => item.status === 'captured').length
   })
 
+  watch(unreadCount, (nextCount) => {
+    if (!isTauriRuntime()) {
+      return
+    }
+    void invokeTauriCommand('sync_unread_badge', { unreadCount: nextCount }).catch(() => {
+      // Ignore badge sync errors on unsupported window managers
+    })
+  })
+
   async function refreshInbox(): Promise<void> {
     if (
       !isTauriRuntime()
@@ -83,6 +92,8 @@ export function useNotifications() {
 
     await subscribeTauriEvent<NotificationCapturedEvent>('notification:captured', async (payload) => {
       const item = payload.notification
+      const { dispatchNativeNotificationIfEnabled } = useDesktopPreferences()
+      dispatchNativeNotificationIfEnabled(item)
       if (
         item.workspaceId === activeWorkspaceId.value
         && item.projectId === activeProjectId.value

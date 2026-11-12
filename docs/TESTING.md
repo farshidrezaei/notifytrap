@@ -55,6 +55,10 @@
   - Rust unit test (`allows_strict_loopback_targets_and_rejects_external_hosts`) verifying loopback-only replay URL validation (`127.0.0.1`, `localhost`, `[::1]`) and rejection of external hosts, HTTPS, userinfo, and fragments.
   - End-to-end Axum/SMTP integration test (`webhook_mock_loopback_replay_and_chaos_rules_end_to_end`) verifying webhook mock responses (`201` + custom headers/body + SQLite capture), ephemeral `127.0.0.1` webhook replay + external URL rejection, HTTP `429` chaos failure injection, and SMTP `451` chaos failure injection.
   - Vitest unit suite (`tests/phase3MockReplayChaos.spec.ts`) verifying frontend loopback URL validation, default replay target construction, and mock header JSON parsing.
+- **v1.4.0 Additions**:
+  - Rust unit & `proptest` suite (`domain::search_query::tests`) verifying structured search qualifiers, negation, quoted phrases, bounded `/regex/`, and panic-free arbitrary inputs.
+  - End-to-end Axum integration test (`structured_search_and_local_mcp_json_rpc_end_to_end`) verifying `channel:sms otp:true /regex/` search and MCP `initialize`, `tools/list`, and `tools/call` (`extract_otp_codes`).
+  - Vitest unit suite (`tests/phase4DxSavedFilters.spec.ts`) verifying saved filter JSON parsing and project-scoped key generation.
 
 ---
 

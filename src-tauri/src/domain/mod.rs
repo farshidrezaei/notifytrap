@@ -3,6 +3,7 @@ pub mod environment;
 pub mod errors;
 pub mod notification;
 pub mod project;
+pub mod search_query;
 pub mod settings;
 pub mod validation;
 pub mod verification_extractor;

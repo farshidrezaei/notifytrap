@@ -155,3 +155,11 @@ For webhook integrations that only allow URL-based secrets, pass `?channel_key=<
 - **Webhook Mock Responses**: Configure per-channel custom HTTP status (`100..599`), response headers, response body, and delay (`0..10000 ms`) from **Channels → Rules**. NotifyTrap persists the incoming capture first, then returns your mock response.
 - **Strict Loopback-Only Replay**: Replay any captured webhook from **Inbox → Replay** exclusively to local targets (`http://127.0.0.1`, `http://localhost`, or `http://[::1]`). External hosts, userinfo, and fragments are rejected.
 - **Chaos Rules**: Inject artificial latency (`0..10000 ms`) and probabilistic failures (`0..100%`) with custom HTTP (`400..599`) or SMTP (`400..599`) error codes on any channel to verify retry and backoff handling locally.
+
+---
+
+## Structured Search, Local MCP & CLI Companion (`v1.4.0`)
+
+- **Structured Search Syntax**: Filter notifications in the Inbox or `/api/v1/notifications?search=...` using `channel:email`, `status:captured`, `run:ci-42`, `to:alice`, `from:auth`, `subject:reset`, `otp:true`, `-negation`, `"quoted phrase"`, and `/regex/`.
+- **Built-in Local MCP (`POST /api/v1/mcp`)**: JSON-RPC 2.0 endpoint authenticated via `X-Channel-Key`, exposing `list_notifications`, `wait_for_notification`, `get_notification_detail`, and `extract_otp_codes`.
+- **CLI Companion (`notifytrap-cli`)**: Run `notifytrap-cli tail`, `notifytrap-cli wait-otp`, `notifytrap-cli export <id>`, or `notifytrap-cli mcp` (stdio JSON-RPC bridge).

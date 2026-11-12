@@ -74,3 +74,10 @@
   1. Implement `execute_loopback_http_replay` directly over `tokio::net::TcpStream` with strict `validate_loopback_target_url` enforcement (only `http://127.0.0.1`, `http://localhost`, and `http://[::1]` without userinfo or fragments, bounded 5s connect / 10s IO timeouts, and 1 MiB response cap).
   2. Store `webhook_mock_json` and `chaos_rule_json` on `channels` (migration `0004_add_channel_rules.sql`) with domain-level validation in `channel_service.rs`.
 - **Consequences**: Zero external network egress, zero redirect-based SSRF, no new crate dependencies, and deterministic offline builds.
+
+## ADR-012: Channel-Scoped Local MCP JSON-RPC & Loopback CLI Companion
+- **Context**: AI coding assistants and CI pipelines need direct, structured access to captured notifications and OTP codes without opening the SQLite file concurrently or weakening channel isolation.
+- **Decision**:
+  1. Expose `POST /api/v1/mcp` on the embedded Axum HTTP server (`mcp_routes.rs`), authenticated via `X-Channel-Key` and delegating to `ApplicationServices` and `wait_for_matching_notification`.
+  2. Ship `notifytrap-cli` (`src/bin/notifytrap_cli.rs`) reusing `execute_loopback_http_replay` for `tail`, `wait-otp`, `export`, and stdio `mcp` bridging.
+- **Consequences**: Zero external network egress, strict per-channel isolation, and zero SQLite lock contention.

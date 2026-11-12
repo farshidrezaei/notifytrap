@@ -5,6 +5,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
+use tokio::sync::watch;
 
 use crate::application::application_state::ApplicationServices;
 use crate::domain::channel::{ChannelSummary, ChannelType, should_trigger_chaos_failure};
@@ -28,6 +29,7 @@ pub async fn handle_smtp_connection(
     services: ApplicationServices,
     event_publisher: Arc<dyn EventPublisher>,
     maximum_message_bytes: usize,
+    mut shutdown_receiver: watch::Receiver<bool>,
 ) {
     let (read_half, mut write_half) = stream.into_split();
     let mut reader = BufReader::new(read_half);
@@ -46,8 +48,34 @@ pub async fn handle_smtp_connection(
     let mut transaction = SmtpTransaction::default();
 
     loop {
-        let Some(line) = read_crlf_line(&mut reader, MAXIMUM_COMMAND_LINE_BYTES).await else {
+        if *shutdown_receiver.borrow() {
+            let _ = write_line(
+                &mut write_half,
+                "421 4.3.2 Service shutting down, closing transmission channel",
+            )
+            .await;
             return;
+        }
+
+        let line = tokio::select! {
+            biased;
+            _ = shutdown_receiver.changed() => {
+                if *shutdown_receiver.borrow() {
+                    let _ = write_line(
+                        &mut write_half,
+                        "421 4.3.2 Service shutting down, closing transmission channel",
+                    )
+                    .await;
+                    return;
+                }
+                continue;
+            }
+            maybe_line = read_crlf_line(&mut reader, MAXIMUM_COMMAND_LINE_BYTES) => {
+                let Some(line) = maybe_line else {
+                    return;
+                };
+                line
+            }
         };
 
         let trimmed = line.trim_end_matches(['\r', '\n']);

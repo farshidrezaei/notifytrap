@@ -2,6 +2,15 @@
 
 All notable changes to **NotifyTrap** are documented in this file.
 
+## [1.4.0] - 2026-11-12
+
+### Added
+- **Structured Search Grammar & Saved Filters**: Search notifications using qualifiers (`channel:`, `status:`, `run:`, `tag:`, `to:`, `from:`, `subject:`, `otp:true|false`), quoted phrases, `-negation`, and bounded case-insensitive `/regex/` patterns (`src-tauri/src/domain/search_query.rs`), plus per-project Saved Filter presets in the Inbox.
+- **System Tray & Native OS Notifications**: Added Tauri 2 System Tray icon (`Show NotifyTrap` / `Quit NotifyTrap`), configurable **Minimize to System Tray on Close** (`desktop.minimizeToTray`), and optional **OS Desktop Notifications on Capture** (`desktop.nativeNotifications`) in Settings.
+- **Keyboard DX & `Ctrl/Cmd+K` Command Palette**: Added global `Ctrl/Cmd+K` Command Palette (`CommandPaletteModal.vue`) for instant navigation, theme/language switching, and applying saved filters, plus `j`/`k` notification navigation and `/` search focus in the Inbox.
+- **Built-in Local MCP Server & `notifytrap-cli` Companion**: Added channel-scoped JSON-RPC 2.0 MCP endpoint (`POST /api/v1/mcp`) exposing `list_notifications`, `wait_for_notification`, `get_notification_detail`, and `extract_otp_codes`, alongside the standalone `notifytrap-cli` binary (`tail`, `wait-otp`, `export`, and stdio `mcp` bridge).
+- **Tests**: Added unit/property tests in `domain/search_query.rs`, end-to-end integration test `structured_search_and_local_mcp_json_rpc_end_to_end`, and Vitest suite `tests/phase4DxSavedFilters.spec.ts`.
+
 ## [1.3.0] - 2026-11-12
 
 ### Added

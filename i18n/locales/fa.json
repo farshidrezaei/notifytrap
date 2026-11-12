@@ -149,8 +149,15 @@
     "filters": {
       "allChannels": "همه",
       "allStatuses": "همه وضعیت‌ها",
-      "searchPlaceholder": "جستجو در موضوع، گیرنده، متن...",
-      "runTagPlaceholder": "برچسب اجرا (X-NotifyTrap-Run)..."
+      "searchPlaceholder": "جستجو یا channel:email otp:true /regex/...",
+      "runTagPlaceholder": "برچسب اجرا (X-NotifyTrap-Run)...",
+      "syntaxHintTitle": "راهنمای جستجوی ساخت‌یافته",
+      "syntaxHintDescription": "ترکیب کلیدواژه‌ها (channel:، status:، run:، to:، from:، subject:، otp:true)، عبارت دقیق داخل گیومه، منفی‌سازی با - و عبارت منظم /regex/.",
+      "saveFilterButton": "ذخیره فیلتر فعلی",
+      "saveFilterTitle": "ذخیره پیش‌تنظیم فیلتر",
+      "saveFilterPlaceholder": "مثلاً ایمیل‌های OTP خوانده‌نشده",
+      "savedFiltersLabel": "ذخیره‌شده:",
+      "deleteSavedFilter": "حذف فیلتر {name}"
     },
     "status": {
       "captured": "خوانده‌نشده",
@@ -492,6 +499,20 @@
       "schemaLabel": "نسخه ساختار پایگاه‌داده",
       "architectureBadge": "مونولیت ماژولار محلی"
     },
+    "desktop": {
+      "title": "دسکتاپ و سینی سیستم (System Tray)",
+      "description": "مدیریت اجرای پس‌زمینه در سینی سیستم و اعلان‌های بومی سیستم‌عامل هنگام کوچک بودن پنجره.",
+      "minimizeToTrayLabel": "ارسال به سینی سیستم هنگام بستن پنجره",
+      "minimizeToTrayHint": "با بستن پنجره اصلی، سرورهای محلی شکار پیام در پس‌زمینه فعال می‌مانند.",
+      "nativeNotificationsLabel": "اعلان بومی سیستم‌عامل هنگام دریافت پیام",
+      "nativeNotificationsHint": "وقتی پنجره برنامه پنهان است، با دریافت پیام جدید اعلان سیستم‌عامل نمایش داده شود."
+    },
+    "mcp": {
+      "title": "سرور محلی MCP و ابزار CLI",
+      "description": "اتصال مستقیم دستیارهای کدنویسی هوش مصنوعی یا اسکریپت‌های CI به اندپوینت محلی MCP.",
+      "httpEndpointLabel": "اندپوینت محلی JSON-RPC MCP (همراه با هدر X-Channel-Key)",
+      "cliBridgeLabel": "دستور پل Stdio MCP با ابزار notifytrap-cli"
+    },
     "updates": {
       "title": "به‌روزرسانی نرم‌افزار",
       "description": "به‌روزرسانی‌های امضاشده دسکتاپ پیش از نصب به‌صورت محلی اعتبارسنجی می‌شوند (ویندوز، مک و AppImage لینوکس).",
@@ -680,12 +701,27 @@
     "edit": "ویرایش",
     "delete": "حذف",
     "copy": "کپی",
+    "formatJson": "مرتب‌سازی JSON",
     "copied": "کپی شد",
     "copiedTitle": "در کلیپ‌بورد کپی شد",
     "copyFailedTitle": "کپی در دسترس نیست",
     "errorTitle": "خطا در انجام عملیات",
     "unexpectedError": "خطای غیرمنتظره‌ای در ارتباط با هسته دسکتاپ رخ داد.",
     "retry": "تلاش مجدد"
+  },
+  "commandPalette": {
+    "triggerTooltip": "پالت فرمان (Ctrl/Cmd+K)",
+    "placeholder": "رفتن به صفحه، تغییر تم/زبان یا اعمال فیلتر ذخیره‌شده...",
+    "groups": {
+      "navigation": "مسیرها",
+      "actions": "عملیات سریع",
+      "savedFilters": "فیلترهای ذخیره‌شده صندوق دریافت"
+    },
+    "actions": {
+      "refreshInbox": "بروزرسانی صندوق دریافت",
+      "toggleTheme": "تغییر تم روشن / تاریک",
+      "switchLanguage": "تغییر زبان (فارسی / انگلیسی)"
+    }
   },
   "validation": {
     "required": "تکمیل این فیلد الزامی است.",

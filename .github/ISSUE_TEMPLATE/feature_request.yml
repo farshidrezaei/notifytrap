@@ -1,0 +1,19 @@
+name: Feature Request
+description: Suggest an improvement or new capability for NotifyTrap
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Developer Workflow
+      description: What workflow or pain point does this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the behavior, API, or UI you envision (remember NotifyTrap's zero-external-delivery rule).
+    validations:
+      required: true

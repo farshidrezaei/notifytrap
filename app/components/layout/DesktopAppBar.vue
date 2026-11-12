@@ -1,6 +1,10 @@
 <script setup lang="ts">
 const isSidebarOpen = defineModel<boolean>('isSidebarOpen', { required: true })
 
+const emit = defineEmits<{
+  openCommandPalette: []
+}>()
+
 const { t } = useI18n()
 const route = useRoute()
 const { locale, changeLocale } = useLocaleController()
@@ -105,6 +109,21 @@ function handleBarDoubleClick(event: MouseEvent): void {
 
     <!-- End: Quick Controls + Native Window Buttons -->
     <div class="flex shrink-0 items-center gap-1">
+      <UTooltip :text="t('commandPalette.triggerTooltip')">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-search"
+          :aria-label="t('commandPalette.triggerTooltip')"
+          @click="emit('openCommandPalette')"
+        >
+          <template #trailing>
+            <UKbd size="sm" value="⌘K" />
+          </template>
+        </UButton>
+      </UTooltip>
+
       <UTooltip :text="t('designSystem.controls.languageToggle')">
         <UButton
           size="xs"

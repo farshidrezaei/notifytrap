@@ -75,7 +75,17 @@ pub(super) async fn handle_wait_for_notification(
     Query(parameters): Query<HttpNotificationQueryParameters>,
 ) -> Result<(StatusCode, Json<NotificationDetail>), HttpCaptureError> {
     let channel = authenticate_any_channel(&headers, &state)?;
-    let mut query = build_channel_query(&channel, &parameters)?;
+    let detail = wait_for_matching_notification(&state, &channel, &parameters).await?;
+    Ok((StatusCode::OK, Json(detail)))
+}
+
+/// Waits without busy-sleeping until a matching notification arrives for `channel` or timeout elapses.
+pub(super) async fn wait_for_matching_notification(
+    state: &HttpCaptureState,
+    channel: &ChannelSummary,
+    parameters: &HttpNotificationQueryParameters,
+) -> Result<NotificationDetail, HttpCaptureError> {
+    let mut query = build_channel_query(channel, parameters)?;
     query.limit = Some(1);
     query.offset = Some(0);
 
@@ -90,8 +100,8 @@ pub(super) async fn handle_wait_for_notification(
     // Subscribe before the initial database lookup so captures arriving concurrently are never missed.
     let mut receiver = state.event_publisher.subscribe_notifications();
 
-    if let Some(detail) = try_find_latest_matching_detail(&state, &query)? {
-        return Ok((StatusCode::OK, Json(detail)));
+    if let Some(detail) = try_find_latest_matching_detail(state, &query)? {
+        return Ok(detail);
     }
 
     let deadline = tokio::time::Instant::now() + Duration::from_millis(timeout_milliseconds);
@@ -106,14 +116,14 @@ pub(super) async fn handle_wait_for_notification(
             receive_outcome = receiver.recv() => {
                 match receive_outcome {
                     Ok(event) if event.notification.channel_id == channel.id => {
-                        if let Some(detail) = try_find_latest_matching_detail(&state, &query)? {
-                            return Ok((StatusCode::OK, Json(detail)));
+                        if let Some(detail) = try_find_latest_matching_detail(state, &query)? {
+                            return Ok(detail);
                         }
                     }
                     Ok(_) => {}
                     Err(RecvError::Lagged(_)) => {
-                        if let Some(detail) = try_find_latest_matching_detail(&state, &query)? {
-                            return Ok((StatusCode::OK, Json(detail)));
+                        if let Some(detail) = try_find_latest_matching_detail(state, &query)? {
+                            return Ok(detail);
                         }
                     }
                     Err(RecvError::Closed) => {
@@ -149,7 +159,7 @@ fn try_find_latest_matching_detail(
     Ok(Some(detail))
 }
 
-fn authenticate_any_channel(
+pub(super) fn authenticate_any_channel(
     headers: &HeaderMap,
     state: &HttpCaptureState,
 ) -> Result<ChannelSummary, HttpCaptureError> {
@@ -163,7 +173,7 @@ fn authenticate_any_channel(
         .map_err(HttpCaptureError::from_application_error)
 }
 
-fn build_channel_query(
+pub(super) fn build_channel_query(
     channel: &ChannelSummary,
     parameters: &HttpNotificationQueryParameters,
 ) -> Result<NotificationQuery, HttpCaptureError> {

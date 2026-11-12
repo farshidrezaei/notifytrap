@@ -1,0 +1,37 @@
+name: Bug Report
+description: Report a reproducible bug in NotifyTrap
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this behavior?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: NotifyTrap Version
+      placeholder: "e.g. v1.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Linux (.deb / .rpm / .AppImage)
+        - macOS (.dmg)
+        - Windows (.exe / .msi)
+        - Source (bun run tauri dev)
+    validations:
+      required: true

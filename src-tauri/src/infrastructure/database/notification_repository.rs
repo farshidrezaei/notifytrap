@@ -7,6 +7,7 @@ use crate::domain::notification::{
     Notification, NotificationAttachment, NotificationAttachmentSummary, NotificationPage,
     NotificationQuery, NotificationStatus, NotificationSummary,
 };
+use crate::domain::search_query::{StructuredSearchQuery, parse_structured_search_query};
 use crate::domain::validation::{DEFAULT_PAGE_SIZE, MAXIMUM_PAGE_SIZE};
 use crate::domain::verification_extractor::extract_verification_artifacts;
 use crate::infrastructure::database::sqlite_helpers::query_optional_row;
@@ -140,7 +141,47 @@ impl SqliteNotificationRepository {
             .clamp(1, MAXIMUM_PAGE_SIZE);
         let offset = query.offset.unwrap_or(0);
 
-        let (where_clause, filter_parameters) = build_scope_where_clause(query);
+        let (where_clause, filter_parameters, structured_search) = build_scope_where_clause(query);
+
+        if let Some(parsed_search) = structured_search
+            .as_ref()
+            .filter(|parsed| parsed.requires_summary_post_filter())
+        {
+            let list_sql = format!(
+                "SELECT id, workspace_id, project_id, environment_id, channel_id, channel_type, status,
+                        recipient, sender, subject, preview_text, payload_json, raw_payload,
+                        test_run_identifier, received_at
+                 FROM notifications
+                 WHERE {where_clause}
+                 ORDER BY received_at DESC, id DESC"
+            );
+            let parameter_refs: Vec<&dyn ToSql> = filter_parameters
+                .iter()
+                .map(|value| value.as_ref())
+                .collect();
+            let mut statement = connection.prepare(&list_sql)?;
+            let rows = statement.query_map(
+                params_from_iter(parameter_refs),
+                map_notification_summary_row,
+            )?;
+            let matched: Vec<NotificationSummary> = rows
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(ApplicationError::from)?
+                .into_iter()
+                .filter(|summary| parsed_search.matches_summary(summary))
+                .collect();
+            let total_count = matched.len() as u64;
+            let start = usize::try_from(offset).unwrap_or(usize::MAX);
+            let page_limit = usize::try_from(limit).unwrap_or(0);
+            let items = matched.into_iter().skip(start).take(page_limit).collect();
+
+            return Ok(NotificationPage {
+                items,
+                total_count,
+                limit,
+                offset,
+            });
+        }
 
         let count_sql = format!("SELECT COUNT(*) FROM notifications WHERE {where_clause}");
         let parameter_refs: Vec<&dyn ToSql> = filter_parameters
@@ -234,7 +275,9 @@ impl SqliteNotificationRepository {
     }
 }
 
-fn build_scope_where_clause(query: &NotificationQuery) -> (String, Vec<Box<dyn ToSql>>) {
+fn build_scope_where_clause(
+    query: &NotificationQuery,
+) -> (String, Vec<Box<dyn ToSql>>, Option<StructuredSearchQuery>) {
     let mut clauses = vec![
         "workspace_id = ?1".to_string(),
         "project_id = ?2".to_string(),
@@ -308,14 +351,101 @@ fn build_scope_where_clause(query: &NotificationQuery) -> (String, Vec<Box<dyn T
         clauses.push(format!("received_at >= ?{}", parameters.len()));
     }
 
+    let mut structured_search = None;
     if let Some(search) = query
         .search_query
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty())
     {
-        let escaped = escape_sql_like(search);
-        let pattern = format!("%{escaped}%");
+        let parsed = parse_structured_search_query(search);
+        apply_structured_search_sql(&parsed, &mut clauses, &mut parameters);
+        structured_search = Some(parsed);
+    }
+
+    (clauses.join(" AND "), parameters, structured_search)
+}
+
+fn apply_structured_search_sql(
+    parsed: &StructuredSearchQuery,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Box<dyn ToSql>>,
+) {
+    if !parsed.include_channels.is_empty() {
+        let placeholders: Vec<String> = parsed
+            .include_channels
+            .iter()
+            .map(|channel_type| {
+                parameters.push(Box::new(channel_type.as_str().to_string()));
+                format!("?{}", parameters.len())
+            })
+            .collect();
+        clauses.push(format!("channel_type IN ({})", placeholders.join(", ")));
+    }
+    for channel_type in &parsed.exclude_channels {
+        parameters.push(Box::new(channel_type.as_str().to_string()));
+        clauses.push(format!("channel_type != ?{}", parameters.len()));
+    }
+
+    if !parsed.include_statuses.is_empty() {
+        let placeholders: Vec<String> = parsed
+            .include_statuses
+            .iter()
+            .map(|status| {
+                parameters.push(Box::new(status.as_str().to_string()));
+                format!("?{}", parameters.len())
+            })
+            .collect();
+        clauses.push(format!("status IN ({})", placeholders.join(", ")));
+    }
+    for status in &parsed.exclude_statuses {
+        parameters.push(Box::new(status.as_str().to_string()));
+        clauses.push(format!("status != ?{}", parameters.len()));
+    }
+
+    if !parsed.include_run_identifiers.is_empty() {
+        let placeholders: Vec<String> = parsed
+            .include_run_identifiers
+            .iter()
+            .map(|run_id| {
+                parameters.push(Box::new(run_id.clone()));
+                format!("?{}", parameters.len())
+            })
+            .collect();
+        clauses.push(format!(
+            "test_run_identifier IN ({})",
+            placeholders.join(", ")
+        ));
+    }
+    for run_id in &parsed.exclude_run_identifiers {
+        parameters.push(Box::new(run_id.clone()));
+        clauses.push(format!("test_run_identifier != ?{}", parameters.len()));
+    }
+
+    push_like_filters(
+        "recipient",
+        &parsed.include_recipients,
+        &parsed.exclude_recipients,
+        clauses,
+        parameters,
+    );
+    push_like_filters(
+        "sender",
+        &parsed.include_senders,
+        &parsed.exclude_senders,
+        clauses,
+        parameters,
+    );
+    push_like_filters(
+        "subject",
+        &parsed.include_subjects,
+        &parsed.exclude_subjects,
+        clauses,
+        parameters,
+    );
+
+    for term in &parsed.include_terms {
+        let pattern = format!("%{}%", escape_sql_like(term));
         parameters.push(Box::new(pattern));
         let index = parameters.len();
         clauses.push(format!(
@@ -323,7 +453,36 @@ fn build_scope_where_clause(query: &NotificationQuery) -> (String, Vec<Box<dyn T
         ));
     }
 
-    (clauses.join(" AND "), parameters)
+    for term in &parsed.exclude_terms {
+        let pattern = format!("%{}%", escape_sql_like(term));
+        parameters.push(Box::new(pattern));
+        let index = parameters.len();
+        clauses.push(format!(
+            "NOT (recipient LIKE ?{index} ESCAPE '\\' OR sender LIKE ?{index} ESCAPE '\\' OR subject LIKE ?{index} ESCAPE '\\' OR preview_text LIKE ?{index} ESCAPE '\\' OR test_run_identifier LIKE ?{index} ESCAPE '\\')"
+        ));
+    }
+}
+
+fn push_like_filters(
+    column: &str,
+    includes: &[String],
+    excludes: &[String],
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Box<dyn ToSql>>,
+) {
+    for value in includes {
+        let pattern = format!("%{}%", escape_sql_like(value));
+        parameters.push(Box::new(pattern));
+        clauses.push(format!("{column} LIKE ?{} ESCAPE '\\'", parameters.len()));
+    }
+    for value in excludes {
+        let pattern = format!("%{}%", escape_sql_like(value));
+        parameters.push(Box::new(pattern));
+        clauses.push(format!(
+            "{column} NOT LIKE ?{} ESCAPE '\\'",
+            parameters.len()
+        ));
+    }
 }
 
 fn escape_sql_like(input: &str) -> String {
