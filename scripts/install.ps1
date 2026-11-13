@@ -1,9 +1,11 @@
 [CmdletBinding()]
 param(
-  [ValidateSet('auto', 'exe', 'msi')]
+  [ValidateSet('auto', 'exe', 'msi', 'cli')]
   [string]$Method = 'auto',
 
   [string]$Version = 'latest',
+
+  [switch]$CliOnly,
 
   [switch]$Silent
 )
@@ -23,37 +25,65 @@ if ($Version -eq 'latest') {
 Write-Host "[NotifyTrap] Fetching release metadata ($Version)..." -ForegroundColor Cyan
 $Headers = @{
   'Accept'     = 'application/vnd.github+json'
-  'User-Agent' = 'NotifyTrap-Windows-CLI-Installer'
+  'User-Agent' = 'NotifyTrap-Windows-Installer'
 }
 $Release = Invoke-RestMethod -Uri $ReleaseUrl -Headers $Headers
-
-$Assets = $Release.assets | Where-Object {
-  -not $_.name.EndsWith('.sig') -and -not $_.name.EndsWith('.zip')
-}
-
-$SelectedAsset = switch ($Method) {
-  'msi' {
-    $Assets | Where-Object { $_.name -match '\.msi$' } | Select-Object -First 1
-  }
-  'exe' {
-    $Assets | Where-Object { $_.name -match '\.exe$' } | Select-Object -First 1
-  }
-  default {
-    $ExeAsset = $Assets | Where-Object { $_.name -match '-setup\.exe$|\.exe$' } | Select-Object -First 1
-    if ($ExeAsset) { $ExeAsset } else { $Assets | Where-Object { $_.name -match '\.msi$' } | Select-Object -First 1 }
-  }
-}
-
-if (-not $SelectedAsset) {
-  throw "No suitable Windows installer (.exe or .msi) was found in release '$($Release.tag_name)'."
-}
 
 $TemporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ("notifytrap-install-" + [System.Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $TemporaryDirectory -Force | Out-Null
 
 try {
+  # CLI-only mode: Download and unpack notifytrap-cli.exe
+  if ($CliOnly -or ($Method -eq 'cli')) {
+    $CliAsset = $Release.assets | Where-Object { $_.name -match 'notifytrap-cli-windows.*\.zip$' } | Select-Object -First 1
+    if (-not $CliAsset) {
+      throw "No notifytrap-cli Windows archive found in release '$($Release.tag_name)'."
+    }
+
+    $ZipPath = Join-Path $TemporaryDirectory $CliAsset.name
+    Write-Host "[NotifyTrap] Downloading $($CliAsset.name)..." -ForegroundColor Cyan
+    Invoke-WebRequest -Uri $CliAsset.browser_download_url -OutFile $ZipPath -UseBasicParsing
+
+    $TargetDir = Join-Path $env:LOCALAPPDATA "Programs\NotifyTrap\bin"
+    New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+    Expand-Archive -Path $ZipPath -DestinationPath $TargetDir -Force
+
+    # Ensure TargetDir is in User PATH
+    $UserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    if ($UserPath -notlike "*$TargetDir*") {
+      [Environment]::SetEnvironmentVariable('Path', "$UserPath;$TargetDir", 'User')
+      $env:Path = "$env:Path;$TargetDir"
+      Write-Host "[NotifyTrap] Added $TargetDir to User PATH." -ForegroundColor Yellow
+    }
+
+    Write-Host "[NotifyTrap] CLI installed successfully to $TargetDir\notifytrap-cli.exe" -ForegroundColor Green
+    return
+  }
+
+  # Desktop + CLI Mode
+  $Assets = $Release.assets | Where-Object {
+    -not $_.name.EndsWith('.sig') -and -not $_.name.EndsWith('.zip')
+  }
+
+  $SelectedAsset = switch ($Method) {
+    'msi' {
+      $Assets | Where-Object { $_.name -match '\.msi$' } | Select-Object -First 1
+    }
+    'exe' {
+      $Assets | Where-Object { $_.name -match '\.exe$' } | Select-Object -First 1
+    }
+    default {
+      $ExeAsset = $Assets | Where-Object { $_.name -match '-setup\.exe$|\.exe$' } | Select-Object -First 1
+      if ($ExeAsset) { $ExeAsset } else { $Assets | Where-Object { $_.name -match '\.msi$' } | Select-Object -First 1 }
+    }
+  }
+
+  if (-not $SelectedAsset) {
+    throw "No suitable Windows installer (.exe or .msi) was found in release '$($Release.tag_name)'."
+  }
+
   $InstallerPath = Join-Path $TemporaryDirectory $SelectedAsset.name
-  Write-Host "[NotifyTrap] Downloading $($SelectedAsset.name)..." -ForegroundColor Cyan
+  Write-Host "[NotifyTrap] Downloading desktop installer $($SelectedAsset.name)..." -ForegroundColor Cyan
   Invoke-WebRequest -Uri $SelectedAsset.browser_download_url -OutFile $InstallerPath -UseBasicParsing
 
   Write-Host "[NotifyTrap] Launching installer..." -ForegroundColor Cyan
@@ -69,7 +99,24 @@ try {
     }
   }
 
-  Write-Host "[NotifyTrap] Installation flow finished." -ForegroundColor Green
+  # Install standalone notifytrap-cli binary alongside desktop
+  $CliAsset = $Release.assets | Where-Object { $_.name -match 'notifytrap-cli-windows.*\.zip$' } | Select-Object -First 1
+  if ($CliAsset) {
+    $ZipPath = Join-Path $TemporaryDirectory $CliAsset.name
+    Invoke-WebRequest -Uri $CliAsset.browser_download_url -OutFile $ZipPath -UseBasicParsing
+    $TargetDir = Join-Path $env:LOCALAPPDATA "Programs\NotifyTrap\bin"
+    New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+    Expand-Archive -Path $ZipPath -DestinationPath $TargetDir -Force
+
+    $UserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    if ($UserPath -notlike "*$TargetDir*") {
+      [Environment]::SetEnvironmentVariable('Path', "$UserPath;$TargetDir", 'User')
+      $env:Path = "$env:Path;$TargetDir"
+    }
+    Write-Host "[NotifyTrap] Both Desktop App and 'notifytrap-cli' installed." -ForegroundColor Green
+  } else {
+    Write-Host "[NotifyTrap] Desktop installation finished." -ForegroundColor Green
+  }
 } finally {
   if (Test-Path $TemporaryDirectory) {
     Remove-Item -Path $TemporaryDirectory -Recurse -Force -ErrorAction SilentlyContinue

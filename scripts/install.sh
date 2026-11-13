@@ -5,29 +5,35 @@ REPOSITORY="farshidrezaei/notifytrap"
 APPLICATION_NAME="NotifyTrap"
 SELECTED_METHOD="auto"
 REQUESTED_VERSION="latest"
+CLI_ONLY=false
 TEMPORARY_DIRECTORY=""
 MOUNT_DIRECTORY=""
 
 print_usage() {
   cat <<'EOF'
-NotifyTrap CLI Installer (Linux & macOS)
+NotifyTrap Installer (Linux & macOS)
 
 Usage:
-  install.sh [--method auto|deb|rpm|appimage|dmg] [--version latest|v1.0.0]
+  install.sh [--method auto|deb|rpm|appimage|dmg|cli] [--version latest|v1.5.0] [--cli-only]
 
 Options:
-  --method   Force a specific package format (default: auto)
-  --version  Install a specific GitHub release tag (default: latest)
-  --help     Show this help message
+  --method    Force a specific package format (default: auto)
+  --version   Install a specific GitHub release tag (default: latest)
+  --cli-only  Install only the headless notifytrap-cli binary into PATH
+  --help      Show this help message
 EOF
 }
 
 log_info() {
-  printf '[NotifyTrap] %s\n' "$1"
+  printf '\033[38;2;6;182;212m[NotifyTrap]\033[0m %s\n' "$1"
+}
+
+log_success() {
+  printf '\033[38;2;16;185;129m[NotifyTrap]\033[0m %s\n' "$1"
 }
 
 fail_with_error() {
-  printf '[NotifyTrap Error] %s\n' "$1" >&2
+  printf '\033[38;2;244;63;94m[NotifyTrap Error]\033[0m %s\n' "$1" >&2
   exit 1
 }
 
@@ -57,9 +63,13 @@ parse_arguments() {
         shift 2
         ;;
       --version)
-        [[ $# -lt 2 ]] && fail_with_error "--version requires a tag value (for example: v1.0.0)."
+        [[ $# -lt 2 ]] && fail_with_error "--version requires a tag value (for example: v1.5.0)."
         REQUESTED_VERSION="$2"
         shift 2
+        ;;
+      --cli-only)
+        CLI_ONLY=true
+        shift 1
         ;;
       --help|-h)
         print_usage
@@ -73,22 +83,34 @@ parse_arguments() {
 }
 
 detect_operating_system() {
-  local kernel_name
-  kernel_name="$(uname -s)"
-  case "${kernel_name}" in
-    Linux) printf 'linux' ;;
-    Darwin) printf 'macos' ;;
-    *) fail_with_error "Unsupported operating system: ${kernel_name}" ;;
+  local kernel
+  kernel="$(uname -s)"
+  case "${kernel}" in
+    Linux*)
+      printf 'linux'
+      ;;
+    Darwin*)
+      printf 'macos'
+      ;;
+    *)
+      fail_with_error "Unsupported operating system: ${kernel}. Use PowerShell installer on Windows."
+      ;;
   esac
 }
 
 detect_architecture() {
-  local machine_name
-  machine_name="$(uname -m)"
-  case "${machine_name}" in
-    x86_64|amd64) printf 'x86_64' ;;
-    aarch64|arm64) printf 'aarch64' ;;
-    *) fail_with_error "Unsupported CPU architecture: ${machine_name}" ;;
+  local machine
+  machine="$(uname -m)"
+  case "${machine}" in
+    x86_64|amd64)
+      printf 'x86_64'
+      ;;
+    arm64|aarch64)
+      printf 'aarch64'
+      ;;
+    *)
+      fail_with_error "Unsupported CPU architecture: ${machine}."
+      ;;
   esac
 }
 
@@ -100,11 +122,15 @@ resolve_linux_method() {
 
   if command -v apt-get >/dev/null 2>&1 && command -v dpkg >/dev/null 2>&1; then
     printf 'deb'
-  elif command -v dnf >/dev/null 2>&1 || command -v zypper >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
-    printf 'rpm'
-  else
-    printf 'appimage'
+    return
   fi
+
+  if command -v dnf >/dev/null 2>&1 || command -v zypper >/dev/null 2>&1 || command -v rpm >/dev/null 2>&1; then
+    printf 'rpm'
+    return
+  fi
+
+  printf 'appimage'
 }
 
 fetch_release_metadata() {
@@ -119,7 +145,7 @@ fetch_release_metadata() {
 
   curl -fsSL \
     -H "Accept: application/vnd.github+json" \
-    -H "User-Agent: NotifyTrap-CLI-Installer" \
+    -H "User-Agent: NotifyTrap-Installer" \
     "${api_url}"
 }
 
@@ -130,7 +156,6 @@ extract_asset_url() {
   printf '%s' "${release_json}" \
     | grep -Eo '"browser_download_url":[[:space:]]*"[^"]+"' \
     | sed -E 's/^"browser_download_url":[[:space:]]*"([^"]+)"$/\1/' \
-    | grep -vE '\.(sig|tar\.gz|sha256)$' \
     | grep -E "${pattern}" \
     | head -n 1 || true
 }
@@ -142,6 +167,38 @@ run_with_privilege() {
     require_command sudo
     sudo "$@"
   fi
+}
+
+install_standalone_cli() {
+  local release_json="$1"
+  local os="$2"
+  local cli_url=""
+
+  if [[ "${os}" == "macos" ]]; then
+    cli_url="$(extract_asset_url "${release_json}" 'notifytrap-cli-macos-universal\.tar\.gz$')"
+  else
+    cli_url="$(extract_asset_url "${release_json}" 'notifytrap-cli-linux-x86_64\.tar\.gz$')"
+  fi
+
+  if [[ -z "${cli_url}" ]]; then
+    log_info "No standalone CLI tarball found in this release. Skipping standalone CLI installation."
+    return
+  fi
+
+  local archive_path="${TEMPORARY_DIRECTORY}/cli.tar.gz"
+  log_info "Downloading notifytrap-cli binary from ${cli_url}..."
+  curl -fL --progress-bar "${cli_url}" -o "${archive_path}"
+  tar -xzf "${archive_path}" -C "${TEMPORARY_DIRECTORY}"
+
+  local target_bin="/usr/local/bin/notifytrap-cli"
+  if [[ -w "/usr/local/bin" ]]; then
+    cp "${TEMPORARY_DIRECTORY}/notifytrap-cli" "${target_bin}"
+    chmod +x "${target_bin}"
+  else
+    run_with_privilege cp "${TEMPORARY_DIRECTORY}/notifytrap-cli" "${target_bin}"
+    run_with_privilege chmod +x "${target_bin}"
+  fi
+  log_success "CLI installed to ${target_bin}"
 }
 
 install_linux_deb() {
@@ -159,13 +216,11 @@ install_linux_rpm() {
   local rpm_path="${TEMPORARY_DIRECTORY}/notifytrap.rpm"
   log_info "Downloading RPM package from ${asset_url}"
   curl -fL --progress-bar "${asset_url}" -o "${rpm_path}"
-  log_info "Installing package..."
+
   if command -v dnf >/dev/null 2>&1; then
     run_with_privilege dnf install -y "${rpm_path}"
   elif command -v zypper >/dev/null 2>&1; then
     run_with_privilege zypper --non-interactive install "${rpm_path}"
-  elif command -v yum >/dev/null 2>&1; then
-    run_with_privilege yum localinstall -y "${rpm_path}"
   else
     run_with_privilege rpm -Uvh "${rpm_path}"
   fi
@@ -173,18 +228,19 @@ install_linux_rpm() {
 
 install_linux_appimage() {
   local asset_url="$1"
-  local install_directory="${HOME}/.local/share/notifytrap"
-  local binary_directory="${HOME}/.local/bin"
-  local applications_directory="${HOME}/.local/share/applications"
-  local appimage_path="${install_directory}/NotifyTrap.AppImage"
+  local install_prefix="${HOME}/.local"
+  local applications_directory="${install_prefix}/share/applications"
+  local binary_directory="${install_prefix}/bin"
+  local appimage_path="${install_prefix}/share/notifytrap/NotifyTrap.AppImage"
   local symlink_path="${binary_directory}/notifytrap"
   local desktop_entry_path="${applications_directory}/notifytrap.desktop"
 
-  mkdir -p "${install_directory}" "${binary_directory}" "${applications_directory}"
+  mkdir -p "${install_prefix}/share/notifytrap" "${applications_directory}" "${binary_directory}"
 
-  log_info "Downloading AppImage from ${asset_url}"
+  log_info "Downloading AppImage package from ${asset_url}"
   curl -fL --progress-bar "${asset_url}" -o "${appimage_path}"
   chmod +x "${appimage_path}"
+
   ln -sf "${appimage_path}" "${symlink_path}"
 
   cat >"${desktop_entry_path}" <<EOF
@@ -198,7 +254,7 @@ Categories=Development;Utility;
 StartupWMClass=${APPLICATION_NAME}
 EOF
 
-  log_info "Installed AppImage to ${appimage_path}"
+  log_success "Installed AppImage to ${appimage_path}"
   log_info "Command symlink created at ${symlink_path}"
   if [[ ":${PATH}:" != *":${binary_directory}:"* ]]; then
     log_info "Add '${binary_directory}' to your PATH to launch with 'notifytrap'."
@@ -234,7 +290,7 @@ install_macos_dmg() {
 
   hdiutil detach "${MOUNT_DIRECTORY}" -quiet
   MOUNT_DIRECTORY=""
-  log_info "Installed ${target_bundle}."
+  log_success "Installed ${target_bundle}."
 }
 
 main() {
@@ -254,6 +310,13 @@ main() {
   log_info "Fetching release metadata for ${REPOSITORY} (${REQUESTED_VERSION})..."
   release_json="$(fetch_release_metadata)"
 
+  # Handle --cli-only mode directly
+  if [[ "${CLI_ONLY}" == true || "${SELECTED_METHOD}" == "cli" ]]; then
+    install_standalone_cli "${release_json}" "${operating_system}"
+    log_success "NotifyTrap CLI installed successfully. Run 'notifytrap-cli --help' to get started."
+    return
+  fi
+
   if [[ "${operating_system}" == "macos" ]]; then
     if [[ "${SELECTED_METHOD}" != "auto" && "${SELECTED_METHOD}" != "dmg" ]]; then
       fail_with_error "Method '${SELECTED_METHOD}' is not supported on macOS. Use 'dmg' or 'auto'."
@@ -262,7 +325,8 @@ main() {
     dmg_url="$(extract_asset_url "${release_json}" '(universal|aarch64|x64|x86_64)?\.dmg$')"
     [[ -z "${dmg_url}" ]] && fail_with_error "No macOS .dmg asset found in the selected GitHub release."
     install_macos_dmg "${dmg_url}"
-    log_info "Installation complete. Open NotifyTrap from Applications or Spotlight."
+    install_standalone_cli "${release_json}" "${operating_system}"
+    log_success "Installation complete. Launch NotifyTrap from Applications or run 'notifytrap-cli'."
     return
   fi
 
@@ -296,7 +360,10 @@ main() {
       ;;
   esac
 
-  log_info "Installation complete."
+  # Also install notifytrap-cli binary into system PATH
+  install_standalone_cli "${release_json}" "${operating_system}"
+
+  log_success "Installation complete! Both Desktop App and 'notifytrap-cli' are ready."
 }
 
 main "$@"

@@ -59,6 +59,11 @@
   - Rust unit & `proptest` suite (`domain::search_query::tests`) verifying structured search qualifiers, negation, quoted phrases, bounded `/regex/`, and panic-free arbitrary inputs.
   - End-to-end Axum integration test (`structured_search_and_local_mcp_json_rpc_end_to_end`) verifying `channel:sms otp:true /regex/` search and MCP `initialize`, `tools/list`, and `tools/call` (`extract_otp_codes`).
   - Vitest unit suite (`tests/phase4DxSavedFilters.spec.ts`) verifying saved filter JSON parsing and project-scoped key generation.
+- **v1.5.0 Additions**:
+  - Rust integration test (`tests/headless_companion_integration.rs`) covering headless server, SMTP, and Web Companion Axum SPA serving lifecycle.
+  - Rust matrix test (`channel_forwarding_rules_persistence_and_matrix_update`) verifying SQLite persistence and domain rule validation.
+  - Rust database maintenance test (`database_storage_statistics_and_vacuum_lifecycle`) verifying SQLite disk statistics, retention cleanup, and database VACUUM.
+  - Vitest suites (`tests/phase1SimulationAndTemplateAudit.spec.ts`, `tests/phase2DeepAssetAndStorageLifecycle.spec.ts`, `tests/phase3IngressAndForwardingPipeline.spec.ts`) covering realistic device frames, MJML parser, placeholder linter, asset auditor, and auto-forwarding rule parsing.
 
 ---
 

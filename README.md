@@ -73,10 +73,17 @@ During local development and staging verification, applications frequently emit 
   - **Push (HTTP)**: `POST /api/v1/push` capturing device token, platform, notification title/body, badge count, custom payload data, and iOS / Android / Web Push device previews.
   - **Webhook (HTTP)**: `ANY /api/v1/webhooks/{credential_identifier}[/{subpath}]` supporting every HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), subpaths, request headers, query strings, JSON/raw request bodies, configurable **Webhook Mock Responses** (status code, headers, body, delay), and **Strict Loopback-Only Replay** (`127.0.0.1` / `localhost` / `[::1]`).
   - **Chaos & Failure Simulation**: Per-channel latency injection (`0..10000 ms`) and probabilistic failure rules (`0..100%` rate with custom HTTP `400..599` or SMTP `400..599` error codes) for testing retry and backoff logic locally.
-- **Desktop DX, Structured Search, CLI & Local MCP (`v1.4.0`)**:
+- **Desktop DX, Structured Search, CLI & Local MCP (`v1.4.0` / `v1.5.0`)**:
   - **Structured Search & Saved Filters**: Filter with `channel:`, `status:`, `run:`, `to:`, `from:`, `subject:`, `otp:true`, `-negation`, quoted phrases, and `/regex/`, plus per-project Saved Filters.
+  - **Device Frames & Client Simulators**: Realistic iPhone 15, Pixel 8, and iPad Mini frames with Dynamic Island, Status Bar, iOS Lock Screen alerts, and Dynamic Banners.
+  - **MJML Preview & Template Linter**: Transpiles MJML markup and detects unrendered placeholders (`{{...}}`, `${...}`, `null`, `None`, `[object Object]`).
+  - **Deep Asset & Link Checker**: Concurrently verifies live HTTP/HTTPS status of outbound anchor links and remote images with redirection detection.
+  - **Public Webhook Ingress (Local Tunneling)**: Integrated `cloudflared`, `ngrok`, and `bore` management to expose local webhook capture URLs to the public internet.
+  - **Auto-Forwarding Pipeline**: Automatically forward captured notifications to downstream microservices or test harnesses with event filtering.
+  - **Database Maintenance & VACUUM**: Monitor SQLite disk footprint, run VACUUM, and prune expired retention records.
+  - **Headless Server & Web Companion Mode**: Run `notifytrap-cli serve --web-port=4000` to operate headless in Docker/CI with a full browser UI.
   - **System Tray & Keyboard Navigation**: Optional minimize-to-tray, OS desktop notifications, `Ctrl/Cmd+K` Command Palette, and `j`/`k`/`/` Inbox shortcuts.
-  - **Built-in Local MCP Server & `notifytrap-cli`**: Channel-scoped JSON-RPC 2.0 MCP endpoint (`POST /api/v1/mcp`) and `notifytrap-cli` (`tail`, `wait-otp`, `export`, `mcp`).
+  - **Built-in Local MCP Server & `notifytrap-cli`**: Channel-scoped JSON-RPC 2.0 MCP endpoint (`POST /api/v1/mcp`) and `notifytrap-cli` (`serve`, `tail`, `wait-otp`, `export`, `mcp`).
 - **Scoped Multi-Project Organization**: Organize captures across **Workspaces → Projects → Environments (`local`, `development`, `testing`, `staging`) → Channels**, each with its own generated `<credential_identifier>.<secret_token>`.
 - **Real-Time Unified Inbox & Diff Inspector**: Live desktop event streaming (`notification:captured`), channel/status/run-tag (`X-NotifyTrap-Run`) filtering, automatic OTP & magic-link extraction, one-click `.eml` / redacted `JSON` / `cURL` export, side-by-side notification diffing, search, pagination, and syntax highlighting (`JSON`, `HTML`, `Bash`, `.ENV`, `MIME / HTTP`).
 - **First-Class Bilingual & Dual-Theme UI**:
@@ -444,6 +451,9 @@ cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 ### `notifytrap-cli`
 
 ```bash
+# Run headless server (HTTP capture + SMTP server + browser Web Companion UI)
+notifytrap-cli serve --http-port 4080 --smtp-port 1025 --web-port 4000
+
 # Tail recent notifications for a channel
 notifytrap-cli tail --channel-key <CREDENTIAL_ID>.<SECRET> --run-id ci-42
 

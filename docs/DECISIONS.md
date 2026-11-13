@@ -81,3 +81,18 @@
   1. Expose `POST /api/v1/mcp` on the embedded Axum HTTP server (`mcp_routes.rs`), authenticated via `X-Channel-Key` and delegating to `ApplicationServices` and `wait_for_matching_notification`.
   2. Ship `notifytrap-cli` (`src/bin/notifytrap_cli.rs`) reusing `execute_loopback_http_replay` for `tail`, `wait-otp`, `export`, and stdio `mcp` bridging.
 - **Consequences**: Zero external network egress, strict per-channel isolation, and zero SQLite lock contention.
+
+## ADR-013: Public Ingress Tunneling & Automatic Forwarding Pipeline (`v1.5.0`)
+- **Context**: External webhook providers (e.g. Stripe, GitHub, payment gateways) require a publicly resolvable HTTPS address during local development, while automated test suites often need captured notifications forwarded immediately to a local test harness.
+- **Decision**:
+  1. Integrate a non-blocking child process manager (`TunnelManager`) supporting `cloudflared` (default), `ngrok`, `bore`, and custom tunneling binaries.
+  2. Dynamically extract the public HTTPS endpoint and reflect it directly onto channel webhook URLs in the UI.
+  3. Store `forwarding_rule_json` on `channels` (migration `0005_add_channel_forwarding_rules.sql`) and implement asynchronous post-capture dispatch (`forwarder.rs`) with optional event name filtering and timeout bounds.
+- **Consequences**: Developers can receive real external webhooks locally and pipe captures to secondary microservices without external proxy containers.
+
+## ADR-014: Headless Server & Axum Web Companion Serving
+- **Context**: Continuous integration (GitHub Actions / GitLab CI) and Docker containers require running NotifyTrap as a daemon without an X11 / Wayland display or Tauri WebView runtime.
+- **Decision**:
+  1. Add `serve` subcommand to `notifytrap-cli` launching `RunningHttpServer` (Axum) and `RunningSmtpServer` (Tokio).
+  2. Provide optional `RunningWebCompanionServer` (`--web-port`) serving the statically generated Nuxt SPA (`.output/public`) over Axum with CORS and SPA fallback routing.
+- **Consequences**: Full desktop UI accessible directly in any web browser, zero GUI dependencies required in headless/container environments.

@@ -30,6 +30,12 @@ cargo test --manifest-path src-tauri/Cargo.toml --all-targets
 # Run Tauri 2 desktop app in development mode
 bun run tauri dev
 
+# Run Headless server & Web Companion UI (ideal for Docker / remote dev)
+cargo run --manifest-path src-tauri/Cargo.toml --bin notifytrap-cli -- serve --web-port=4000
+
+# Run interactive step-by-step TUI tester
+bun run tester
+
 # Build production desktop binary (no OS bundle tools required)
 bun run tauri build --no-bundle
 

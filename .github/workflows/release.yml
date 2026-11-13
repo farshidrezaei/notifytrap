@@ -148,6 +148,29 @@ jobs:
             src-tauri/target/aarch64-apple-darwin/release/notifytrap-cli \
             src-tauri/target/x86_64-apple-darwin/release/notifytrap-cli \
             -output src-tauri/target/universal-apple-darwin/release/notifytrap-cli
+          tar -czf notifytrap-cli-macos-universal.tar.gz -C src-tauri/target/universal-apple-darwin/release notifytrap-cli
+          gh release upload "v$(jq -r '.version' src-tauri/tauri.conf.json)" notifytrap-cli-macos-universal.tar.gz --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build standalone notifytrap-cli for Linux
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          cargo build --manifest-path src-tauri/Cargo.toml --release --bin notifytrap-cli
+          tar -czf notifytrap-cli-linux-x86_64.tar.gz -C src-tauri/target/release notifytrap-cli
+          gh release upload "v$(jq -r '.version' src-tauri/tauri.conf.json)" notifytrap-cli-linux-x86_64.tar.gz --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build standalone notifytrap-cli for Windows
+        if: matrix.platform == 'windows-latest'
+        run: |
+          cargo build --manifest-path src-tauri/Cargo.toml --release --bin notifytrap-cli
+          Compress-Archive -Path "src-tauri/target/release/notifytrap-cli.exe" -DestinationPath "notifytrap-cli-windows-x86_64.zip" -Force
+          $version = (Get-Content "src-tauri/tauri.conf.json" | ConvertFrom-Json).version
+          gh release upload "v$version" notifytrap-cli-windows-x86_64.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Tauri installers and updater manifest
         uses: tauri-apps/tauri-action@v0
