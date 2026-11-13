@@ -2,6 +2,19 @@
 
 All notable changes to **NotifyTrap** are documented in this file.
 
+## [1.5.0] - 2026-11-13
+
+### Added
+- **Realistic Device Frames & Client Simulators**: Added mobile & tablet hardware chassis views (iPhone 15, Google Pixel 8, iPad Mini) with realistic bezels, dynamic island/camera punch-holes, bottom indicator bars, orientation flipping, and responsive scaling in `DeviceFrameWrapper.vue`.
+- **Native Offline MJML Transpiler & Template Variable Linter**: Added zero-network MJML tag inspection and semantic HTML transpilation (`mjmlInspector.ts`), plus deterministic template linting (`templateLinter.ts`) alerting on unrendered placeholders (`{{...}}`, `${...}`, `null`, `None`, `[object Object]`).
+- **Live Remote Asset & Deep Link Health Checker**: Added async health checker (`asset_checker.rs`, `asset_audit.rs`, `LinkAssetAuditModal.vue`) inspecting external HTTP/HTTPS assets and links with status code reporting, response latency, and offline caching.
+- **SQLite Storage Metrics & Database Maintenance**: Added database disk footprint analysis, per-table row counts, one-click SQLite `VACUUM`, and automated retention cleanup card (`database_statistics.rs`, `DatabaseMaintenanceCard.vue`).
+- **Public Webhook Ingress Tunneling**: Added one-click tunnel runner for local captures (`domain/tunnel.rs`, `tunnel_manager.rs`, `PublicTunnelCard.vue`) supporting `cloudflared`, `ngrok`, and `bore` with loopback health verification and active tunnel URL management.
+- **Downstream Webhook Auto-Forwarding Pipeline**: Added rule-based async forwarding pipeline (`forwarding.rs`, `forwarder.rs`, `ChannelRulesModal.vue`, migration `0005_add_channel_forwarding_rules.sql`) dispatching captured webhooks to secondary targets with event name filtering, custom headers, and retry timeouts.
+- **Headless Server & Web Companion Mode**: Added headless CLI server (`notifytrap-cli serve`) delivering all ingestion endpoints (HTTP, SMTP) and serving the bundled Nuxt SPA web interface over Axum (`web_server.rs`) without requiring GUI/WebView dependencies.
+- **Synchronized Desktop & Standalone CLI Dual Installers**: Modernized `scripts/install.sh` and `scripts/install.ps1` installing both Desktop GUI and standalone `notifytrap-cli` binary into system PATH, with `--cli-only` headless flags and `notifytrap-cli update` self-updater.
+- **Automated CLI Release Bundling**: Updated GitHub Actions release workflow to compile and package standalone CLI archives (`notifytrap-cli-{platform}.tar.gz` / `.zip`) alongside desktop installers.
+
 ## [1.4.0] - 2026-11-12
 
 ### Added
