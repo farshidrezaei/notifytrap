@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -52,15 +51,18 @@ async fn headless_server_and_web_companion_end_to_end_lifecycle() {
         bound_endpoint: http_server.bound_address().to_string(),
     };
 
-    let mut assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    assets_dir.pop();
-    assets_dir.push(".output");
-    assets_dir.push("public");
+    let temporary_directory = tempfile::tempdir().expect("create temporary directory for test");
+    let test_index_file = temporary_directory.path().join("index.html");
+    std::fs::write(
+        &test_index_file,
+        "<html><body>NotifyTrap Test</body></html>",
+    )
+    .expect("write test index html");
 
     let web_companion = RunningWebCompanionServer::start(
         "127.0.0.1",
         0,
-        Some(assets_dir),
+        Some(temporary_directory.path().to_path_buf()),
         capture_state,
         10 * 1024 * 1024,
     )

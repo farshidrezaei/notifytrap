@@ -47,6 +47,7 @@ jobs:
           bun run validate:i18n
           bun run typecheck
           bun run test:unit
+          bun run build
 
       - name: Run Rust format, clippy, and test matrix
         run: |
