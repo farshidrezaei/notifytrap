@@ -443,6 +443,7 @@
       "webhookUrlLabel": "Local Webhook Endpoint URL",
       "secretTokenLabel": "Secret Token",
       "snippetLabel": "Integration Snippet",
+      "publicWebhookUrl": "Public Ingress Webhook URL",
       "updatedAt": "Updated {date}"
     },
     "createModal": {
@@ -503,10 +504,18 @@
       "chaosHttpCodeLabel": "HTTP Error Status",
       "chaosSmtpCodeLabel": "SMTP Error Code",
       "chaosMessageLabel": "Simulated Error Message",
-      "invalidHeadersJson": "Response headers must be a valid JSON object with alphanumeric/hyphen header names.",
+      "forwardSectionTitle": "Automatic Forwarding Pipeline",
+      "forwardSectionDescription": "Automatically forward captured notifications to an internal microservice, webhook consumer, or test harness.",
+      "forwardEnabledLabel": "Enable automatic forwarding",
+      "forwardTargetUrlLabel": "Forward Target URL (HTTP/HTTPS)",
+      "forwardTimeoutLabel": "Timeout (seconds)",
+      "forwardFilterEventLabel": "Event Name Filter (Optional)",
+      "forwardHeadersLabel": "Custom Headers (JSON)",
+      "invalidHeadersJson": "Headers must be a valid JSON object with alphanumeric/hyphen header names.",
       "savedTitle": "Channel rules updated",
       "mockBadge": "Mock {code}",
-      "chaosBadge": "Chaos {rate}%"
+      "chaosBadge": "Chaos {rate}%",
+      "forwardBadge": "Forwarding"
     }
   },
   "settings": {
@@ -548,7 +557,13 @@
       "description": "Local-first notification capture studio with zero external delivery.",
       "versionLabel": "Application Version",
       "schemaLabel": "Database Schema",
-      "architectureBadge": "Local Modular Monolith"
+      "architectureBadge": "Local Modular Monolith",
+      "telegramChannelTitle": "Telegram Channel",
+      "telegramChannelDescription": "Official release notes, announcements, and developer community updates.",
+      "openTelegramAction": "Join Telegram",
+      "githubTitle": "GitHub Repository",
+      "githubDescription": "Source code, issue tracking, and contributions for NotifyTrap.",
+      "openGitHubAction": "View on GitHub"
     },
     "desktop": {
       "title": "Desktop & System Tray",
@@ -609,10 +624,31 @@
         "attachmentsSize": "Attachments"
       }
     },
+    "tunnel": {
+      "title": "Public Webhook Ingress (Tunnel)",
+      "description": "Expose your local capture server to the public internet using Cloudflare Tunnel, Ngrok, or Bore to test external webhook providers.",
+      "publicEndpoint": "Active Public Ingress URL",
+      "providerLabel": "Tunnel Engine / Provider",
+      "authTokenLabel": "Auth Token (Optional)",
+      "customBinaryLabel": "Binary Path",
+      "customArgumentsLabel": "Arguments Pattern ({port} placeholder supported)",
+      "targetNote": "Traffic mapped to local loopback server at {target}",
+      "startAction": "Start Public Tunnel",
+      "stopAction": "Stop Tunnel",
+      "startedTitle": "Tunnel Process Started",
+      "stoppedTitle": "Tunnel Process Stopped",
+      "status": {
+        "disconnected": "Offline",
+        "starting": "Starting Engine...",
+        "connected": "Connected & Public",
+        "failed": "Failed"
+      }
+    },
     "categories": {
       "general": "General & Appearance",
       "server": "Server & Network",
       "storage": "Database & Lifecycle",
+      "tunnel": "Public Ingress Tunnel",
       "mcp": "AI & Integrations",
       "about": "About & Updates"
     }

@@ -1,5 +1,6 @@
 import type {
   ChannelChaosConfiguration,
+  ChannelForwardingConfiguration,
   WebhookMockConfiguration,
 } from '~/types/application'
 
@@ -18,6 +19,15 @@ export const DEFAULT_CHANNEL_CHAOS_CONFIGURATION: ChannelChaosConfiguration = {
   httpErrorStatusCode: 503,
   smtpErrorCode: 451,
   errorMessage: 'Simulated transient delivery failure',
+}
+
+export const DEFAULT_CHANNEL_FORWARDING_CONFIGURATION: ChannelForwardingConfiguration = {
+  isEnabled: false,
+  targetUrl: 'http://127.0.0.1:8000/webhook',
+  customHeaders: {},
+  includeOriginalHeaders: true,
+  filterEventName: '',
+  timeoutSeconds: 5,
 }
 
 /**

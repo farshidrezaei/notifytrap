@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type {
   ChannelChaosConfiguration,
+  ChannelForwardingConfiguration,
   ChannelSummary,
   WebhookMockConfiguration,
 } from '~/types/application'
 import {
   DEFAULT_CHANNEL_CHAOS_CONFIGURATION,
+  DEFAULT_CHANNEL_FORWARDING_CONFIGURATION,
   DEFAULT_WEBHOOK_MOCK_CONFIGURATION,
   parseMockHeadersJson,
 } from '~/utils/channelRules'
@@ -33,6 +35,12 @@ const chaosState = reactive<ChannelChaosConfiguration>({
   ...DEFAULT_CHANNEL_CHAOS_CONFIGURATION,
 })
 
+const forwardingState = reactive<ChannelForwardingConfiguration>({
+  ...DEFAULT_CHANNEL_FORWARDING_CONFIGURATION,
+})
+const forwardingHeadersText = ref('{}')
+const forwardingHeadersError = ref<string | null>(null)
+
 const isWebhookChannel = computed(() => props.channel.channelType === 'webhook')
 const isEmailChannel = computed(() => props.channel.channelType === 'email')
 
@@ -56,6 +64,16 @@ watch(isOpen, (opened) => {
   chaosState.httpErrorStatusCode = chaos.httpErrorStatusCode
   chaosState.smtpErrorCode = chaos.smtpErrorCode
   chaosState.errorMessage = chaos.errorMessage
+
+  const forward = props.channel.forwardingRule ?? DEFAULT_CHANNEL_FORWARDING_CONFIGURATION
+  forwardingState.isEnabled = forward.isEnabled
+  forwardingState.targetUrl = forward.targetUrl
+  forwardingState.customHeaders = { ...(forward.customHeaders ?? {}) }
+  forwardingState.includeOriginalHeaders = forward.includeOriginalHeaders
+  forwardingState.filterEventName = forward.filterEventName ?? ''
+  forwardingState.timeoutSeconds = forward.timeoutSeconds || 5
+  forwardingHeadersText.value = JSON.stringify(forward.customHeaders ?? {}, null, 2)
+  forwardingHeadersError.value = null
 })
 
 async function handleSaveRules(): Promise<void> {
@@ -65,6 +83,13 @@ async function handleSaveRules(): Promise<void> {
     return
   }
   headersError.value = null
+
+  const parsedForwardHeaders = parseMockHeadersJson(forwardingHeadersText.value)
+  if (!parsedForwardHeaders.isValid || !parsedForwardHeaders.headers) {
+    forwardingHeadersError.value = t('channels.rulesModal.invalidHeadersJson')
+    return
+  }
+  forwardingHeadersError.value = null
   isSaving.value = true
 
   try {
@@ -84,6 +109,14 @@ async function handleSaveRules(): Promise<void> {
         httpErrorStatusCode: Number(chaosState.httpErrorStatusCode) || 503,
         smtpErrorCode: Number(chaosState.smtpErrorCode) || 451,
         errorMessage: chaosState.errorMessage.trim() || DEFAULT_CHANNEL_CHAOS_CONFIGURATION.errorMessage,
+      },
+      forwardingRule: {
+        isEnabled: forwardingState.isEnabled,
+        targetUrl: forwardingState.targetUrl.trim(),
+        customHeaders: parsedForwardHeaders.headers,
+        includeOriginalHeaders: forwardingState.includeOriginalHeaders,
+        filterEventName: forwardingState.filterEventName?.trim() || null,
+        timeoutSeconds: Math.max(1, Math.min(60, Number(forwardingState.timeoutSeconds) || 5)),
       },
     })
     isOpen.value = false
@@ -247,6 +280,68 @@ async function handleSaveRules(): Promise<void> {
               v-model="chaosState.errorMessage"
               :maxlength="240"
               class="w-full"
+            />
+          </UFormField>
+        </div>
+
+        <!-- Automatic Forwarding Pipeline Section -->
+        <div class="space-y-3 rounded-lg border border-default bg-muted/20 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h4 class="text-sm font-semibold text-highlighted">
+                {{ t('channels.rulesModal.forwardSectionTitle') }}
+              </h4>
+              <p class="text-xs text-muted">
+                {{ t('channels.rulesModal.forwardSectionDescription') }}
+              </p>
+            </div>
+            <USwitch
+              v-model="forwardingState.isEnabled"
+              :aria-label="t('channels.rulesModal.forwardEnabledLabel')"
+            />
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="sm:col-span-2">
+              <UFormField :label="t('channels.rulesModal.forwardTargetUrlLabel')">
+                <UInput
+                  v-model="forwardingState.targetUrl"
+                  dir="ltr"
+                  placeholder="http://127.0.0.1:8000/api/webhook"
+                  class="w-full font-mono"
+                />
+              </UFormField>
+            </div>
+            <UFormField :label="t('channels.rulesModal.forwardTimeoutLabel')">
+              <UInput
+                v-model.number="forwardingState.timeoutSeconds"
+                type="number"
+                :min="1"
+                :max="60"
+                dir="ltr"
+                class="w-full font-mono"
+              />
+            </UFormField>
+          </div>
+
+          <UFormField :label="t('channels.rulesModal.forwardFilterEventLabel')">
+            <UInput
+              :model-value="forwardingState.filterEventName ?? ''"
+              placeholder="e.g. invoice.paid, user.created (optional)"
+              class="w-full font-mono text-xs"
+              @update:model-value="(value) => (forwardingState.filterEventName = value ? String(value) : null)"
+            />
+          </UFormField>
+
+          <UFormField
+            :label="t('channels.rulesModal.forwardHeadersLabel')"
+            :error="forwardingHeadersError ?? undefined"
+          >
+            <SharedCodeEditor
+              v-model="forwardingHeadersText"
+              language="json"
+              :min-rows="2"
+              placeholder='{"X-Forward-Secret": "local-secret"}'
             />
           </UFormField>
         </div>

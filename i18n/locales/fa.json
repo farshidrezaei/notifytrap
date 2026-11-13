@@ -443,6 +443,7 @@
       "webhookUrlLabel": "نشانی وب‌هوک محلی",
       "secretTokenLabel": "توکن محرمانه",
       "snippetLabel": "کد اتصال",
+      "publicWebhookUrl": "نشانی وب‌هوک عمومی (تانل)",
       "updatedAt": "بروزرسانی: {date}"
     },
     "createModal": {
@@ -503,10 +504,18 @@
       "chaosHttpCodeLabel": "کد خطای HTTP",
       "chaosSmtpCodeLabel": "کد خطای SMTP",
       "chaosMessageLabel": "پیام خطای شبیه‌سازی‌شده",
-      "invalidHeadersJson": "هدرهای پاسخ باید یک آبجکت JSON معتبر با نام هدرهای استاندارد باشد.",
+      "forwardSectionTitle": "خط لوله فورواردینگ خودکار (Auto-Forward)",
+      "forwardSectionDescription": "ارسال خودکار نوتیفیکیشن‌های دریافتی به یک سرویس، وب‌هوک مصرف‌کننده یا سیستم تست محلی دیگر.",
+      "forwardEnabledLabel": "فعال‌سازی فوروارد خودکار",
+      "forwardTargetUrlLabel": "آدرس مقصد فوروارد (HTTP/HTTPS)",
+      "forwardTimeoutLabel": "مهلت زمانی (ثانیه)",
+      "forwardFilterEventLabel": "فیلتر بر اساس نام رخداد (اختیاری)",
+      "forwardHeadersLabel": "هدرهای سفارشی (JSON)",
+      "invalidHeadersJson": "هدرها باید یک آبجکت JSON معتبر با نام هدرهای استاندارد باشد.",
       "savedTitle": "قوانین کانال ذخیره شد",
       "mockBadge": "Mock {code}",
-      "chaosBadge": "Chaos {rate}%"
+      "chaosBadge": "Chaos {rate}%",
+      "forwardBadge": "فوروارد"
     }
   },
   "settings": {
@@ -548,7 +557,13 @@
       "description": "میزکار محلی دریافت و بررسی اعلان‌ها بدون ارسال به گیرندگان واقعی.",
       "versionLabel": "نسخه برنامه",
       "schemaLabel": "نسخه ساختار پایگاه‌داده",
-      "architectureBadge": "مونولیت ماژولار محلی"
+      "architectureBadge": "مونولیت ماژولار محلی",
+      "telegramChannelTitle": "کانال تلگرام",
+      "telegramChannelDescription": "اعلان انتشار نسخه‌ها، تغییرات جدید و اخبار جامعه کاربری NotifyTrap.",
+      "openTelegramAction": "عضویت در تلگرام",
+      "githubTitle": "مخزن گیت‌هاب",
+      "githubDescription": "سورس‌کد، گزارش مشکلات و مشارکت در توسعه NotifyTrap.",
+      "openGitHubAction": "مشاهده در گیت‌هاب"
     },
     "desktop": {
       "title": "دسکتاپ و سینی سیستم (System Tray)",
@@ -609,10 +624,31 @@
         "attachmentsSize": "حجم پیوست‌ها"
       }
     },
+    "tunnel": {
+      "title": "تانل ورودی وب‌هوک‌های عمومی (Tunnel)",
+      "description": "اتصال مستقیم سرور محلی به اینترنت عمومی از طریق Cloudflare Tunnel، Ngrok یا Bore جهت دریافت وب‌هوک سرویس‌های خارجی.",
+      "publicEndpoint": "آدرس تانل عمومی فعال",
+      "providerLabel": "ارائه‌دهنده / موتور تانل",
+      "authTokenLabel": "توکن احراز هویت (اختیاری)",
+      "customBinaryLabel": "مسیر فایل اجرایی",
+      "customArgumentsLabel": "آرگومان‌های سفارشی (متغیر {port} پشتیبانی می‌شود)",
+      "targetNote": "ترافیک دریافتی به سرور لوپ‌بک در {target} متصل می‌شود",
+      "startAction": "راه‌اندازی تانل عمومی",
+      "stopAction": "توقف تانل",
+      "startedTitle": "موتور تانل آغاز به کار کرد",
+      "stoppedTitle": "موتور تانل متوقف شد",
+      "status": {
+        "disconnected": "آفلاین",
+        "starting": "در حال اتصال...",
+        "connected": "متصل و عمومی",
+        "failed": "خطا در اتصال"
+      }
+    },
     "categories": {
       "general": "عمومی و ظاهر",
       "server": "سرور و شبکه",
       "storage": "دیتابیس و نگهداری",
+      "tunnel": "تانل عمومی (Ingress)",
       "mcp": "هوش مصنوعی و اتصالات",
       "about": "درباره و بروزرسانی"
     }

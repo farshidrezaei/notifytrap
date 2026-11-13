@@ -11,6 +11,7 @@ use crate::services::environment_service::EnvironmentService;
 use crate::services::notification_service::NotificationService;
 use crate::services::project_service::ProjectService;
 use crate::services::settings_service::SettingsService;
+use crate::services::tunnel_manager::TunnelManager;
 use crate::services::workspace_service::WorkspaceService;
 
 /// Assembled domain service registry shared by desktop IPC commands and background servers.
@@ -49,6 +50,7 @@ pub struct ApplicationState {
     pub database_manager: DatabaseConnectionManager,
     pub services: ApplicationServices,
     pub capture_servers: CaptureServerCoordinator,
+    pub tunnel_manager: TunnelManager,
     pub event_publisher: Arc<dyn EventPublisher>,
 }
 
@@ -63,6 +65,7 @@ impl ApplicationState {
         let capture_servers = CaptureServerCoordinator::new(&configuration.server);
         let publisher =
             event_publisher.unwrap_or_else(|| Arc::new(BroadcastEventPublisher::default()));
+        let tunnel_manager = TunnelManager::new(Arc::clone(&publisher));
 
         Self {
             application_name: configuration.application_name,
@@ -71,6 +74,7 @@ impl ApplicationState {
             database_manager,
             services,
             capture_servers,
+            tunnel_manager,
             event_publisher: publisher,
         }
     }

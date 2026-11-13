@@ -885,6 +885,7 @@ async fn webhook_mock_loopback_replay_and_chaos_rules_end_to_end() {
                 delay_milliseconds: 0,
             },
             chaos_rule: ChannelChaosConfiguration::default(),
+            forwarding_rule: notifytrap_lib::domain::forwarding::ChannelForwardingConfiguration::default(),
         })
         .expect("update webhook mock rules");
     assert!(updated_webhook.webhook_mock.is_enabled);
@@ -998,6 +999,7 @@ async fn webhook_mock_loopback_replay_and_chaos_rules_end_to_end() {
                 smtp_error_code: 451,
                 error_message: "Rate limit simulated".to_string(),
             },
+            forwarding_rule: notifytrap_lib::domain::forwarding::ChannelForwardingConfiguration::default(),
         })
         .expect("enable webhook chaos");
 
@@ -1032,6 +1034,7 @@ async fn webhook_mock_loopback_replay_and_chaos_rules_end_to_end() {
                 smtp_error_code: 451,
                 error_message: "Transient mailbox unavailable".to_string(),
             },
+            forwarding_rule: notifytrap_lib::domain::forwarding::ChannelForwardingConfiguration::default(),
         })
         .expect("enable smtp chaos");
 

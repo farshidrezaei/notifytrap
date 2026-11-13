@@ -4,6 +4,7 @@ use crate::domain::channel::{
     ChannelChaosConfiguration, ChannelRecord, ChannelType, WebhookMockConfiguration,
 };
 use crate::domain::errors::ApplicationError;
+use crate::domain::forwarding::ChannelForwardingConfiguration;
 use crate::infrastructure::database::sqlite_helpers::{map_sqlite_write_error, query_optional_row};
 
 /// SQLite persistence operations for isolated capture channels.
@@ -21,14 +22,18 @@ impl SqliteChannelRepository {
         let chaos_rule_json = serde_json::to_string(&channel.chaos_rule).map_err(|error| {
             ApplicationError::Internal(format!("Failed to serialize chaos rule: {error}"))
         })?;
+        let forwarding_rule_json =
+            serde_json::to_string(&channel.forwarding_rule).map_err(|error| {
+                ApplicationError::Internal(format!("Failed to serialize forwarding rule: {error}"))
+            })?;
 
         connection
             .execute(
                 "INSERT INTO channels (
                     id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    webhook_mock_json, chaos_rule_json, created_at, updated_at
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                    webhook_mock_json, chaos_rule_json, forwarding_rule_json, created_at, updated_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
                 params![
                     channel.id,
                     channel.workspace_id,
@@ -42,6 +47,7 @@ impl SqliteChannelRepository {
                     channel.encrypted_credential,
                     webhook_mock_json,
                     chaos_rule_json,
+                    forwarding_rule_json,
                     channel.created_at,
                     channel.updated_at,
                 ],
@@ -59,7 +65,7 @@ impl SqliteChannelRepository {
         let mut statement = connection.prepare(
             "SELECT id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    webhook_mock_json, chaos_rule_json, created_at, updated_at
+                    webhook_mock_json, chaos_rule_json, forwarding_rule_json, created_at, updated_at
              FROM channels
              WHERE id = ?1",
         )?;
@@ -73,7 +79,7 @@ impl SqliteChannelRepository {
         let mut statement = connection.prepare(
             "SELECT id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    webhook_mock_json, chaos_rule_json, created_at, updated_at
+                    webhook_mock_json, chaos_rule_json, forwarding_rule_json, created_at, updated_at
              FROM channels
              WHERE credential_identifier = ?1",
         )?;
@@ -93,7 +99,7 @@ impl SqliteChannelRepository {
         let mut statement = connection.prepare(
             "SELECT id, workspace_id, project_id, environment_id, name, channel_type,
                     is_enabled, credential_identifier, credential_hash, encrypted_credential,
-                    webhook_mock_json, chaos_rule_json, created_at, updated_at
+                    webhook_mock_json, chaos_rule_json, forwarding_rule_json, created_at, updated_at
              FROM channels
              WHERE workspace_id = ?1 AND project_id = ?2 AND environment_id = ?3
              ORDER BY created_at ASC, name ASC",
@@ -146,6 +152,7 @@ impl SqliteChannelRepository {
         channel_id: &str,
         webhook_mock: &WebhookMockConfiguration,
         chaos_rule: &ChannelChaosConfiguration,
+        forwarding_rule: &ChannelForwardingConfiguration,
         updated_at: &str,
     ) -> Result<bool, ApplicationError> {
         let webhook_mock_json = serde_json::to_string(webhook_mock).map_err(|error| {
@@ -154,11 +161,21 @@ impl SqliteChannelRepository {
         let chaos_rule_json = serde_json::to_string(chaos_rule).map_err(|error| {
             ApplicationError::Internal(format!("Failed to serialize chaos rule: {error}"))
         })?;
+        let forwarding_rule_json =
+            serde_json::to_string(forwarding_rule).map_err(|error| {
+                ApplicationError::Internal(format!("Failed to serialize forwarding rule: {error}"))
+            })?;
         let affected = connection.execute(
             "UPDATE channels
-             SET webhook_mock_json = ?2, chaos_rule_json = ?3, updated_at = ?4
+             SET webhook_mock_json = ?2, chaos_rule_json = ?3, forwarding_rule_json = ?4, updated_at = ?5
              WHERE id = ?1",
-            params![channel_id, webhook_mock_json, chaos_rule_json, updated_at],
+            params![
+                channel_id,
+                webhook_mock_json,
+                chaos_rule_json,
+                forwarding_rule_json,
+                updated_at
+            ],
         )?;
         Ok(affected > 0)
     }
@@ -181,6 +198,7 @@ fn map_channel_row(row: &Row<'_>) -> rusqlite::Result<ChannelRecord> {
     let is_enabled_flag: i64 = row.get(6)?;
     let raw_mock_json: String = row.get(10)?;
     let raw_chaos_json: String = row.get(11)?;
+    let raw_forwarding_json: String = row.get(12)?;
 
     let webhook_mock = if raw_mock_json.trim().is_empty() {
         WebhookMockConfiguration::default()
@@ -191,6 +209,11 @@ fn map_channel_row(row: &Row<'_>) -> rusqlite::Result<ChannelRecord> {
         ChannelChaosConfiguration::default()
     } else {
         serde_json::from_str(&raw_chaos_json).unwrap_or_default()
+    };
+    let forwarding_rule = if raw_forwarding_json.trim().is_empty() {
+        ChannelForwardingConfiguration::default()
+    } else {
+        serde_json::from_str(&raw_forwarding_json).unwrap_or_default()
     };
 
     Ok(ChannelRecord {
@@ -206,7 +229,8 @@ fn map_channel_row(row: &Row<'_>) -> rusqlite::Result<ChannelRecord> {
         encrypted_credential: row.get(9)?,
         webhook_mock,
         chaos_rule,
-        created_at: row.get(12)?,
-        updated_at: row.get(13)?,
+        forwarding_rule,
+        created_at: row.get(13)?,
+        updated_at: row.get(14)?,
     })
 }

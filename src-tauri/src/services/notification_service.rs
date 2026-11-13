@@ -33,6 +33,10 @@ impl NotificationService {
         Self { database_manager }
     }
 
+    pub fn database_manager(&self) -> &DatabaseConnectionManager {
+        &self.database_manager
+    }
+
     /// Persists a normalized notification and any MIME attachments inside one ACID transaction.
     pub fn capture_notification(
         &self,

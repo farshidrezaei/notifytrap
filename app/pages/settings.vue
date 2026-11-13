@@ -15,10 +15,13 @@ import {
   isTauriRuntime,
 } from '~/utils/tauriClient'
 
-type SettingsCategory = 'general' | 'server' | 'storage' | 'mcp' | 'about'
+type SettingsCategory = 'general' | 'server' | 'storage' | 'tunnel' | 'mcp' | 'about'
 
 const RETENTION_DAYS_SETTING_KEY = 'inbox.retention_days'
 const BYTES_PER_MEGABYTE = 1024 * 1024
+const TELEGRAM_CHANNEL_URL = 'https://t.me/notifytrap'
+const TELEGRAM_CHANNEL_HANDLE = '@notifytrap'
+const GITHUB_REPOSITORY_URL = 'https://github.com/farshidrezaei/notifytrap'
 
 const route = useRoute()
 const router = useRouter()
@@ -39,6 +42,7 @@ const navigationCategories = computed<Array<{ id: SettingsCategory; labelKey: st
   { id: 'general', labelKey: 'settings.categories.general', icon: 'i-lucide-settings-2' },
   { id: 'server', labelKey: 'settings.categories.server', icon: 'i-lucide-server' },
   { id: 'storage', labelKey: 'settings.categories.storage', icon: 'i-lucide-database' },
+  { id: 'tunnel', labelKey: 'settings.categories.tunnel', icon: 'i-lucide-globe' },
   { id: 'mcp', labelKey: 'settings.categories.mcp', icon: 'i-lucide-bot' },
   { id: 'about', labelKey: 'settings.categories.about', icon: 'i-lucide-info' },
 ])
@@ -494,7 +498,12 @@ function resetServerForm(): void {
           <SettingsDatabaseMaintenanceCard :retention-days="Number(serverFormState.retentionDays)" />
         </template>
 
-        <!-- 4. AI & INTEGRATIONS (MCP) -->
+        <!-- 4. PUBLIC TUNNEL / WEBHOOK INGRESS -->
+        <template v-else-if="activeCategory === 'tunnel'">
+          <SettingsPublicTunnelCard />
+        </template>
+
+        <!-- 5. AI & INTEGRATIONS (MCP) -->
         <template v-else-if="activeCategory === 'mcp'">
           <UCard>
             <template #header>
@@ -591,6 +600,62 @@ function resetServerForm(): void {
                   <USkeleton v-if="isHealthInitialLoading" class="ms-1.5 inline-block h-4 w-8 align-middle rounded" />
                   <code v-else class="ms-1.5 font-mono font-medium text-highlighted">v{{ health?.schemaMigrationVersion ?? 1 }}</code>
                 </div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex flex-col gap-3 border-t border-default pt-4">
+              <!-- Telegram Channel Reference -->
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-2 text-xs font-medium text-highlighted">
+                    <UIcon name="i-simple-icons-telegram" class="size-4 text-[#24A1DE]" />
+                    <span>{{ t('settings.about.telegramChannelTitle') }}</span>
+                  </div>
+                  <p class="text-xs text-muted">
+                    {{ t('settings.about.telegramChannelDescription') }}
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded-md border border-default bg-muted/40 px-2.5 py-1 font-mono text-xs text-default" dir="ltr">
+                    {{ TELEGRAM_CHANNEL_HANDLE }}
+                  </span>
+
+                  <UButton
+                    color="primary"
+                    variant="subtle"
+                    size="xs"
+                    icon="i-simple-icons-telegram"
+                    :label="t('settings.about.openTelegramAction')"
+                    :to="TELEGRAM_CHANNEL_URL"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                </div>
+              </div>
+
+              <!-- GitHub Repository -->
+              <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default/60 pt-3">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-2 text-xs font-medium text-highlighted">
+                    <UIcon name="i-simple-icons-github" class="size-4 text-highlighted" />
+                    <span>{{ t('settings.about.githubTitle') }}</span>
+                  </div>
+                  <p class="text-xs text-muted">
+                    {{ t('settings.about.githubDescription') }}
+                  </p>
+                </div>
+
+                <UButton
+                  color="neutral"
+                  variant="outline"
+                  size="xs"
+                  icon="i-simple-icons-github"
+                  :label="t('settings.about.openGitHubAction')"
+                  :to="GITHUB_REPOSITORY_URL"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
               </div>
             </div>
           </UCard>

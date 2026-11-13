@@ -4,6 +4,7 @@ use rand::RngExt;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::errors::ApplicationError;
+use crate::domain::forwarding::ChannelForwardingConfiguration;
 
 /// Supported local capture channel protocols.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -123,6 +124,7 @@ pub struct ChannelRecord {
     pub encrypted_credential: String,
     pub webhook_mock: WebhookMockConfiguration,
     pub chaos_rule: ChannelChaosConfiguration,
+    pub forwarding_rule: ChannelForwardingConfiguration,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -140,6 +142,7 @@ impl ChannelRecord {
             credential_identifier: self.credential_identifier.clone(),
             webhook_mock: self.webhook_mock.clone(),
             chaos_rule: self.chaos_rule.clone(),
+            forwarding_rule: self.forwarding_rule.clone(),
             created_at: self.created_at.clone(),
             updated_at: self.updated_at.clone(),
         }
@@ -162,6 +165,8 @@ pub struct ChannelSummary {
     pub webhook_mock: WebhookMockConfiguration,
     #[serde(default)]
     pub chaos_rule: ChannelChaosConfiguration,
+    #[serde(default)]
+    pub forwarding_rule: ChannelForwardingConfiguration,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -197,11 +202,13 @@ pub struct CreateChannelInput {
     pub is_enabled: Option<bool>,
 }
 
-/// Validated input for updating per-channel webhook mock and chaos simulation rules.
+/// Validated input for updating per-channel webhook mock, chaos simulation, and auto-forwarding rules.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateChannelRulesInput {
     pub channel_id: String,
     pub webhook_mock: WebhookMockConfiguration,
     pub chaos_rule: ChannelChaosConfiguration,
+    #[serde(default)]
+    pub forwarding_rule: ChannelForwardingConfiguration,
 }

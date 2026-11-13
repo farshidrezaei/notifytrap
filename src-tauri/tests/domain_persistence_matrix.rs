@@ -663,6 +663,79 @@ fn database_storage_statistics_and_vacuum_lifecycle() {
     assert_eq!(vacuumed_statistics.total_notifications_count, 0);
 }
 
+#[test]
+fn channel_forwarding_rules_persistence_and_matrix_update() {
+    let services = create_test_services();
+
+    let workspace = services
+        .workspaces
+        .create_workspace(CreateWorkspaceInput {
+            name: "Forwarding Workspace".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("workspace");
+
+    let project = services
+        .projects
+        .create_project(CreateProjectInput {
+            workspace_id: workspace.id.clone(),
+            name: "Billing Pipeline".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("project");
+
+    let environments = services
+        .environments
+        .list_environments_by_project(&project.id)
+        .expect("environments");
+    let environment = &environments[0];
+
+    let created_channel = services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: environment.id.clone(),
+            name: "Webhook Pipeline Channel".to_string(),
+            channel_type: ChannelType::Webhook,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("create channel");
+
+    assert!(!created_channel.channel.forwarding_rule.is_enabled);
+
+    let mut custom_headers = std::collections::BTreeMap::new();
+    custom_headers.insert("X-Forward-Service".to_string(), "billing".to_string());
+
+    let updated = services
+        .channels
+        .update_channel_rules(notifytrap_lib::domain::channel::UpdateChannelRulesInput {
+            channel_id: created_channel.channel.id.clone(),
+            webhook_mock: notifytrap_lib::domain::channel::WebhookMockConfiguration::default(),
+            chaos_rule: notifytrap_lib::domain::channel::ChannelChaosConfiguration::default(),
+            forwarding_rule: notifytrap_lib::domain::forwarding::ChannelForwardingConfiguration {
+                is_enabled: true,
+                target_url: "http://127.0.0.1:9000/api/hook".to_string(),
+                custom_headers,
+                include_original_headers: true,
+                filter_event_name: Some("invoice.paid".to_string()),
+                timeout_seconds: 8,
+            },
+        })
+        .expect("update rules");
+
+    assert!(updated.forwarding_rule.is_enabled);
+    assert_eq!(updated.forwarding_rule.target_url, "http://127.0.0.1:9000/api/hook");
+    assert_eq!(updated.forwarding_rule.timeout_seconds, 8);
+    assert_eq!(
+        updated.forwarding_rule.filter_event_name.as_deref(),
+        Some("invoice.paid")
+    );
+}
+
 proptest! {
     #[test]
     fn property_derived_slug_is_always_valid_for_alphanumeric_inputs(

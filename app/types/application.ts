@@ -101,10 +101,40 @@ export interface ChannelChaosConfiguration {
   errorMessage: string
 }
 
+export interface ChannelForwardingConfiguration {
+  isEnabled: boolean
+  targetUrl: string
+  customHeaders: Record<string, string>
+  includeOriginalHeaders: boolean
+  filterEventName?: string | null
+  timeoutSeconds: number
+}
+
+export type TunnelProvider = 'cloudflared' | 'ngrok' | 'bore' | 'custom'
+export type TunnelStatus = 'disconnected' | 'starting' | 'connected' | 'failed'
+
+export interface TunnelStatusReport {
+  isActive: boolean
+  status: TunnelStatus
+  provider: TunnelProvider
+  publicUrl?: string | null
+  localTarget: string
+  errorMessage?: string | null
+  startedAt?: string | null
+}
+
+export interface TunnelStartConfiguration {
+  provider: TunnelProvider
+  customBinaryPath?: string | null
+  authenticationToken?: string | null
+  customArguments?: string | null
+}
+
 export interface UpdateChannelRulesInput {
   channelId: string
   webhookMock: WebhookMockConfiguration
   chaosRule: ChannelChaosConfiguration
+  forwardingRule: ChannelForwardingConfiguration
 }
 
 export interface ReplayHeaderEntry {
@@ -137,6 +167,7 @@ export interface ChannelSummary {
   credentialIdentifier: string
   webhookMock: WebhookMockConfiguration
   chaosRule: ChannelChaosConfiguration
+  forwardingRule?: ChannelForwardingConfiguration
   createdAt: string
   updatedAt: string
 }

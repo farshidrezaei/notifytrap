@@ -16,6 +16,7 @@ const props = defineProps<{
 const { t, locale } = useI18n()
 const toast = useToast()
 const { health } = useApplicationHealth()
+const { publicTunnelUrl } = useTunnel()
 const {
   revealedCredentials,
   toggleChannelEnabled,
@@ -42,6 +43,14 @@ const smtpEndpoint = computed(() => health.value?.smtpEndpoint ?? '127.0.0.1:102
 const webhookUrl = computed(
   () => `http://${httpEndpoint.value}/api/v1/webhooks/${props.channel.credentialIdentifier}/events`,
 )
+
+const publicWebhookUrl = computed(() => {
+  if (!publicTunnelUrl.value || props.channel.channelType !== 'webhook') {
+    return null
+  }
+  const cleanBase = publicTunnelUrl.value.replace(/\/+$/, '')
+  return `${cleanBase}/api/v1/webhooks/${props.channel.credentialIdentifier}/events`
+})
 
 const credentialDisplay = computed(() =>
   resolveChannelCredentialDisplay(props.channel, revealedCredential.value, webhookUrl.value),
@@ -192,6 +201,14 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
             >
               {{ t('channels.rulesModal.chaosBadge', { rate: props.channel.chaosRule.failureRatePercent }) }}
             </UBadge>
+            <UBadge
+              v-if="props.channel.forwardingRule?.isEnabled"
+              color="primary"
+              variant="subtle"
+              size="xs"
+            >
+              {{ t('channels.rulesModal.forwardBadge') }}
+            </UBadge>
           </div>
           <p class="text-xs text-muted">
             {{ t('channels.card.updatedAt', { date: formatShortTimestamp(props.channel.updatedAt, locale) }) }}
@@ -319,6 +336,30 @@ async function handleCopyValue(value: string, label: string): Promise<void> {
             />
           </div>
         </div>
+      </div>
+
+      <!-- Public Tunnel Endpoint if active and channel is Webhook -->
+      <div
+        v-if="publicWebhookUrl"
+        class="rounded-md border border-success/30 bg-success/10 p-2.5"
+      >
+        <div class="mb-1 flex items-center justify-between gap-2">
+          <span class="flex items-center gap-1.5 text-[11px] font-medium text-success">
+            <UIcon name="i-lucide-globe" class="size-3.5" />
+            {{ t('channels.card.publicWebhookUrl') }}
+          </span>
+          <UButton
+            size="xs"
+            color="success"
+            variant="ghost"
+            icon="i-lucide-copy"
+            :label="t('common.copy')"
+            @click="handleCopyValue(publicWebhookUrl, t('channels.card.publicWebhookUrl'))"
+          />
+        </div>
+        <code dir="ltr" class="block truncate font-mono text-xs text-highlighted">
+          {{ publicWebhookUrl }}
+        </code>
       </div>
 
       <div class="flex flex-wrap items-center justify-between gap-2 border-t border-default/70 pt-3">

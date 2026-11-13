@@ -2,7 +2,9 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::broadcast;
 
+use crate::domain::forwarding::ForwardExecutionResult;
 use crate::domain::notification::NotificationSummary;
+use crate::domain::tunnel::TunnelStatusReport;
 
 /// Canonical Tauri event names emitted from the Rust backend to the desktop UI.
 pub struct EventChannels;
@@ -10,6 +12,8 @@ pub struct EventChannels;
 impl EventChannels {
     pub const NOTIFICATION_CAPTURED: &'static str = "notification:captured";
     pub const SERVER_STATUS_CHANGED: &'static str = "server:status_changed";
+    pub const TUNNEL_STATUS_CHANGED: &'static str = "tunnel:status_changed";
+    pub const FORWARD_EXECUTED: &'static str = "forward:executed";
 }
 
 /// Event emitted immediately whenever a local HTTP or SMTP server stores a notification.
@@ -34,6 +38,8 @@ pub struct ServerStatusChangedEvent {
 pub trait EventPublisher: Send + Sync {
     fn emit_notification_captured(&self, payload: &NotificationCapturedEvent);
     fn emit_server_status_changed(&self, payload: &ServerStatusChangedEvent);
+    fn emit_tunnel_status_changed(&self, payload: &TunnelStatusReport);
+    fn emit_forward_executed(&self, payload: &ForwardExecutionResult);
     fn subscribe_notifications(&self) -> broadcast::Receiver<NotificationCapturedEvent>;
 }
 
@@ -70,6 +76,24 @@ impl EventPublisher for TauriEventPublisher {
             .emit(EventChannels::SERVER_STATUS_CHANGED, payload)
         {
             tracing::debug!("Unable to emit server status changed event: {error}");
+        }
+    }
+
+    fn emit_tunnel_status_changed(&self, payload: &TunnelStatusReport) {
+        if let Err(error) = self
+            .application_handle
+            .emit(EventChannels::TUNNEL_STATUS_CHANGED, payload)
+        {
+            tracing::debug!("Unable to emit tunnel status changed event: {error}");
+        }
+    }
+
+    fn emit_forward_executed(&self, payload: &ForwardExecutionResult) {
+        if let Err(error) = self
+            .application_handle
+            .emit(EventChannels::FORWARD_EXECUTED, payload)
+        {
+            tracing::debug!("Unable to emit forward executed event: {error}");
         }
     }
 
@@ -117,6 +141,10 @@ impl EventPublisher for BroadcastEventPublisher {
     fn emit_server_status_changed(&self, payload: &ServerStatusChangedEvent) {
         let _ = self.status_sender.send(payload.clone());
     }
+
+    fn emit_tunnel_status_changed(&self, _payload: &TunnelStatusReport) {}
+
+    fn emit_forward_executed(&self, _payload: &ForwardExecutionResult) {}
 
     fn subscribe_notifications(&self) -> broadcast::Receiver<NotificationCapturedEvent> {
         self.notifications_sender.subscribe()

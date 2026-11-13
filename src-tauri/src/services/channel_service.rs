@@ -7,6 +7,7 @@ use crate::domain::channel::{
     CreateChannelInput, CreatedChannelResult, UpdateChannelRulesInput, WebhookMockConfiguration,
 };
 use crate::domain::errors::ApplicationError;
+use crate::domain::forwarding::ChannelForwardingConfiguration;
 use crate::domain::validation::{
     current_utc_timestamp, validate_bounded_text, validate_name, validate_uuid,
 };
@@ -67,6 +68,7 @@ impl ChannelService {
             encrypted_credential: generated.encrypted_credential,
             webhook_mock: WebhookMockConfiguration::default(),
             chaos_rule: ChannelChaosConfiguration::default(),
+            forwarding_rule: ChannelForwardingConfiguration::default(),
             created_at: now.clone(),
             updated_at: now,
         };
@@ -147,6 +149,7 @@ impl ChannelService {
 
         let validated_mock = validate_webhook_mock(existing.channel_type, input.webhook_mock)?;
         let validated_chaos = validate_chaos_rule(input.chaos_rule)?;
+        let validated_forwarding = validate_forwarding_rule(input.forwarding_rule)?;
 
         self.database_manager.with_connection(|connection| {
             let did_update = SqliteChannelRepository::update_rules(
@@ -154,6 +157,7 @@ impl ChannelService {
                 &channel_id,
                 &validated_mock,
                 &validated_chaos,
+                &validated_forwarding,
                 &now,
             )?;
             if !did_update {
@@ -391,5 +395,51 @@ fn validate_chaos_rule(
         240,
         false,
     )?;
+    Ok(configuration)
+}
+
+fn validate_forwarding_rule(
+    mut configuration: ChannelForwardingConfiguration,
+) -> Result<ChannelForwardingConfiguration, ApplicationError> {
+    if !configuration.is_enabled {
+        return Ok(configuration);
+    }
+    let target = configuration.target_url.trim();
+    if target.is_empty() {
+        return Err(ApplicationError::Validation(
+            "Forwarding target URL must not be empty when enabled".to_string(),
+        ));
+    }
+    if !target.starts_with("http://") && !target.starts_with("https://") {
+        return Err(ApplicationError::Validation(
+            "Forwarding target URL must start with http:// or https://".to_string(),
+        ));
+    }
+    if configuration.timeout_seconds == 0 || configuration.timeout_seconds > 60 {
+        return Err(ApplicationError::Validation(
+            "Forwarding timeout must be between 1 and 60 seconds".to_string(),
+        ));
+    }
+    if configuration.custom_headers.len() > MAXIMUM_MOCK_HEADERS {
+        return Err(ApplicationError::Validation(format!(
+            "Forwarding custom headers must not exceed {MAXIMUM_MOCK_HEADERS} entries"
+        )));
+    }
+
+    let mut sanitized_headers = std::collections::BTreeMap::new();
+    for (raw_name, raw_value) in configuration.custom_headers {
+        let name = validate_bounded_text(&raw_name, "forwardingHeaderName", 1, 128, false)?;
+        if !name.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '-' || character == '_'
+        }) {
+            return Err(ApplicationError::Validation(format!(
+                "Invalid forwarding header name: {name}"
+            )));
+        }
+        let value = validate_bounded_text(&raw_value, "forwardingHeaderValue", 0, 1024, false)?;
+        sanitized_headers.insert(name, value);
+    }
+    configuration.custom_headers = sanitized_headers;
+    configuration.target_url = target.to_string();
     Ok(configuration)
 }

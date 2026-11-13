@@ -22,6 +22,7 @@ use crate::domain::validation::{
     validate_bounded_text, validate_optional_test_run_identifier, validate_slug,
 };
 use crate::events::{EventPublisher, NotificationCapturedEvent};
+use crate::infrastructure::http::forwarder::execute_channel_forwarding_if_enabled;
 use crate::infrastructure::http::mcp_routes::handle_mcp_json_rpc;
 use crate::infrastructure::http::query_routes::{
     handle_get_notification_detail, handle_query_notifications, handle_wait_for_notification,
@@ -443,19 +444,50 @@ async fn process_webhook_capture(
             workspace_id: channel.workspace_id,
             project_id: channel.project_id,
             environment_id: channel.environment_id,
-            channel_id: channel.id,
+            channel_id: channel.id.clone(),
             channel_type: ChannelType::Webhook,
             recipient: display_subpath.clone(),
             sender: method.as_str().to_string(),
             subject: format!("{} {}", method.as_str(), display_subpath),
             preview_text: truncate_preview(&preview_source, PREVIEW_MAX_CHARACTERS),
             payload_json: canonical_payload,
-            raw_payload: raw_body_text,
+            raw_payload: raw_body_text.clone(),
             test_run_identifier,
             received_at: None,
             attachments: Vec::new(),
         },
     )?;
+
+    if channel.forwarding_rule.is_enabled {
+        let channel_id_clone = channel.id.clone();
+        let notification_id = receipt.1.0.notification_id.clone();
+        let database_manager = state.services.notifications.database_manager().clone();
+        let publisher = Arc::clone(&state.event_publisher);
+        let raw_bytes_vec = body_bytes.to_vec();
+
+        tokio::spawn(async move {
+            let record = database_manager.with_connection(|connection| {
+                crate::infrastructure::database::channel_repository::SqliteChannelRepository::find_by_id(
+                    connection,
+                    &channel_id_clone,
+                )
+            });
+            let notification = database_manager.with_connection(|connection| {
+                crate::infrastructure::database::notification_repository::SqliteNotificationRepository::find_by_id(
+                    connection,
+                    &notification_id,
+                )
+            });
+
+            if let (Ok(Some(ch)), Ok(Some(notif))) = (record, notification) {
+                if let Some(forward_result) =
+                    execute_channel_forwarding_if_enabled(&ch, &notif, &raw_bytes_vec).await
+                {
+                    publisher.emit_forward_executed(&forward_result);
+                }
+            }
+        });
+    }
 
     if webhook_mock.is_enabled {
         return Ok(build_webhook_mock_response(&webhook_mock).await);
