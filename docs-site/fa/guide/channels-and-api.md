@@ -1,157 +1,101 @@
----
-title: کانال‌ها و API دریافت
----
+# کانال‌ها، SMTP و HTTP API
 
-# کانال‌ها و API دریافت
+هر پیام شکار شده در NotifyTrap به صورت دقیق به یک **کانال (Channel)** متعلق به سلسله‌مراتب **Workspace → Project → Environment** متصل است.
 
-هر نوتیفیکیشن دریافتی از طریق **اعتبارنامه کانال (Channel Credential)** مستقیماً به همان `Workspace`، `Project` و `Environment` متصل می‌شود.
+## آدرس‌های محلی پیش‌فرض سرویس‌ها
 
-## ساختار کلید و اعتبارنامه
+| سرویس / مسیر | آدرس پیش‌فرض | احراز هویت | عملکرد |
+| --- | --- | --- | --- |
+| **سرور ESMTP** | `127.0.0.1:1025` | `AUTH PLAIN` یا `AUTH LOGIN` | شکار ایمیل‌ها و پیوست‌ها روی لوکال |
+| **API دریافت و کنترل** | `127.0.0.1:4080` | هدر `X-Channel-Key` یا `Bearer` | مسیرهای دریافت، جستجو، لاگ و مدیریت |
+| **رابط وب Companion** | `127.0.0.1:4000` | اختیاری (پیش‌فرض Loopback) | داشبورد کامل Nuxt SPA در حالت سرور هدلس (`--web-port`) |
+| **بررسی وضعیت سلامت** | `GET http://127.0.0.1:4080/api/v1/health` | بدون نیاز به کلید (لوپ‌بک) | گزارش وضعیت موتور، دیتابیس، حجم و پورت‌ها |
+| **شکار پیامک (SMS)** | `POST http://127.0.0.1:4080/api/v1/sms` | هدر `X-Channel-Key` | دریافت پیامک با شمارش بخش‌های GSM-7 |
+| **شکار پوش (Push)** | `POST http://127.0.0.1:4080/api/v1/push` | هدر `X-Channel-Key` | دریافت نوتیفیکیشن موبایل و وب |
+| **تله وب‌هوک** | `ANY http://127.0.0.1:4080/api/v1/webhooks/{id}[/{subpath}]` | هدر یا کوئری `?channel_key=` | دریافت هر متد HTTP و هر بادی دلخواه |
+| **کوئری اینباکس** | `GET http://127.0.0.1:4080/api/v1/notifications` | هدر `X-Channel-Key` | لیست پیام‌های کانال با فیلتر شناسه تست و وضعیت |
+| **انتظار برای رویداد** | `GET http://127.0.0.1:4080/api/v1/notifications/wait` | هدر `X-Channel-Key` | لانگ‌پولینگ آنی (`timeout_ms`) برای تست‌های CI |
+| **جزئیات پیام** | `GET http://127.0.0.1:4080/api/v1/notifications/{id}` | هدر `X-Channel-Key` | بازگرداندن پیلود کامل، پیوست‌ها و کدهای OTP |
 
-هنگام ساخت یک کانال یا چرخش (Rotate) کلید، کلید ترکیبی با قالب زیر ایجاد می‌شود:
-
-```text
-<credential_identifier>.<secret>
-```
-
-برای نمونه در یک کانال ایمیل:
-
-- **SMTP Username (`MAIL_USERNAME`):** `mail-947ce3807353e6f5`
-- **SMTP Password (`MAIL_PASSWORD`):** `ntsec_...`
-- **کلید ترکیبی (`X-Channel-Key`):** `mail-947ce3807353e6f5.ntsec_...`
-
-> [!WARNING] نگهداری امن کلیدها
-> NotifyTrap کلیدهای شما را به صورت متن ساده در دیتابیس ذخیره نمی‌کند. `Hash` کلید با SHA-256 برای تطبیق و مقدار قابل نمایش با **AES-256-GCM** رمزنگاری می‌شود تا قابلیت نمایش (`Reveal`) با کلید امن Keyring سیستم‌عامل کار کند.
+کلیه متدهای دریافت HTTP در صورت موفقیت کد **`202 Accepted`** به همراه شیء شامل شناسه اعلان، کانال و زمان دریافت بازمی‌گردانند.
 
 ---
 
-## ۱. دریافت ایمیل با SMTP
+## هماهنگی تست‌های خودکار (Query & Wait API)
 
-اپلیکیشن خود را به شنونده `127.0.0.1:1025` متصل کنید. نمونه تنظیم `.env` در لاراول یا Symfony Mailer:
+برای اجرای تست‌های یکپارچگی ابزارهایی مانند Pest، Cypress، Playwright یا Pytest بدون ایجاد حلقه‌های تاخیر (`sleep`):
 
-```dotenv
-MAIL_MAILER=smtp
-MAIL_HOST=127.0.0.1
-MAIL_PORT=1025
-MAIL_USERNAME=mail-947ce3807353e6f5
-MAIL_PASSWORD=ntsec_your_secret_here
-MAIL_ENCRYPTION=null
+```bash
+# ارسال یک پیامک با شناسه اجرای تست (Run ID)
+curl -X POST http://127.0.0.1:4080/api/v1/sms \
+  -H "Content-Type: application/json" \
+  -H "X-Channel-Key: sms-local.ntsec_your_secret_token" \
+  -H "X-NotifyTrap-Run: e2e-signup-42" \
+  -d '{"to":"+989120000000","from":"Auth","message":"کد ورود شما: ۴۸۲-۹۱۰"}'
+
+# انتظار آنی برای پیام مطابق با این شناسه تست
+curl "http://127.0.0.1:4080/api/v1/notifications/wait?run_id=e2e-signup-42&timeout_ms=5000" \
+  -H "X-Channel-Key: sms-local.ntsec_your_secret_token"
 ```
-
-قابلیت‌های پشتیبانی‌شده در سرور SMTP:
-
-- احراز هویت `AUTH PLAIN` و `AUTH LOGIN`
-- تجزیه پیام‌های `MIME` تودرتو (`multipart/alternative`، `multipart/mixed`)
-- استخراج هم‌زمان متن ساده (`text/plain`)، نسخه HTML پالایش‌شده و فهرست پیوست‌ها
 
 ---
 
-## ۲. دریافت HTTP (SMS، Push و Webhook)
+## قوانین کانال: ماک، آشوب و فوروارد خودکار
 
-### Endpointهای اصلی دریافت
+در تب **کانال‌ها → قوانین (Rules)** می‌توانید تنظیمات پیشرفته زیر را برای هر کانال فعال کنید:
 
-```http
-POST http://127.0.0.1:4080/api/v1/sms
-POST http://127.0.0.1:4080/api/v1/push
-ANY  http://127.0.0.1:4080/api/v1/webhooks/{credential_identifier}[/{subpath}]
-```
+### ۱. پاسخ‌های ماک وب‌هوک (Mock Responses)
+- تنظیم کدهای وضعیت دلخواه HTTP (`100..599`)، هدرهای سفارشی و بادی پاسخ (JSON یا متن تا ۶۴ کیلوبایت).
+- اعمال تاخیر ساختگی برای شبیه‌سازی لیتنسی واقعی شبکه.
+- درخواست ابتدا در SQLite ذخیره شده و سپس پاسخ ماک ارسال می‌گردد.
 
-### هدر احراز هویت و تگ تست
+### ۲. تزریق آشوب (Chaos Rules)
+- شبیه‌سازی شرایط بحرانی شبکه و قطعی سرور.
+- تعیین درصد شکست تصادفی (`0..100%`) و خطای سفارشی جهت سنجش منطق retry در کلاینت‌های شما.
 
-هدر احراز هویت را به همراه کلید ترکیبی کامل (یا `Authorization: Bearer`) ارسال کنید؛ برای برچسب‌گذاری تست‌های خودکار از `X-NotifyTrap-Run` هم روی HTTP و هم روی ایمیل SMTP استفاده کنید:
+### ۳. فوروارد خودکار وب‌هوک به سرویس‌های ثانویه (Auto-Forwarding)
+- ارسال خودکار وب‌هوک‌های شکارشده به URL دیگر (مانند Zapier یا سرویس‌های محلی دیگر).
+- اعمال فیلتر بر اساس نام رویداد (مثلاً فقط رویدادهای `order.created`).
+- افزودن هدرهای احراز هویت سفارشی بدون ایجاد تاخیر در پاسخ به فرستنده اصلی.
 
-```http
-X-Channel-Key: sms-7feaad9993df8b9.ntsec_your_secret_here
-X-NotifyTrap-Run: e2e-signup-42
-Content-Type: application/json
-```
+---
 
-### نمونه درخواست cURL
+## تنظیمات ارسال ایمیل (SMTP)
+
+کافیست در تنظیمات پروژه لوکال خود هاست را `127.0.0.1` و پورت را `1025` بگذارید:
 
 ::: code-group
 
-```bash [SMS]
-curl -X POST http://127.0.0.1:4080/api/v1/sms \
-  -H "Content-Type: application/json" \
-  -H "X-Channel-Key: sms-7feaad9993df8b9.ntsec_your_secret_here" \
-  -H "X-NotifyTrap-Run: e2e-signup-42" \
-  -d '{
-    "to": "+989121234567",
-    "from": "NotifyApp",
-    "message": "کد تایید شما: 482910"
-  }'
+```dotenv [لاراول و فریم‌ورک‌های PHP (.env)]
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+MAIL_USERNAME=mail-local
+MAIL_PASSWORD=ntsec_your_secret_token
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="noreply@local.test"
+MAIL_FROM_NAME="NotifyTrap Local"
 ```
 
-```bash [Push Notification]
-curl -X POST http://127.0.0.1:4080/api/v1/push \
-  -H "Content-Type: application/json" \
-  -H "X-Channel-Key: push-12ab34cd56ef.ntsec_your_secret_here" \
-  -d '{
-    "title": "به‌روزرسانی سفارش",
-    "body": "بسته شما ارسال شد.",
-    "platform": "android",
-    "badge": 1,
-    "deviceToken": "fcm-demo-token"
-  }'
-```
+```js [نود جی‌اس (nodemailer)]
+import nodemailer from 'nodemailer'
 
-```bash [Webhook]
-curl -X POST http://127.0.0.1:4080/api/v1/webhooks/whk-98zy76xw54vu/stripe/events \
-  -H "Content-Type: application/json" \
-  -H "X-Channel-Key: whk-98zy76xw54vu.ntsec_your_secret_here" \
-  -d '{
-    "event": "invoice.paid",
-    "invoiceId": "INV-2026-009"
-  }'
+const transporter = nodemailer.createTransport({
+  host: '127.0.0.1',
+  port: 1025,
+  secure: false,
+  auth: {
+    user: 'mail-local',
+    pass: 'ntsec_your_secret_token',
+  },
+})
+
+await transporter.sendMail({
+  from: 'noreply@local.test',
+  to: 'user@example.test',
+  subject: 'خوش‌آمدید به NotifyTrap',
+  html: '<p>تست دریافت ایمیل روی محیط توسعه محلی</p>',
+})
 ```
 
 :::
-
-### بررسی وضعیت سرویس (Health Check)
-
-```bash
-curl http://127.0.0.1:4080/api/v1/health
-```
-
-پاسخ `200 OK` حاوی وضعیت سلامت شنونده‌های HTTP و SMTP و دیتابیس است.
-
----
-
-## ۳. API کوئری، انتظار رویدادمحور و اتوماسیون تست
-
-برای تست‌های E2E (Playwright، Cypress، Pest، Pytest) بدون نیاز به `sleep` مستقیم به پیام‌های همان کانال دسترسی داشته باشید:
-
-| مسیر | کاربرد | فیلترها و جزئیات |
-| --- | --- | --- |
-| `GET /api/v1/notifications` | فهرست اعلان‌های کانال | پشتیبانی از `run_id`، `recipient`، `subject`، `since`، `status`، `search`، `limit`، `offset` |
-| `GET /api/v1/notifications/wait` | انتظار رویدادمحور (`long-poll`) | `timeout_ms` (پیش‌فرض `5000`، حداکثر `30000`) و بازگرداندن فوری پیام جدید یا `408 WAIT_TIMEOUT` |
-| `GET /api/v1/notifications/{id}` | دریافت جزئیات کامل و OTP | بازگرداندن جزئیات پیام + آرایه `verificationArtifacts` (کدهای OTP و لینک‌های تایید) با ایزولاسیون کامل کانال (`404` روی ID سایر کانال‌ها) |
-
-```bash
-curl "http://127.0.0.1:4080/api/v1/notifications/wait?run_id=e2e-signup-42&timeout_ms=5000" \
-  -H "X-Channel-Key: sms-7feaad9993df8b9.ntsec_your_secret_here"
-```
-
----
-
-## ۴. ابزارهای پیشرفته بررسی و دیباگ (`v1.2.0`)
-
-- **بازرس پیشرفته ایمیل**: دکمه‌های نمایش **دسکتاپ / تبلت / موبایل**، شبیه‌سازی **کلاینت تیره**، رندر محلی تصاویر درون‌خطی `cid:`، پیش‌نمایش امن پیوست‌های متنی و تصویری و دانلود فایل، به همراه تب **ممیزی (Audit)** (حجم پیام، عنوان، نسخه Plain Text، صفت `alt` تصاویر، لینک‌های نسبی، `List-Unsubscribe` و پیکسل‌های ریموت مسدودشده).
-- **ابزارهای OTP، مقایسه و خروجی**: کپی سریع کدهای OTP (با نرمال‌سازی اعداد فارسی/عربی/انگلیسی) و لینک‌های جادویی، مودال **مقایسه (Compare)** برای نمایش تفاوت خط‌به‌خط بین دو اعلان، و منوی Export برای خروجی `.eml`، `JSON` (با سانسور سکرت) و دستور `cURL`.
-- **پیامک و پوش نوتیفیکیشن**: شمارنده دقیق بخش‌ها و رمزنگاری پیامک (`GSM-7` و `UCS-2`) و شبیه‌ساز کارت پوش در **iOS**، **Android** و **Web Push**.
-
----
-
-## ۵. پاسخ Mock وب‌هوک، Replay لوکال و قوانین Chaos (`v1.3.0`)
-
-- **پاسخ Mock وب‌هوک**: از بخش **کانال‌ها ← قوانین (Rules)** می‌توانید برای هر کانال Webhook کد وضعیت (`100..599`)، هدرها، بدنه پاسخ و تاخیر (`0..10000 ms`) دلخواه تعریف کنید. NotifyTrap ابتدا درخواست را ذخیره و سپس پاسخ Mock را برمی‌گرداند.
-- **بازپخش سخت‌گیرانه لوکال (Loopback-Only Replay)**: هر وب‌هوک شکارشده را از طریق **صندوق دریافت ← بازپخش (Replay)** فقط به مقصدهای محلی (`http://127.0.0.1`، `http://localhost` یا `http://[::1]`) بازارسال کنید. هاست‌های خارجی مسدود می‌شوند.
-- **قوانین Chaos**: روی هر کانال تاخیر مصنوعی (`0..10000 ms`) و نرخ خطای احتمالی (`0..100%`) با کد خطای دلخواه HTTP یا SMTP (`400..599`) اعمال کنید تا مکانیزم Retry برنامه را بدون ریسک تست کنید.
-
----
-
-## ۶. جستجوی ساخت‌یافته، سرور محلی MCP و ابزار CLI (`v1.4.0`)
-
-- **جستجوی ساخت‌یافته**: در صندوق دریافت یا کوئری API از کلیدواژه‌های `channel:`، `status:`، `run:`، `to:`، `from:`، `subject:`، `otp:true`، منفی‌سازی با `-`، عبارت داخل گیومه و `/regex/` استفاده کنید و فیلترهای پرکاربرد را ذخیره کنید.
-- **سرور محلی MCP (`POST /api/v1/mcp`)**: اندپوینت JSON-RPC 2.0 با احراز هویت `X-Channel-Key` شامل ابزارهای `list_notifications`، `wait_for_notification`، `get_notification_detail` و `extract_otp_codes`.
-- **ابزار CLI (`notifytrap-cli`)**: دستورات `tail`، `wait-otp`، `export <id>` و پل `mcp` روی stdio.

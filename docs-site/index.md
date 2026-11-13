@@ -16,31 +16,40 @@ hero:
       text: Channels & API
       link: /guide/channels-and-api
     - theme: alt
+      text: Inspection Tools
+      link: /guide/advanced-features
+    - theme: alt
       text: فارسی
       link: /fa/
 
 features:
-  - icon: 📧
-    title: Email Studio & Audit Sandbox
-    details: Embedded ESMTP (127.0.0.1:1025) with multipart MIME, inline cid image hydration, safe attachment preview, Desktop/Tablet/Mobile + Dark Client views, and offline email audits.
-  - icon: 💬
-    title: SMS, Push & Device Previews
-    details: Dedicated POST /api/v1/sms and POST /api/v1/push endpoints with GSM-7/UCS-2 segment counting and iOS, Android, and Web Push device card previews.
-  - icon: 🧪
-    title: Test Automation, OTP & Query API
-    details: Event-driven /api/v1/notifications/wait long-polling, X-NotifyTrap-Run test tagging, automatic OTP & magic-link extraction, diff comparison, and .eml/JSON/cURL export.
-  - icon: 🪝
-    title: Webhook Trap, Mock & Loopback Replay
-    details: Captures ANY HTTP method on /api/v1/webhooks/{id}[/{subpath}], returns configurable mock responses, replays strictly to 127.0.0.1/localhost/[::1], and injects HTTP/SMTP chaos rules.
-  - icon: 🔒
-    title: Workspace Isolation & Security
-    details: Explicit Workspace → Project → Environment → Channel hierarchy backed by AES-256-GCM credentials, OS keyring + 0o600 fallback, and strict loopback binding.
+  - icon: 📱
+    title: Realistic Device Frames & Simulators
+    details: Pixel-perfect hardware chassis views for iPhone 15, Google Pixel 8, and iPad Mini with responsive scaling, portrait/landscape flipping, and Dynamic Island/punch-hole indicators.
+  - icon: 🧩
+    title: Offline MJML & Template Linter
+    details: Zero-network MJML tag transpilation and deterministic template linting alerting immediately on unrendered tokens (mustache tags, ${...}, null, None, [object Object]).
+  - icon: 🔍
+    title: Live Link & Remote Asset Health Audit
+    details: Async background checker inspecting external HTTP/HTTPS assets and links with real-time status code, response time, SSL error, and offline caching metrics.
+  - icon: 💾
+    title: SQLite Metrics & One-Click VACUUM
+    details: Granular disk footprint and table row count breakdown, automatic retention pruning, and single-click SQLite VACUUM optimization in Settings.
+  - icon: 🌐
+    title: Public Webhook Ingress Tunneling
+    details: Expose local capture endpoints to external webhooks (Stripe, GitHub, Shopify) via cloudflared, ngrok, or bore with one click and automatic loopback health checks.
+  - icon: 🔀
+    title: Downstream Webhook Auto-Forwarding
+    details: Asynchronously fan out captured webhooks to secondary targets (Zapier, local microservices) with event name filtering, custom headers, and retry timeouts.
+  - icon: 🖥️
+    title: Headless Server & Web Companion UI
+    details: Run notifytrap-cli serve on headless servers, Docker containers, or CI environments with an embedded Axum web server hosting the complete Nuxt SPA interface.
   - icon: ⌨️
     title: Tray Badge, CLI, MCP & Search Syntax
-    details: System tray & taskbar unread badges, native OS notifications, Ctrl/Cmd+K Command Palette, structured /regex/ search, notifytrap-cli, and built-in local MCP server.
+    details: Unread badges on tray & taskbar, Ctrl/Cmd+K Command Palette, structured /regex/ queries, notifytrap-cli tail/wait-otp, and built-in local MCP server.
   - icon: 🌐
-    title: Bilingual EN (LTR) & FA (RTL)
-    details: Native Light and Dark themes, symmetrical RTL/LTR layout, bundled fonts, and automatic Persian/Arabic-Indic/Devanagari digit normalization with signed cross-platform updates.
+    title: Fully Bilingual EN (LTR) & FA (RTL)
+    details: Native Light and Dark themes, symmetrical RTL/LTR layout, bundled Persian typography, and automatic numeral normalization with signed cross-platform auto-updates.
 ---
 
 <div class="notifytrap-banner-frame">
@@ -49,12 +58,16 @@ features:
 
 ## Install in Seconds
 
-Choose your operating system terminal command to pull the latest release automatically:
+Choose your operating system terminal command to pull the latest release automatically. Both the Desktop GUI and standalone `notifytrap-cli` are installed to your PATH:
 
 ::: code-group
 
 ```bash [Linux & macOS (bash)]
 curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash
+```
+
+```bash [Headless / Docker / CI (--cli-only)]
+curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash -s -- --cli-only
 ```
 
 ```bash [Linux AppImage (in-app auto-update)]
@@ -63,6 +76,10 @@ curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scrip
 
 ```powershell [Windows (PowerShell)]
 irm https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.ps1 | iex
+```
+
+```powershell [Windows Headless / CI (-CliOnly)]
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.ps1))) -CliOnly
 ```
 
 :::

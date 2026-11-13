@@ -1,6 +1,6 @@
 # Security & Architecture
 
-NotifyTrap is engineered as a **modular monolith** running inside one desktop binary — never relaying traffic to external mail, SMS, push, or webhook destinations.
+NotifyTrap is engineered as a **modular monolith** running inside one desktop or server binary — with strict isolation and zero untracked external delivery.
 
 ## Security Guarantees
 
@@ -18,9 +18,14 @@ NotifyTrap is engineered as a **modular monolith** running inside one desktop bi
   - Captured HTTP requests scrub `authorization`, `proxy-authorization`, `x-channel-key`, `x-api-key`, `cookie`, and `set-cookie` headers, plus sensitive query params (`channel_key`, `token`, `api_key`, `apikey`, `secret`, `password`, `authorization`), replacing them with `[REDACTED]`.
 - **Bounded Resource & Retention Controls**:
   - Bounded SMTP line reads, 60-second idle session timeouts, max 64 concurrent SMTP sessions, configurable HTTP payload caps, and automatic retention pruning on startup and settings save.
-- **Strict Loopback-Only Webhook Replay & Chaos Simulation (`v1.3.0`)**:
+- **Strict Loopback-Only Webhook Replay & Chaos Simulation**:
   - Webhook replay runs directly over `tokio::net::TcpStream` (`infrastructure/http/loopback_replay.rs`) and strictly permits only `http://127.0.0.1`, `http://localhost`, and `http://[::1]` targets without userinfo or fragments, enforcing bounded 5s connect / 10s I/O timeouts and a 1 MiB response cap.
   - Per-channel Webhook Mock & Chaos Rules (`webhook_mock_json`, `chaos_rule_json`, migration `0004_add_channel_rules.sql`) stay strictly local to the embedded HTTP/SMTP listeners.
+- **Ingress Tunnels & Controlled Forwarding**:
+  - Ingress tunnels run as supervised child processes whose output is monitored for health and authenticated HTTPS URLs.
+  - Downstream auto-forwarding (`infrastructure/http/forwarder.rs`) executes asynchronously with bounded 5s timeouts, preventing secondary failures from affecting primary capture reliability.
+- **Isolated Asset Health Checking**:
+  - Remote link and asset health checking (`infrastructure/http/asset_checker.rs`) enforces strict HTTP head requests with timeouts, SSL verification, and local response caching.
 
 ## Modular Monolith Layers
 
@@ -30,9 +35,9 @@ NotifyTrap is engineered as a **modular monolith** running inside one desktop bi
 | --- | --- |
 | `commands/` | Thin Tauri IPC handlers delegating to services with structured error mapping |
 | `application/` | Runtime state & lifecycle management for local HTTP/SMTP capture servers |
-| `services/` | Domain orchestration, constant-time auth verification, retention cleanup |
-| `domain/` | Typed entities (`Workspace`, `Project`, `Environment`, `Channel`, `Notification`), enums & validation |
-| `infrastructure/` | SQLite repositories & migrations, Axum HTTP routes, Tokio ESMTP + `mail-parser`, `ammonia` & crypto |
+| `services/` | Domain orchestration, constant-time auth verification, retention cleanup, tunnel management |
+| `domain/` | Typed entities (`Workspace`, `Project`, `Environment`, `Channel`, `Notification`, `Tunnel`), enums & validation |
+| `infrastructure/` | SQLite repositories & migrations, Axum HTTP routes, Tokio ESMTP, Web Companion static server, forwarding pipeline, `ammonia` sanitizer & crypto |
 | `events/` | Real-time `notification:captured` desktop IPC broadcaster |
 
 ### Frontend (`app/`)

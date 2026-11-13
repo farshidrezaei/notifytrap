@@ -6,7 +6,7 @@ titleTemplate: جعبه ابزار دسکتاپ لوکال-فرست برای ش�
 hero:
   name: NotifyTrap
   text: شکار، بررسی و دیباگ همه‌ نوتیفیکیشن‌های توسعه به‌صورت لوکال
-  tagline: اپلیکیشن دسکتاپ سریع و آفلاین با Tauri 2، Rust و Nuxt 4؛ با سرورهای مجزای SMTP و HTTP، بدون هیچ ارسال واقعی به بیرون.
+  tagline: اپلیکیشن دسکتاپ سریع و آفلاین با Tauri 2، Rust و Nuxt 4؛ با سرورهای مجزای SMTP و HTTP، همراه با نسخه Headless برای سرورها و بدون هیچ ارسال واقعی به بیرون.
   image:
     src: /notifytrap-logo.png
     alt: لوگوی NotifyTrap
@@ -18,49 +18,70 @@ hero:
       text: کانال‌ها و API
       link: /fa/guide/channels-and-api
     - theme: alt
+      text: ابزارهای بازرسی
+      link: /fa/guide/advanced-features
+    - theme: alt
       text: دریافت از GitHub
       link: https://github.com/farshidrezaei/notifytrap/releases
 
 features:
-  - icon: 📧
-    title: پیش‌نمایش و ممیزی حرفه‌ای ایمیل
-    details: شنود SMTP روی 127.0.0.1:1025 با رندر ایمن تصاویر درون‌خطی cid، پیش‌نمایش ریسپانسیو (دسکتاپ/تبلت/موبایل)، شبیه‌سازی کلاینت تیره، پیش‌نمایش پیوست و تب ممیزی آفلاین.
-  - icon: 💬
-    title: شمارنده SMS و پیش‌نمایش دستگاه Push
-    details: تشخیص خودکار رمزنگاری GSM-7 / UCS-2 و محاسبه تعداد بخش‌های پیامک در کنار پیش‌نمایش کارت اعلان برای iOS، اندروید و وب پوش.
-  - icon: 🪝
-    title: شبیه‌سازی Webhook، Replay لوکال و Chaos
-    details: شکار هر متد HTTP روی /api/v1/webhooks/{id} همراه با پاسخ Mock دلخواه، بازپخش امن فقط به 127.0.0.1/localhost/[::1] و تزریق تاخیر یا خطای تصادفی HTTP و SMTP.
-  - icon: 🗂️
-    title: جداسازی کامل با Workspace و Project
-    details: تفکیک پروژه‌ها، محیط‌ها (Local، Development، Testing، Staging) و کلیدهای کانال تا پیام‌های اپلیکیشن‌های مختلف هیچ‌وقت با هم قاطی نشوند.
-  - icon: 🔐
-    title: امنیت و ایزولاسیون بدون ارسال خارجی
-    details: پالایش با ammonia و iframe sandbox="" با مسدودسازی پیکسل‌های ردیاب، مقایسه امن Constant-Time، رمزنگاری AES-256-GCM و نگهداری کلید در Keyring سیستم‌عامل.
-  - icon: ⌨️
-    title: بج ترای، CLI، سرور MCP و جستجوی حرفه‌ای
-    details: نمایش تعداد خوانده‌نشده روی ترای و تسک‌بار، اعلان بومی سیستم‌عامل، پالت فرمان Ctrl/Cmd+K، جستجوی ساخت‌یافته /regex/، ابزار notifytrap-cli و سرور محلی MCP.
+  - icon: 📱
+    title: قاب‌های سخت‌افزاری واقعی و شبیه‌سازها
+    details: شبیه‌سازی دقیق فریم گوشی و تبلت (iPhone 15، Google Pixel 8، iPad Mini) با حاشیه‌های واقعی، بریدگی جزیره پویا، تغییر جهت افقی/عمودی و مقیاس ریسپانسیو.
+  - icon: 🧩
+    title: رندر آفلاین MJML و لینتر قالب
+    details: تبدیل تگ‌های MJML به HTML معنایی بدون وابستگی به نود و اینترنت، همراه با لینتر خودکار جهت شناسایی متغیرهای رندر نشده (مانند تگ‌های موستاش، null، None و [object Object]).
+  - icon: 🔍
+    title: ممیزی زنده پیوندها و فایل‌های ریموت
+    details: بررسی غیرهمزمان وضعیت لینک‌های وب، کد پاسخ، زمان لود، خطاهای SSL و حجم تصاویر با کش‌کردن محلی برای سنجش سلامت نوتیفیکیشن‌ها.
+  - icon: 💾
+    title: متریک‌های دیتابیس و بهینه‌سازی SQLite
+    details: گزارش حجم مصرفی دیسک به تفکیک جداول، حذف دوره‌ای خودکار داده‌های قدیمی و اجرای یک‌کلیکه دستور VACUUM در بخش تنظیمات.
   - icon: 🌐
-    title: دوزبانه کامل (RTL و LTR)
-    details: رابط کاربری استاندارد فارسی (راست‌به‌چپ) و انگلیسی (چپ‌به‌چپ) همراه با تم روشن و تاریک مجزا، نرمال‌سازی اعداد و آپدیت امضاشده درون‌برنامه‌ای.
+    title: تانل عمومی اینگرس برای وب‌هوک‌ها
+    details: دریافت وب‌هوک‌های واقعی سرویس‌های اینترنتی (Stripe، GitHub، درگاه‌های پرداخت) روی سیستم محلی از طریق cloudflared، ngrok یا bore تنها با یک کلیک.
+  - icon: 🔀
+    title: خط لوله فوروارد خودکار وب‌هوک
+    details: بازپخش خودکار وب‌هوک‌های شکارشده به سرویس‌های ثانویه (مثل Zapier یا میکروسرویس‌های لوکال) همراه با فیلتر نام رویداد، هدرهای سفارشی و تایم‌اوت.
+  - icon: 🖥️
+    title: سرور هدلس و رابط تحت‌وب Companion
+    details: اجرای کامل موتور نوتیفیکیشن روی سرور، داکر و CI از طریق دستور notifytrap-cli serve به همراه سرو کامل رابط کاربری وب روی پورت مجزا.
+  - icon: ⌨️
+    title: بج ترای، CLI، سرور MCP و جستجوی پیشرفته
+    details: آیکون ترای با شماره پیام‌ها، اعلان بومی سیستم‌عامل، پالت فرمان Ctrl/Cmd+K، جستجوی ساخت‌یافته /regex/، ابزار CLI و سرور محلی MCP.
+  - icon: 🌐
+    title: دوزبانه استاندارد فارسی (RTL) و انگلیسی (LTR)
+    details: پشتیبانی کامل از چینش راست‌به‌چپ، فونت‌های بومی، تم روشن و تاریک مستقل، نرمال‌سازی ارقام فارسی و آپدیت خودکار درون‌برنامه‌ای.
 ---
 
 <div class="nt-banner-frame">
   <img src="/notifytrap-banner.png" alt="بنر NotifyTrap — شکار و بررسی ایمیل، SMS، Push و Webhook به‌صورت لوکال" />
 </div>
 
-## نصب سریع
+## نصب سریع با ترمینال
 
-نصب‌کننده‌های زیر آخرین نسخه منتشرشده را مستقیم از GitHub Releases دانلود و نصب می‌کنند:
+اسکریپت‌های زیر آخرین نسخه را دریافت کرده و هم اپلیکیشن دسکتاپ و هم باینری مستقل `notifytrap-cli` را روی سیستم شما نصب و در PATH قرار می‌دهند:
 
 ::: code-group
 
-```bash [macOS / Linux]
+```bash [لینوکس و مک (bash)]
 curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash
 ```
 
-```powershell [Windows (PowerShell)]
+```bash [سرور لینوکس، داکر و CI (فقط CLI)]
+curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash -s -- --cli-only
+```
+
+```bash [نسخه AppImage لینوکس (آپدیت درون‌برنامه‌ای)]
+curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash -s -- --method appimage
+```
+
+```powershell [ویندوز (PowerShell)]
 irm https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.ps1 | iex
+```
+
+```powershell [ویندوز سرور و CI (فقط CLI)]
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.ps1))) -CliOnly
 ```
 
 :::
