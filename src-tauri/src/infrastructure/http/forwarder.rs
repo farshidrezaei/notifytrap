@@ -36,7 +36,9 @@ pub async fn execute_channel_forwarding_if_enabled(
                     status: ForwardExecutionStatus::Skipped,
                     http_status_code: None,
                     duration_milliseconds: 0,
-                    response_body_snippet: Some(format!("Skipped: event filter '{expected}' did not match notification")),
+                    response_body_snippet: Some(format!(
+                        "Skipped: event filter '{expected}' did not match notification"
+                    )),
                     error_message: None,
                     executed_at: current_utc_timestamp(),
                 });
@@ -50,15 +52,15 @@ pub async fn execute_channel_forwarding_if_enabled(
 
 fn matches_event_filter(notification: &Notification, expected_event: &str) -> bool {
     let payload = &notification.payload_json;
-    if let Some(event_val) = payload.get("event").and_then(|value| value.as_str()) {
-        if event_val.eq_ignore_ascii_case(expected_event) {
-            return true;
-        }
+    if let Some(event_val) = payload.get("event").and_then(|value| value.as_str())
+        && event_val.eq_ignore_ascii_case(expected_event)
+    {
+        return true;
     }
-    if let Some(type_val) = payload.get("type").and_then(|value| value.as_str()) {
-        if type_val.eq_ignore_ascii_case(expected_event) {
-            return true;
-        }
+    if let Some(type_val) = payload.get("type").and_then(|value| value.as_str())
+        && type_val.eq_ignore_ascii_case(expected_event)
+    {
+        return true;
     }
     notification.subject.eq_ignore_ascii_case(expected_event)
 }
@@ -84,7 +86,9 @@ async fn dispatch_forward_request(
                 http_status_code: None,
                 duration_milliseconds: started_instant.elapsed().as_millis() as u64,
                 response_body_snippet: None,
-                error_message: Some(format!("Failed to build HTTP forwarding client: {build_error}")),
+                error_message: Some(format!(
+                    "Failed to build HTTP forwarding client: {build_error}"
+                )),
                 executed_at: current_utc_timestamp(),
             };
         }
@@ -104,10 +108,10 @@ async fn dispatch_forward_request(
         HeaderValue::from_static(notification.channel_type.as_str()),
     );
 
-    if !notification.test_run_identifier.is_empty() {
-        if let Ok(value) = HeaderValue::from_str(&notification.test_run_identifier) {
-            headers.insert(HeaderName::from_static("x-notifytrap-run"), value);
-        }
+    if !notification.test_run_identifier.is_empty()
+        && let Ok(value) = HeaderValue::from_str(&notification.test_run_identifier)
+    {
+        headers.insert(HeaderName::from_static("x-notifytrap-run"), value);
     }
 
     for (name, val) in &rule.custom_headers {

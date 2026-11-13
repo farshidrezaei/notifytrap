@@ -65,7 +65,8 @@ impl TunnelManager {
         if let Ok(mut guard) = self.report_state.write() {
             *guard = updated_report.clone();
         }
-        self.event_publisher.emit_tunnel_status_changed(&updated_report);
+        self.event_publisher
+            .emit_tunnel_status_changed(&updated_report);
         Ok(updated_report)
     }
 
@@ -91,7 +92,8 @@ impl TunnelManager {
         if let Ok(mut guard) = self.report_state.write() {
             *guard = initial_report.clone();
         }
-        self.event_publisher.emit_tunnel_status_changed(&initial_report);
+        self.event_publisher
+            .emit_tunnel_status_changed(&initial_report);
 
         let (program, arguments) = match configuration.provider {
             TunnelProvider::Cloudflared => {
@@ -113,7 +115,10 @@ impl TunnelManager {
                     .filter(|p| !p.trim().is_empty())
                     .unwrap_or_else(|| "ngrok".to_string());
                 let mut args = vec!["http".to_string(), local_http_port.to_string()];
-                if let Some(token) = configuration.authentication_token.filter(|t| !t.trim().is_empty()) {
+                if let Some(token) = configuration
+                    .authentication_token
+                    .filter(|t| !t.trim().is_empty())
+                {
                     args.push("--authtoken".to_string());
                     args.push(token);
                 }
@@ -134,7 +139,9 @@ impl TunnelManager {
             }
             TunnelProvider::Custom => {
                 let bin = configuration.custom_binary_path.ok_or_else(|| {
-                    ApplicationError::Validation("Custom binary path is required for custom provider".to_string())
+                    ApplicationError::Validation(
+                        "Custom binary path is required for custom provider".to_string(),
+                    )
                 })?;
                 let custom_args = configuration
                     .custom_arguments
@@ -167,7 +174,8 @@ impl TunnelManager {
                 if let Ok(mut guard) = self.report_state.write() {
                     *guard = failed_report.clone();
                 }
-                self.event_publisher.emit_tunnel_status_changed(&failed_report);
+                self.event_publisher
+                    .emit_tunnel_status_changed(&failed_report);
                 return Err(ApplicationError::Internal(format!(
                     "Failed to spawn tunnel process '{program}': {spawn_error}"
                 )));

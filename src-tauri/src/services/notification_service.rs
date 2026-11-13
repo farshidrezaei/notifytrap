@@ -308,7 +308,9 @@ impl NotificationService {
     }
 
     /// Retrieves filesystem and row footprint statistics for the SQLite database.
-    pub fn get_database_storage_statistics(&self) -> Result<DatabaseStorageStatistics, ApplicationError> {
+    pub fn get_database_storage_statistics(
+        &self,
+    ) -> Result<DatabaseStorageStatistics, ApplicationError> {
         self.database_manager.get_storage_statistics()
     }
 

@@ -24,9 +24,9 @@ impl RunningWebCompanionServer {
         capture_state: HttpCaptureState,
         maximum_payload_bytes: usize,
     ) -> Result<Self, ApplicationError> {
-        let bind_ip: IpAddr = bind_address
-            .parse()
-            .map_err(|_| ApplicationError::Validation("Invalid web server bind address".to_string()))?;
+        let bind_ip: IpAddr = bind_address.parse().map_err(|_| {
+            ApplicationError::Validation("Invalid web server bind address".to_string())
+        })?;
         let target_address = SocketAddr::new(bind_ip, web_port);
 
         let listener = TcpListener::bind(target_address).await.map_err(|error| {
@@ -42,11 +42,11 @@ impl RunningWebCompanionServer {
 
         let mut app_router = api_router.layer(CorsLayer::permissive());
 
-        if let Some(assets_dir) = static_assets_path {
-            if assets_dir.is_dir() {
-                let serve_dir = ServeDir::new(&assets_dir).fallback(ServeDir::new(&assets_dir));
-                app_router = app_router.fallback_service(serve_dir);
-            }
+        if let Some(assets_dir) = static_assets_path
+            && assets_dir.is_dir()
+        {
+            let serve_dir = ServeDir::new(&assets_dir).fallback(ServeDir::new(&assets_dir));
+            app_router = app_router.fallback_service(serve_dir);
         }
 
         let (shutdown_sender, shutdown_receiver) = oneshot::channel::<()>();

@@ -13,12 +13,7 @@ pub enum TunnelProvider {
 }
 
 impl TunnelProvider {
-    pub const ALL: [TunnelProvider; 4] = [
-        Self::Cloudflared,
-        Self::Ngrok,
-        Self::Bore,
-        Self::Custom,
-    ];
+    pub const ALL: [TunnelProvider; 4] = [Self::Cloudflared, Self::Ngrok, Self::Bore, Self::Custom];
 
     pub fn as_str(self) -> &'static str {
         match self {

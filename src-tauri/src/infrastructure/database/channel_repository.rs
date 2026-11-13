@@ -161,10 +161,9 @@ impl SqliteChannelRepository {
         let chaos_rule_json = serde_json::to_string(chaos_rule).map_err(|error| {
             ApplicationError::Internal(format!("Failed to serialize chaos rule: {error}"))
         })?;
-        let forwarding_rule_json =
-            serde_json::to_string(forwarding_rule).map_err(|error| {
-                ApplicationError::Internal(format!("Failed to serialize forwarding rule: {error}"))
-            })?;
+        let forwarding_rule_json = serde_json::to_string(forwarding_rule).map_err(|error| {
+            ApplicationError::Internal(format!("Failed to serialize forwarding rule: {error}"))
+        })?;
         let affected = connection.execute(
             "UPDATE channels
              SET webhook_mock_json = ?2, chaos_rule_json = ?3, forwarding_rule_json = ?4, updated_at = ?5

@@ -229,12 +229,10 @@ fn parse_options(arguments: &[String]) -> Result<CliOptions, String> {
             }
             "--web-assets-path" => {
                 index += 1;
-                web_assets_path = Some(
-                    arguments
-                        .get(index)
-                        .cloned()
-                        .ok_or_else(|| "--web-assets-path requires a directory path".to_string())?,
-                );
+                web_assets_path =
+                    Some(arguments.get(index).cloned().ok_or_else(|| {
+                        "--web-assets-path requires a directory path".to_string()
+                    })?);
             }
             other if other.starts_with('-') => {
                 return Err(format!("Unknown option: {other}"));
@@ -308,21 +306,29 @@ async fn run_headless_serve(options: &CliOptions) -> Result<(), String> {
     )
     .await
     .map_err(|err| format!("Failed to start SMTP capture server: {err}"))?;
-    println!("SMTP Capture Server: smtp://{}", smtp_server.bound_address());
+    println!(
+        "SMTP Capture Server: smtp://{}",
+        smtp_server.bound_address()
+    );
 
     let _web_companion = if let Some(web_port) = options.web_port {
-        let assets_dir = options.web_assets_path.as_ref().map(PathBuf::from).or_else(|| {
-            let candidate = PathBuf::from(".output/public");
-            if candidate.is_dir() {
-                Some(candidate)
-            } else {
-                None
-            }
-        });
+        let assets_dir = options
+            .web_assets_path
+            .as_ref()
+            .map(PathBuf::from)
+            .or_else(|| {
+                let candidate = PathBuf::from(".output/public");
+                if candidate.is_dir() {
+                    Some(candidate)
+                } else {
+                    None
+                }
+            });
 
         let capture_state = HttpCaptureState {
             services: services.clone(),
-            event_publisher: Arc::clone(&event_publisher) as Arc<dyn notifytrap_lib::events::EventPublisher>,
+            event_publisher: Arc::clone(&event_publisher)
+                as Arc<dyn notifytrap_lib::events::EventPublisher>,
             bound_endpoint: format!("{}:{}", options.bind_address, web_port),
         };
 
@@ -438,11 +444,11 @@ async fn run_wait_otp(options: &CliOptions) -> Result<(), String> {
     if let Some(list) = artifacts {
         for artifact in list {
             let kind = artifact.get("kind").and_then(|v| v.as_str()).unwrap_or("");
-            if kind == "otp" {
-                if let Some(code) = artifact.get("value").and_then(|v| v.as_str()) {
-                    println!("{code}");
-                    return Ok(());
-                }
+            if kind == "otp"
+                && let Some(code) = artifact.get("value").and_then(|v| v.as_str())
+            {
+                println!("{code}");
+                return Ok(());
             }
         }
         for artifact in list {
@@ -607,7 +613,10 @@ async fn run_self_update() -> Result<(), String> {
         .map_err(|err| format!("Failed to reach update server: {err}"))?;
 
     if !response.status().is_success() {
-        return Err(format!("Release server returned HTTP {}", response.status()));
+        return Err(format!(
+            "Release server returned HTTP {}",
+            response.status()
+        ));
     }
 
     let response_text = response
@@ -629,7 +638,9 @@ async fn run_self_update() -> Result<(), String> {
         return Ok(());
     }
 
-    println!("[NotifyTrap CLI] New version available: v{latest_version} (current: v{current_version})");
+    println!(
+        "[NotifyTrap CLI] New version available: v{latest_version} (current: v{current_version})"
+    );
 
     let os = std::env::consts::OS;
     let expected_asset_suffix = match os {
@@ -655,7 +666,9 @@ async fn run_self_update() -> Result<(), String> {
         Some(a) => a,
         None => {
             println!("[NotifyTrap CLI] Run the official installer to update:");
-            println!("  curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash");
+            println!(
+                "  curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash"
+            );
             return Ok(());
         }
     };
@@ -678,8 +691,12 @@ async fn run_self_update() -> Result<(), String> {
         .map_err(|err| format!("Failed to read archive: {err}"))?;
 
     println!("[NotifyTrap CLI] Successfully downloaded update archive for v{latest_version}.");
-    println!("[NotifyTrap CLI] To complete the update, rerun the installer or extract into your PATH.");
-    println!("  curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash");
+    println!(
+        "[NotifyTrap CLI] To complete the update, rerun the installer or extract into your PATH."
+    );
+    println!(
+        "  curl -fsSL https://raw.githubusercontent.com/farshidrezaei/notifytrap/main/scripts/install.sh | bash"
+    );
     Ok(())
 }
 

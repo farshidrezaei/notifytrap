@@ -14,8 +14,8 @@ use notifytrap_lib::infrastructure::smtp::server::RunningSmtpServer;
 
 #[tokio::test]
 async fn headless_server_and_web_companion_end_to_end_lifecycle() {
-    let database_manager = DatabaseConnectionManager::open_in_memory()
-        .expect("in-memory database should initialize");
+    let database_manager =
+        DatabaseConnectionManager::open_in_memory().expect("in-memory database should initialize");
     let key_provider = Arc::new(EphemeralSecretKeyProvider::new());
     let services = ApplicationServices::new(database_manager, key_provider);
     let event_publisher = Arc::new(BroadcastEventPublisher::default());
@@ -47,7 +47,8 @@ async fn headless_server_and_web_companion_end_to_end_lifecycle() {
 
     let capture_state = HttpCaptureState {
         services: services.clone(),
-        event_publisher: Arc::clone(&event_publisher) as Arc<dyn notifytrap_lib::events::EventPublisher>,
+        event_publisher: Arc::clone(&event_publisher)
+            as Arc<dyn notifytrap_lib::events::EventPublisher>,
         bound_endpoint: http_server.bound_address().to_string(),
     };
 
@@ -73,12 +74,20 @@ async fn headless_server_and_web_companion_end_to_end_lifecycle() {
 
     // 1. Verify HTTP Capture Health Endpoint
     let health_url = format!("http://{}/api/v1/health", http_server.bound_address());
-    let health_response = client.get(&health_url).send().await.expect("health request");
+    let health_response = client
+        .get(&health_url)
+        .send()
+        .await
+        .expect("health request");
     assert!(health_response.status().is_success());
 
     // 2. Verify Web Companion Index Serving
     let web_url = format!("http://{}/index.html", web_companion.bound_address());
-    let web_response = client.get(&web_url).send().await.expect("web companion request");
+    let web_response = client
+        .get(&web_url)
+        .send()
+        .await
+        .expect("web companion request");
     assert!(web_response.status().is_success());
 
     // 3. Graceful Shutdown Lifecycle

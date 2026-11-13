@@ -479,12 +479,11 @@ async fn process_webhook_capture(
                 )
             });
 
-            if let (Ok(Some(ch)), Ok(Some(notif))) = (record, notification) {
-                if let Some(forward_result) =
+            if let (Ok(Some(ch)), Ok(Some(notif))) = (record, notification)
+                && let Some(forward_result) =
                     execute_channel_forwarding_if_enabled(&ch, &notif, &raw_bytes_vec).await
-                {
-                    publisher.emit_forward_executed(&forward_result);
-                }
+            {
+                publisher.emit_forward_executed(&forward_result);
             }
         });
     }

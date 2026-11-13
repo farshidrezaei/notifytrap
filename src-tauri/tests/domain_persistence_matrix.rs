@@ -728,7 +728,10 @@ fn channel_forwarding_rules_persistence_and_matrix_update() {
         .expect("update rules");
 
     assert!(updated.forwarding_rule.is_enabled);
-    assert_eq!(updated.forwarding_rule.target_url, "http://127.0.0.1:9000/api/hook");
+    assert_eq!(
+        updated.forwarding_rule.target_url,
+        "http://127.0.0.1:9000/api/hook"
+    );
     assert_eq!(updated.forwarding_rule.timeout_seconds, 8);
     assert_eq!(
         updated.forwarding_rule.filter_event_name.as_deref(),

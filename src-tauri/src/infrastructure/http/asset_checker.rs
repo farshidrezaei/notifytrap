@@ -10,7 +10,8 @@ use crate::domain::errors::ApplicationError;
 
 const MAXIMUM_CONCURRENT_CHECKS: usize = 5;
 const ASSET_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
-const ASSET_USER_AGENT: &str = "NotifyTrap-AssetAuditor/1.5 (+https://github.com/farshidrezaei/notifytrap)";
+const ASSET_USER_AGENT: &str =
+    "NotifyTrap-AssetAuditor/1.5 (+https://github.com/farshidrezaei/notifytrap)";
 
 /// Extracts candidate HTTP and HTTPS URLs from raw HTML for anchor links and images.
 pub fn extract_candidate_urls(raw_html: &str) -> Vec<(String, AssetKind)> {
@@ -66,7 +67,9 @@ pub async fn check_candidate_assets(
         .timeout(ASSET_REQUEST_TIMEOUT)
         .redirect(reqwest::redirect::Policy::limited(3))
         .build()
-        .map_err(|error| ApplicationError::Internal(format!("Failed to build HTTP auditor client: {error}")))?;
+        .map_err(|error| {
+            ApplicationError::Internal(format!("Failed to build HTTP auditor client: {error}"))
+        })?;
 
     let semaphore = Arc::new(Semaphore::new(MAXIMUM_CONCURRENT_CHECKS));
     let mut join_set = JoinSet::new();
@@ -94,7 +97,11 @@ pub async fn check_candidate_assets(
     Ok(results)
 }
 
-async fn check_single_url(client: &reqwest::Client, url: String, kind: AssetKind) -> AssetCheckResult {
+async fn check_single_url(
+    client: &reqwest::Client,
+    url: String,
+    kind: AssetKind,
+) -> AssetCheckResult {
     let started_at = Instant::now();
 
     // 1. Try HEAD request first for fast headers-only inspection
@@ -192,8 +199,20 @@ mod tests {
 
         let candidates = extract_candidate_urls(sample_html);
         assert_eq!(candidates.len(), 3);
-        assert_eq!(candidates[0], ("https://example.com/login".to_string(), AssetKind::Link));
-        assert_eq!(candidates[1], ("http://local.test/terms".to_string(), AssetKind::Link));
-        assert_eq!(candidates[2], ("https://cdn.example.com/logo.png".to_string(), AssetKind::Image));
+        assert_eq!(
+            candidates[0],
+            ("https://example.com/login".to_string(), AssetKind::Link)
+        );
+        assert_eq!(
+            candidates[1],
+            ("http://local.test/terms".to_string(), AssetKind::Link)
+        );
+        assert_eq!(
+            candidates[2],
+            (
+                "https://cdn.example.com/logo.png".to_string(),
+                AssetKind::Image
+            )
+        );
     }
 }

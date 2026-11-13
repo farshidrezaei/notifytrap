@@ -83,14 +83,20 @@ impl DatabaseConnectionManager {
     /// Calculates comprehensive storage and footprint metrics for the SQLite database.
     pub fn get_storage_statistics(&self) -> Result<DatabaseStorageStatistics, ApplicationError> {
         let (file_size_bytes, wal_size_bytes) = if let Some(path) = &self.database_path {
-            let primary_size = std::fs::metadata(path).map(|metadata| metadata.len()).unwrap_or(0);
+            let primary_size = std::fs::metadata(path)
+                .map(|metadata| metadata.len())
+                .unwrap_or(0);
             let wal_path = PathBuf::from(format!("{}-wal", path.display()));
-            let wal_size = std::fs::metadata(&wal_path).map(|metadata| metadata.len()).unwrap_or(0);
+            let wal_size = std::fs::metadata(&wal_path)
+                .map(|metadata| metadata.len())
+                .unwrap_or(0);
             (primary_size, wal_size)
         } else {
             let size = self.with_connection(|connection| {
-                let page_count: i64 = connection.query_row("PRAGMA page_count;", [], |row| row.get(0))?;
-                let page_size: i64 = connection.query_row("PRAGMA page_size;", [], |row| row.get(0))?;
+                let page_count: i64 =
+                    connection.query_row("PRAGMA page_count;", [], |row| row.get(0))?;
+                let page_size: i64 =
+                    connection.query_row("PRAGMA page_size;", [], |row| row.get(0))?;
                 Ok((page_count.max(0) * page_size.max(0)) as u64)
             })?;
             (size, 0)
@@ -118,7 +124,10 @@ impl DatabaseConnectionManager {
             })?;
 
         Ok(DatabaseStorageStatistics {
-            database_path: self.database_path.as_ref().map(|path| path.display().to_string()),
+            database_path: self
+                .database_path
+                .as_ref()
+                .map(|path| path.display().to_string()),
             file_size_bytes,
             wal_size_bytes,
             total_notifications_count,
