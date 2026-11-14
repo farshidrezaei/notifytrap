@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { CommandPaletteGroup } from '@nuxt/ui'
+import { copyTextToClipboard } from '~/utils/clipboard'
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
 const { t } = useI18n()
+const toast = useToast()
 const router = useRouter()
 const colorMode = useColorMode()
+const { health } = useApplicationHealth()
 const { locale, changeLocale } = useLocaleController()
 const { savedFilters } = useSavedFilters()
 const {
@@ -49,6 +52,41 @@ const commandGroups = computed<CommandPaletteGroup[]>(() => {
       onSelect: () => closeAndRun(() => refreshInbox()),
     },
     {
+      id: 'action-clear-filters',
+      label: t('commandPalette.actions.clearFilters'),
+      icon: 'i-lucide-filter-x',
+      onSelect: () => closeAndRun(async () => {
+        filterChannelType.value = 'all'
+        filterStatus.value = 'all'
+        filterTestRunIdentifier.value = ''
+        filterSearchQuery.value = ''
+        currentPage.value = 1
+        await router.push('/inbox')
+        await refreshInbox()
+      }),
+    },
+    {
+      id: 'action-create-channel',
+      label: t('commandPalette.actions.createChannel'),
+      icon: 'i-lucide-plus-circle',
+      onSelect: () => closeAndRun(() => router.push('/channels?create=true')),
+    },
+    {
+      id: 'action-copy-mcp-endpoint',
+      label: t('commandPalette.actions.copyMcpEndpoint'),
+      icon: 'i-lucide-bot',
+      onSelect: () => closeAndRun(async () => {
+        const url = `http://${health.value?.httpEndpoint ?? '127.0.0.1:4080'}/api/v1/mcp`
+        const copied = await copyTextToClipboard(url)
+        toast.add({
+          title: copied ? t('common.copiedTitle') : t('common.errorTitle'),
+          description: copied ? url : t('common.clipboardUnavailable'),
+          color: copied ? 'success' : 'error',
+          icon: copied ? 'i-lucide-check-circle-2' : 'i-lucide-alert-circle',
+        })
+      }),
+    },
+    {
       id: 'action-toggle-theme',
       label: t('commandPalette.actions.toggleTheme'),
       icon: colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
@@ -61,6 +99,12 @@ const commandGroups = computed<CommandPaletteGroup[]>(() => {
       label: t('commandPalette.actions.switchLanguage'),
       icon: 'i-lucide-languages',
       onSelect: () => closeAndRun(() => changeLocale(locale.value === 'en' ? 'fa' : 'en')),
+    },
+    {
+      id: 'action-view-docs',
+      label: t('commandPalette.actions.viewDocs'),
+      icon: 'i-lucide-book-open',
+      onSelect: () => closeAndRun(() => router.push('/settings?category=about')),
     },
   ]
 
@@ -111,7 +155,7 @@ const commandGroups = computed<CommandPaletteGroup[]>(() => {
         :groups="commandGroups"
         :placeholder="t('commandPalette.placeholder')"
         :close="{ onClick: () => { isOpen = false } }"
-        class="h-80"
+        class="h-96"
       />
     </template>
   </UModal>

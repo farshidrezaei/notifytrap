@@ -134,6 +134,14 @@
       "viewAll": "View All",
       "emptyTitle": "Waiting for local notifications",
       "emptyDescription": "Send a test email, SMS, push, or webhook request to inspect it live."
+    },
+    "activity": {
+      "title": "Notification Traffic Activity",
+      "subtitle": "Capture rate and distribution across channels",
+      "totalCaptured": "Total Captured",
+      "peakHour": "Peak Rate",
+      "empty": "No traffic recorded yet in this scope",
+      "hourlyTooltip": "{count} notifications"
     }
   },
   "inbox": {
@@ -141,6 +149,7 @@
     "subtitle": "Inspect captured Email, SMS, Push, and Webhook notifications in real time.",
     "scopedSubtitle": "{workspace} / {project} / {environment}",
     "noSubject": "(No Subject)",
+    "listLabel": "Notifications list",
     "emptyTitle": "No notifications captured yet",
     "emptyDescription": "Configure a channel and send a test payload to capture local notifications here.",
     "inspectorEmptyTitle": "Select a notification",
@@ -844,7 +853,11 @@
     "actions": {
       "refreshInbox": "Refresh Inbox",
       "toggleTheme": "Toggle Light / Dark Theme",
-      "switchLanguage": "Switch Language (EN / FA)"
+      "switchLanguage": "Switch Language (EN / FA)",
+      "clearFilters": "Reset Inbox Filters",
+      "copyMcpEndpoint": "Copy Local MCP Endpoint URL",
+      "createChannel": "Create New Channel",
+      "viewDocs": "Open Documentation"
     }
   },
   "validation": {

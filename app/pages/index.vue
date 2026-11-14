@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DashboardNotificationActivityCard from '~/components/dashboard/NotificationActivityCard.vue'
 import type { ChannelType } from '~/types/application'
 import { NOTIFICATION_CHANNEL_KINDS } from '~/schemas/workspaceForms'
 import { copyTextToClipboard } from '~/utils/clipboard'
@@ -270,6 +271,9 @@ async function handleInspectRecent(notificationId: string): Promise<void> {
           </div>
         </UCard>
       </div>
+
+      <!-- Live Notification Activity Rate -->
+      <DashboardNotificationActivityCard :notifications="notificationPage?.items ?? []" />
 
       <div class="grid gap-6 lg:grid-cols-2">
         <!-- Quick Integration Snippet -->

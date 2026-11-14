@@ -3,6 +3,8 @@ import type { VerificationArtifact } from '~/types/application'
 import { copyTextToClipboard } from '~/utils/clipboard'
 import { formatShortTimestamp } from '~/utils/formatters'
 
+const ITEM_ESTIMATED_HEIGHT_PIXELS = 84
+
 const { t, locale } = useI18n()
 const toast = useToast()
 const {
@@ -18,6 +20,26 @@ const {
 const items = computed(() => notificationPage.value?.items ?? [])
 const totalCount = computed(() => notificationPage.value?.totalCount ?? 0)
 const selectedId = computed(() => selectedDetail.value?.notification.id ?? null)
+
+const {
+  containerRef,
+  visibleItems,
+  totalHeight,
+  offsetY,
+  scrollToIndex,
+} = useVirtualList(items, {
+  itemHeight: ITEM_ESTIMATED_HEIGHT_PIXELS,
+  overscan: 6,
+})
+
+// Scroll selected item into view if it changes
+watch(selectedId, (newId) => {
+  if (!newId) return
+  const foundIndex = items.value.findIndex((item) => item.id === newId)
+  if (foundIndex >= 0) {
+    scrollToIndex(foundIndex)
+  }
+})
 
 function firstOtpArtifact(artifacts: readonly VerificationArtifact[]): VerificationArtifact | undefined {
   return artifacts.find((artifact) => artifact.kind === 'otpCode')
@@ -50,77 +72,94 @@ async function handleCopyOtp(code: string): Promise<void> {
       />
     </div>
 
-    <div v-else class="flex-1 divide-y divide-default overflow-y-auto">
+    <!-- Virtualized Scroll Container -->
+    <div
+      v-else
+      ref="containerRef"
+      class="flex-1 overflow-y-auto"
+      tabindex="0"
+      :aria-label="t('inbox.listLabel')"
+    >
       <div
-        v-for="item in items"
-        :key="item.id"
-        role="button"
-        tabindex="0"
-        :aria-pressed="selectedId === item.id"
-        class="flex w-full cursor-pointer flex-col gap-1.5 p-3 text-start transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-        :class="selectedId === item.id ? 'bg-primary/10' : ''"
-        @click="selectNotification(item.id)"
-        @keydown.enter.prevent="selectNotification(item.id)"
-        @keydown.space.prevent="selectNotification(item.id)"
+        class="relative w-full"
+        :style="{ height: `${totalHeight}px` }"
       >
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span
-              v-if="item.status === 'captured'"
-              class="size-2 shrink-0 rounded-full bg-primary"
-              :aria-label="t('inbox.status.captured')"
-            />
-            <SharedChannelBadge :channel-type="item.channelType" />
-            <UBadge
-              v-if="item.testRunIdentifier"
-              color="secondary"
-              variant="subtle"
-              size="xs"
-              icon="i-lucide-tag"
-            >
-              {{ item.testRunIdentifier }}
-            </UBadge>
-            <UBadge
-              v-if="item.status === 'archived'"
-              color="neutral"
-              variant="subtle"
-              size="xs"
-            >
-              {{ t('inbox.status.archived') }}
-            </UBadge>
-          </div>
-
-          <span class="shrink-0 text-[11px] text-muted">
-            {{ formatShortTimestamp(item.receivedAt, locale) }}
-          </span>
-        </div>
-
-        <div class="flex items-center justify-between gap-2">
-          <p
-            class="min-w-0 truncate text-xs text-highlighted"
-            :class="item.status === 'captured' ? 'font-semibold' : 'font-medium'"
+        <div
+          class="absolute inset-x-0 top-0 divide-y divide-default"
+          :style="{ transform: `translateY(${offsetY}px)` }"
+        >
+          <div
+            v-for="{ data: item } in visibleItems"
+            :key="item.id"
+            role="button"
+            tabindex="0"
+            :aria-pressed="selectedId === item.id"
+            class="flex w-full cursor-pointer flex-col gap-1.5 p-3 text-start transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            :class="selectedId === item.id ? 'bg-primary/10' : ''"
+            @click="selectNotification(item.id)"
+            @keydown.enter.prevent="selectNotification(item.id)"
+            @keydown.space.prevent="selectNotification(item.id)"
           >
-            {{ item.subject || item.recipient || t('inbox.noSubject') }}
-          </p>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+                <span
+                  v-if="item.status === 'captured'"
+                  class="size-2 shrink-0 rounded-full bg-primary"
+                  :aria-label="t('inbox.status.captured')"
+                />
+                <SharedChannelBadge :channel-type="item.channelType" />
+                <UBadge
+                  v-if="item.testRunIdentifier"
+                  color="secondary"
+                  variant="subtle"
+                  size="xs"
+                  icon="i-lucide-tag"
+                >
+                  {{ item.testRunIdentifier }}
+                </UBadge>
+                <UBadge
+                  v-if="item.status === 'archived'"
+                  color="neutral"
+                  variant="subtle"
+                  size="xs"
+                >
+                  {{ t('inbox.status.archived') }}
+                </UBadge>
+              </div>
 
-          <UButton
-            v-if="firstOtpArtifact(item.verificationArtifacts)"
-            size="xs"
-            color="primary"
-            variant="soft"
-            icon="i-lucide-key-round"
-            :label="firstOtpArtifact(item.verificationArtifacts)?.value"
-            @click.stop="handleCopyOtp(firstOtpArtifact(item.verificationArtifacts)!.value)"
-          />
+              <span class="shrink-0 text-[11px] text-muted">
+                {{ formatShortTimestamp(item.receivedAt, locale) }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <p
+                class="min-w-0 truncate text-xs text-highlighted"
+                :class="item.status === 'captured' ? 'font-semibold' : 'font-medium'"
+              >
+                {{ item.subject || item.recipient || t('inbox.noSubject') }}
+              </p>
+
+              <UButton
+                v-if="firstOtpArtifact(item.verificationArtifacts)"
+                size="xs"
+                color="primary"
+                variant="soft"
+                icon="i-lucide-key-round"
+                :label="firstOtpArtifact(item.verificationArtifacts)?.value"
+                @click.stop="handleCopyOtp(firstOtpArtifact(item.verificationArtifacts)!.value)"
+              />
+            </div>
+
+            <p class="truncate text-xs text-muted">
+              {{ item.recipient }}
+            </p>
+
+            <p v-if="item.previewText" class="line-clamp-2 text-[11px] text-toned">
+              {{ item.previewText }}
+            </p>
+          </div>
         </div>
-
-        <p class="truncate text-xs text-muted">
-          {{ item.recipient }}
-        </p>
-
-        <p v-if="item.previewText" class="line-clamp-2 text-[11px] text-toned">
-          {{ item.previewText }}
-        </p>
       </div>
     </div>
 

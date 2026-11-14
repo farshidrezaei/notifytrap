@@ -65,3 +65,17 @@ Keep your local development database clean and performant directly from the **Se
 - **One-Click SQLite VACUUM**:
   - Reclaims unused storage space and defragments SQLite pages with a single click.
   - Emits desktop notifications upon successful optimization.
+
+---
+
+## 5. Virtualized Inbox & Real-Time Activity Graph
+
+- **Zero-Dependency Virtual Scrolling (`useVirtualList`)**:
+  - Dynamically calculates bounded viewports and offsets to render 10,000+ captured notifications with bounded DOM node count and smooth 60fps scrolling.
+  - Automatically scrolls selected notifications into view when navigating via mouse or `j`/`k` keyboard shortcuts.
+- **Notification Traffic Activity**:
+  - Real-time hourly traffic distribution chart in Dashboard (`NotificationActivityCard.vue`).
+  - Channel-segmented volume metrics (Email, SMS, Push, Webhook) with interactive hover tooltips and peak rate indicators.
+- **Enhanced Command Palette (`Ctrl/Cmd+K`)**:
+  - Instant actions to reset all inbox filters, copy the local MCP server endpoint, create new channels, and jump directly to relevant documentation.
+

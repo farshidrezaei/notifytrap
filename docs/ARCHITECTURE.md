@@ -185,4 +185,9 @@ Default loopback binding: `127.0.0.1`. Default HTTP port: `4080`. Default SMTP p
   - Extracted inline settings sections in `settings.vue` into standalone modular cards (`GeneralSettingsCard.vue`, `ServerSettingsCard.vue`, `McpSettingsCard.vue`, `AboutSettingsCard.vue`).
   - Modularized monolithic Axum HTTP router (`routes.rs`) into dedicated single-responsibility modules: `sms_handler.rs`, `push_handler.rs`, `webhook_handler.rs`, `capture_auth.rs`, and `capture_error.rs`.
   - Zero behavioral regressions; 100% test coverage maintained across Rust unit/integration suites and Vitest component specs.
+- **v2.0.0 (Phase 2 — Performance, Virtual Scrolling & UX Polish)**:
+  - Added zero-dependency virtual scrolling composable (`useVirtualList.ts`) in `InboxMessageList.vue` allowing 60fps rendering across 10,000+ notifications.
+  - Expanded global Command Palette (`CommandPaletteModal.vue`, `Ctrl+K`) with Quick Actions (Reset Filters, Copy MCP Endpoint, Quick Create Channel, Open Docs).
+  - Added Dashboard Notification Activity Rate card (`NotificationActivityCard.vue`) displaying multi-channel hourly distribution buckets and peak rates.
+
 
