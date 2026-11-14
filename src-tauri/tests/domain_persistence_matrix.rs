@@ -9,15 +9,16 @@ use notifytrap_lib::domain::channel::{ChannelType, CreateChannelInput};
 use notifytrap_lib::domain::environment::EnvironmentKind;
 use notifytrap_lib::domain::errors::ApplicationError;
 use notifytrap_lib::domain::notification::{
-    CaptureAttachmentInput, CaptureNotificationInput, NotificationQuery, NotificationStatus,
+    CaptureAttachmentInput, CaptureNotificationInput, FixtureAttachmentEntry,
+    FixtureNotificationEntry, NotificationFixtureBundle, NotificationQuery, NotificationStatus,
 };
-use notifytrap_lib::domain::project::CreateProjectInput;
+use notifytrap_lib::domain::project::{CreateProjectInput, UpdateProjectInput};
 use notifytrap_lib::domain::validation::{
     derive_slug_or_validate, normalize_unicode_digits, validate_bind_address, validate_description,
     validate_name, validate_pagination, validate_retention_days, validate_search_query,
     validate_slug,
 };
-use notifytrap_lib::domain::workspace::CreateWorkspaceInput;
+use notifytrap_lib::domain::workspace::{CreateWorkspaceInput, UpdateWorkspaceInput};
 use notifytrap_lib::infrastructure::database::connection_manager::DatabaseConnectionManager;
 use notifytrap_lib::infrastructure::security::credential_crypto::{
     decrypt_secret, encrypt_secret, hash_secret_hex, verify_secret_constant_time,
@@ -992,6 +993,349 @@ fn fixture_bundle_export_and_import_roundtrip_lifecycle() {
         .expect("target query");
     assert_eq!(target_page.total_count, 1);
     assert_eq!(target_page.items[0].recipient, "bundle1@example.com");
+}
+
+#[test]
+fn fixture_bundle_import_rejects_unsupported_version() {
+    let services = create_test_services();
+    let workspace = services
+        .workspaces
+        .create_workspace(CreateWorkspaceInput {
+            name: "Version Test WS".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create workspace");
+
+    let project = services
+        .projects
+        .create_project(CreateProjectInput {
+            workspace_id: workspace.id.clone(),
+            name: "Version Test Project".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create project");
+
+    let environments = services
+        .environments
+        .list_environments_by_project(&project.id)
+        .expect("list environments");
+    let target_env = &environments[0];
+
+    services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: target_env.id.clone(),
+            name: "Email Channel".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("channel");
+
+    let invalid_version_bundle = NotificationFixtureBundle {
+        version: "99.0".to_string(),
+        generator: "unsupported".to_string(),
+        exported_at: "2026-11-15T00:00:00Z".to_string(),
+        notifications: vec![],
+    };
+
+    let result = services.notifications.import_scope_fixture_bundle(
+        &workspace.id,
+        &project.id,
+        &target_env.id,
+        invalid_version_bundle,
+    );
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        ApplicationError::Validation(message) => {
+            assert!(message.contains("Unsupported fixture bundle version '99.0'"));
+        }
+        other => panic!("Expected Validation error, got: {other:?}"),
+    }
+}
+
+#[test]
+fn fixture_bundle_import_rejects_empty_channels_target_environment() {
+    let services = create_test_services();
+    let workspace = services
+        .workspaces
+        .create_workspace(CreateWorkspaceInput {
+            name: "Empty Channel WS".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create workspace");
+
+    let project = services
+        .projects
+        .create_project(CreateProjectInput {
+            workspace_id: workspace.id.clone(),
+            name: "Empty Channel Project".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create project");
+
+    let environments = services
+        .environments
+        .list_environments_by_project(&project.id)
+        .expect("list environments");
+    let target_env = &environments[0];
+
+    let valid_bundle = NotificationFixtureBundle {
+        version: "1.0".to_string(),
+        generator: "notifytrap".to_string(),
+        exported_at: "2026-11-15T00:00:00Z".to_string(),
+        notifications: vec![],
+    };
+
+    let result = services.notifications.import_scope_fixture_bundle(
+        &workspace.id,
+        &project.id,
+        &target_env.id,
+        valid_bundle,
+    );
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        ApplicationError::Validation(message) => {
+            assert!(message.contains("no channels configured"));
+        }
+        other => panic!("Expected Validation error, got: {other:?}"),
+    }
+}
+
+#[test]
+fn fixture_bundle_import_handles_corrupt_base64_attachments_safely() {
+    let services = create_test_services();
+    let workspace = services
+        .workspaces
+        .create_workspace(CreateWorkspaceInput {
+            name: "Corrupt WS".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create workspace");
+
+    let project = services
+        .projects
+        .create_project(CreateProjectInput {
+            workspace_id: workspace.id.clone(),
+            name: "Corrupt Project".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create project");
+
+    let environments = services
+        .environments
+        .list_environments_by_project(&project.id)
+        .expect("list environments");
+    let target_env = &environments[0];
+
+    services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: target_env.id.clone(),
+            name: "Email Channel".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("channel");
+
+    let bundle_with_corrupt_attachment = NotificationFixtureBundle {
+        version: "1.0".to_string(),
+        generator: "test".to_string(),
+        exported_at: "2026-11-15T00:00:00Z".to_string(),
+        notifications: vec![FixtureNotificationEntry {
+            channel_type: ChannelType::Email,
+            status: NotificationStatus::Captured,
+            recipient: "corrupt_attachment@example.com".to_string(),
+            sender: "sender@example.com".to_string(),
+            subject: "Corrupt Attachment Test".to_string(),
+            preview_text: "Preview".to_string(),
+            payload_json: json!({"subject": "Corrupt"}),
+            raw_payload: "Subject: Corrupt\r\n\r\nBody".to_string(),
+            test_run_identifier: None,
+            received_at: None,
+            attachments: vec![FixtureAttachmentEntry {
+                filename: "broken.bin".to_string(),
+                content_type: "application/octet-stream".to_string(),
+                size_bytes: 100,
+                content_id: None,
+                is_inline: false,
+                content_base64: "NOT_VALID_BASE64_%%%!".to_string(),
+            }],
+        }],
+    };
+
+    let imported_count = services
+        .notifications
+        .import_scope_fixture_bundle(
+            &workspace.id,
+            &project.id,
+            &target_env.id,
+            bundle_with_corrupt_attachment,
+        )
+        .expect("import should gracefully succeed without crashing");
+
+    assert_eq!(imported_count, 1);
+
+    let query_result = services
+        .notifications
+        .query_notifications(NotificationQuery {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: target_env.id.clone(),
+            channel_id: None,
+            channel_type: None,
+            status: None,
+            test_run_identifier: None,
+            recipient_contains: Some("corrupt_attachment".to_string()),
+            subject_contains: None,
+            since: None,
+            search_query: None,
+            limit: Some(10),
+            offset: Some(0),
+        })
+        .expect("query");
+
+    assert_eq!(query_result.total_count, 1);
+}
+
+#[test]
+fn lifecycle_workspace_and_project_updates_and_channel_state_toggles() {
+    let services = create_test_services();
+
+    // 1. Create Workspace
+    let initial_workspace = services
+        .workspaces
+        .create_workspace(CreateWorkspaceInput {
+            name: "Initial Workspace Name".to_string(),
+            slug: None,
+            description: Some("Initial Description".to_string()),
+        })
+        .expect("create workspace should succeed");
+    assert_eq!(initial_workspace.slug, "initial-workspace-name");
+
+    // 2. Update Workspace
+    let updated_workspace = services
+        .workspaces
+        .update_workspace(UpdateWorkspaceInput {
+            id: initial_workspace.id.clone(),
+            name: "Updated Workspace Name".to_string(),
+            slug: "updated-workspace-slug".to_string(),
+            description: Some("Updated Description".to_string()),
+        })
+        .expect("update workspace should succeed");
+    assert_eq!(updated_workspace.name, "Updated Workspace Name");
+    assert_eq!(updated_workspace.slug, "updated-workspace-slug");
+    assert_eq!(updated_workspace.description, "Updated Description");
+
+    // 3. Update Non-Existent Workspace returns NotFound
+    let missing_workspace_update = services.workspaces.update_workspace(UpdateWorkspaceInput {
+        id: "00000000-0000-0000-0000-000000000000".to_string(),
+        name: "Missing Workspace".to_string(),
+        slug: "missing-workspace".to_string(),
+        description: None,
+    });
+    assert!(missing_workspace_update.is_err());
+    match missing_workspace_update.unwrap_err() {
+        ApplicationError::NotFound(entity_name) => assert_eq!(entity_name, "Workspace"),
+        other => panic!("Expected NotFound, received: {other:?}"),
+    }
+
+    // 4. Create Project
+    let initial_project = services
+        .projects
+        .create_project(CreateProjectInput {
+            workspace_id: initial_workspace.id.clone(),
+            name: "Initial Project Name".to_string(),
+            slug: None,
+            description: Some("Initial Project Description".to_string()),
+        })
+        .expect("create project should succeed");
+
+    // 5. Update Project
+    let updated_project = services
+        .projects
+        .update_project(UpdateProjectInput {
+            id: initial_project.id.clone(),
+            name: "Updated Project Name".to_string(),
+            slug: "updated-project-slug".to_string(),
+            description: Some("Updated Project Description".to_string()),
+        })
+        .expect("update project should succeed");
+    assert_eq!(updated_project.name, "Updated Project Name");
+    assert_eq!(updated_project.slug, "updated-project-slug");
+
+    // 6. Create Channel
+    let environments = services
+        .environments
+        .list_environments_by_project(&initial_project.id)
+        .expect("list environments should succeed");
+    let target_environment = &environments[0];
+
+    let channel_credential = services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: initial_workspace.id.clone(),
+            project_id: initial_project.id.clone(),
+            environment_id: target_environment.id.clone(),
+            name: "Test Email Channel".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("channel creation should succeed");
+
+    // 7. Toggle Channel Disabled
+    let disabled_channel = services
+        .channels
+        .set_channel_enabled(&channel_credential.channel.id, false)
+        .expect("disabling channel should succeed");
+    assert!(!disabled_channel.is_enabled);
+
+    // 8. Toggle Channel Enabled
+    let enabled_channel = services
+        .channels
+        .set_channel_enabled(&channel_credential.channel.id, true)
+        .expect("enabling channel should succeed");
+    assert!(enabled_channel.is_enabled);
+
+    // 9. Delete Channel
+    services
+        .channels
+        .delete_channel(&channel_credential.channel.id)
+        .expect("channel deletion should succeed");
+
+    let remaining_channels = services
+        .channels
+        .list_channels_by_scope(
+            &initial_workspace.id,
+            &initial_project.id,
+            &target_environment.id,
+        )
+        .expect("list channels should succeed");
+    assert!(remaining_channels.is_empty());
+
+    // 10. Delete non-existent channel returns NotFound
+    let missing_channel_delete = services
+        .channels
+        .delete_channel("00000000-0000-0000-0000-000000000000");
+    assert!(missing_channel_delete.is_err());
+    match missing_channel_delete.unwrap_err() {
+        ApplicationError::NotFound(entity_name) => assert_eq!(entity_name, "Channel"),
+        other => panic!("Expected NotFound, received: {other:?}"),
+    }
 }
 
 proptest! {

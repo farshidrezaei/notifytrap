@@ -180,20 +180,23 @@ Default loopback binding: `127.0.0.1`. Default HTTP port: `4080`. Default SMTP p
   - **Phase 2 — Deep Asset Checker & Storage Maintenance**: Concurrent HEAD/GET link & image health verifier (`asset_checker.rs`), SQLite disk metric reporting, database VACUUM, and categorized settings navigation (`DatabaseMaintenanceCard.vue`, `settings.vue`).
   - **Phase 3 — Public Ingress & Forwarding Pipeline**: Migration `0005_add_channel_forwarding_rules.sql`, managed local tunnel engine (`cloudflared`, `ngrok`, `bore` in `tunnel_manager.rs`), public webhook URL display in channel cards, and downstream auto-forwarding dispatcher (`forwarder.rs`) with event filtering.
   - **Phase 4 — Headless Server & Web Companion**: `notifytrap-cli serve --web-port=4000` supporting headless execution in Docker/CI with embedded Axum SPA asset serving (`web_server.rs`).
-- **v2.0.0 (Phase 1 — Architectural Decoupling & Modular Monolith Hardening)**:
-  - Decomposed oversized `EmailInspectorView.vue` into focused subcomponents (`EmailInspectorHeader.vue`, `EmailHtmlTab.vue`, `EmailMjmlTab.vue`, `EmailAttachmentsTab.vue`, `EmailAuditTab.vue`).
-  - Extracted inline settings sections in `settings.vue` into standalone modular cards (`GeneralSettingsCard.vue`, `ServerSettingsCard.vue`, `McpSettingsCard.vue`, `AboutSettingsCard.vue`).
-  - Modularized monolithic Axum HTTP router (`routes.rs`) into dedicated single-responsibility modules: `sms_handler.rs`, `push_handler.rs`, `webhook_handler.rs`, `capture_auth.rs`, and `capture_error.rs`.
-  - Zero behavioral regressions; 100% test coverage maintained across Rust unit/integration suites and Vitest component specs.
-- **v2.0.0 (Phase 2 — Performance, Virtual Scrolling & UX Polish)**:
-  - Added zero-dependency virtual scrolling composable (`useVirtualList.ts`) in `InboxMessageList.vue` allowing 60fps rendering across 10,000+ notifications.
-  - Expanded global Command Palette (`CommandPaletteModal.vue`, `Ctrl+K`) with Quick Actions (Reset Filters, Copy MCP Endpoint, Quick Create Channel, Open Docs).
-  - Added Dashboard Notification Activity Rate card (`NotificationActivityCard.vue`) displaying multi-channel hourly distribution buckets and peak rates.
-- **v2.0.0 (Phase 3 — Bulk Operations & Advanced Tagging)**:
-  - Implemented transactional batch operations in Rust: `bulk_delete_notifications`, `bulk_update_notification_status`, and `bulk_set_notification_tag` in `NotificationService` and `SqliteNotificationRepository`.
-  - Added multi-select checkbox capabilities in `InboxMessageList.vue` with dedicated bulk action toolbar (Mark as Read, Mark as Unread, Archive, Assign Tag, Delete).
-  - Built interactive Tag Assignment Modal and destructive Delete Confirmation dialog with complete English (LTR) and Persian (RTL) localization.
-  - Added unit/integration matrix test `bulk_operations_delete_update_and_tag_lifecycle` and frontend spec `tests/bulkOperations.spec.ts`.
+- **v1.6.0 (Virtual Scrolling, Bulk Operations, Fixtures, Split Diff & Hardening)**:
+  - **Architectural Decoupling & Modular Monolith Hardening**:
+    - Decomposed oversized `EmailInspectorView.vue` into focused subcomponents (`EmailInspectorHeader.vue`, `EmailHtmlTab.vue`, `EmailMjmlTab.vue`, `EmailAttachmentsTab.vue`, `EmailAuditTab.vue`).
+    - Extracted inline settings sections in `settings.vue` into standalone modular cards (`GeneralSettingsCard.vue`, `ServerSettingsCard.vue`, `McpSettingsCard.vue`, `AboutSettingsCard.vue`).
+    - Modularized monolithic Axum HTTP router (`routes.rs`) into dedicated single-responsibility modules: `sms_handler.rs`, `push_handler.rs`, `webhook_handler.rs`, `capture_auth.rs`, and `capture_error.rs`.
+  - **Performance, Virtual Scrolling & UX Polish**:
+    - Added zero-dependency virtual scrolling composable (`useVirtualList.ts`) in `InboxMessageList.vue` allowing 60fps rendering across 10,000+ notifications.
+    - Expanded global Command Palette (`CommandPaletteModal.vue`, `Ctrl+K`) with Quick Actions (Reset Filters, Copy MCP Endpoint, Quick Create Channel, Open Docs).
+    - Added Dashboard Notification Activity Rate card (`NotificationActivityCard.vue`) displaying multi-channel hourly distribution buckets and peak rates.
+  - **Bulk Operations & Advanced Tagging**:
+    - Implemented transactional batch operations in Rust: `bulk_delete_notifications`, `bulk_update_notification_status`, and `bulk_set_notification_tag` in `NotificationService` and `SqliteNotificationRepository`.
+    - Added multi-select checkbox capabilities in `InboxMessageList.vue` with dedicated bulk action toolbar (Mark as Read, Mark as Unread, Archive, Assign Tag, Delete).
+    - Built interactive Tag Assignment Modal and destructive Delete Confirmation dialog with complete English (LTR) and Persian (RTL) localization.
+  - **Data Portability, Split Diff & Local TLS**:
+    - Added portable JSON fixture bundle export/import across desktop and CLI (`export_scope_fixture_bundle`, `import_scope_fixture_bundle`, `notifytrap-cli import`), supporting full payloads, metadata, and binary MIME attachments.
+    - Added two-column split diff viewer with synchronized row heights, visual HTML document diffing, and formatted JSON diffing.
+    - Added local SMTP TLS configuration toggle for STARTTLS encryption advertising and schema validation.
 
 
 

@@ -271,6 +271,12 @@ pub struct FixtureNotificationEntry {
     pub attachments: Vec<FixtureAttachmentEntry>,
 }
 
+/// Supported schema version for fixture bundles.
+pub const SUPPORTED_FIXTURE_BUNDLE_VERSION: &str = "1.0";
+
+/// Maximum allowed notifications inside a single fixture bundle to prevent memory exhaustion.
+pub const MAXIMUM_FIXTURE_BUNDLE_NOTIFICATIONS: usize = 5000;
+
 /// Portable fixture bundle for importing, exporting, and reproducing test scenarios.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

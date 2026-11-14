@@ -50,4 +50,29 @@ describe('useVirtualList composable', () => {
     expect(totalHeight.value).toBe(300)
     expect(visibleItems.value).toHaveLength(5)
   })
+
+  it('handles scrollToIndex safely when container is not yet attached', () => {
+    const items = ref(['A', 'B', 'C'])
+    const { scrollToIndex } = useVirtualList(items, { itemHeight: 50 })
+    expect(() => scrollToIndex(2)).not.toThrow()
+  })
+
+  it('adjusts scrollTop correctly when scrolling forward and backward to index', () => {
+    const items = ref(Array.from({ length: 50 }, (_, i) => `Entry ${i}`))
+    const { containerRef, scrollToIndex } = useVirtualList(items, { itemHeight: 40 })
+
+    const mockContainer = document.createElement('div')
+    Object.defineProperty(mockContainer, 'clientHeight', { value: 200, configurable: true })
+    mockContainer.scrollTop = 500
+    containerRef.value = mockContainer
+
+    // Scroll up to index 2 (targetTop: 80 < current 500)
+    scrollToIndex(2)
+    expect(mockContainer.scrollTop).toBe(80)
+
+    // Scroll down to index 20 (targetTop: 800 + 40 = 840 > current 80 + 200 = 280)
+    // targetTop + itemHeight - viewHeight = 800 + 40 - 200 = 640
+    scrollToIndex(20)
+    expect(mockContainer.scrollTop).toBe(640)
+  })
 })

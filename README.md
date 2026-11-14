@@ -5,7 +5,7 @@
 <h1 align="center">NotifyTrap</h1>
 
 <p align="center">
-  <strong>Local-first, offline-capable desktop utility for capturing, inspecting, and debugging application notifications—with zero real-world delivery.</strong>
+  <strong>Local-first, offline-capable desktop utility for capturing, inspecting, and debugging application notifications—safe by default, zero unintended delivery.</strong>
 </p>
 
 <p align="center">
@@ -57,33 +57,54 @@ During local development and staging verification, applications frequently emit 
 
 | Problem in Development | How NotifyTrap Solves It |
 | --- | --- |
-| Accidental emails/SMS sent to real users | Embedded ESMTP & HTTP servers bound strictly to `127.0.0.1` — **zero external delivery** |
+| Accidental emails/SMS sent to real users | Embedded ESMTP & HTTP servers bound strictly to `127.0.0.1` — **safe by default, zero unintended delivery** |
 | Hardcoded test secrets mixed across projects | Explicit `Workspace → Project → Environment → Channel` isolation with scoped credentials |
 | Untrusted HTML emails or leaked auth tokens | Backend `ammonia` HTML sanitization, offline CSP iframe sandbox, and automatic `[REDACTED]` scrubbing |
 | Switching tools for Email vs SMS/Push/Webhooks | Unified real-time Inbox inspecting **Email, SMS, Push, and Webhooks** in one native binary |
 | Cloud SaaS mock traps & rate limits | 100% local SQLite persistence, instant startup, offline-first with zero external accounts |
+
+### Comparison Matrix
+
+| Capability | NotifyTrap | MailHog | Mailpit | Mailtrap (Cloud) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Channels** | **Email, SMS, Push, Webhook** | Email only | Email only | Email (Separate APIs) |
+| **Execution** | **100% Local Desktop & Headless** | Local binary (Deprecated) | Local Go binary | Cloud SaaS only |
+| **Data Privacy** | **Offline SQLite (Zero Leakage)** | In-memory / ephemeral | Local SQLite | Third-party cloud servers |
+| **Multi-Project & Scoped Keys** | **Yes (Workspaces & Environments)** | ❌ Single pool | ❌ Single pool | Workspaces (Paid) |
+| **Chaos & Failure Simulation** | **Latency & Error Codes (SMTP + HTTP)** | Basic Jim chaos | Basic Jim chaos | ❌ |
+| **Data Portability** | **Self-contained Fixture Bundles + CLI** | ❌ | Raw export | ❌ |
+| **CLI & MCP Agent Integration** | **Native CLI + JSON-RPC MCP Server** | ❌ | Basic CLI | API only |
+| **Inspection DX** | **Side-by-side Diff, iOS/Android frames** | Basic HTML | Basic HTML | Template preview |
+| **Bilingual & Layout** | **Native English (LTR) & Persian (RTL)** | English only | English only | English only |
+| **License / Pricing** | **100% Free & Open Source (MIT)** | Free (Unmaintained) | Free (MIT) | Freemium / Paid tiers |
 
 ---
 
 ## Core Capabilities
 
 - **Four Local Capture Channels in One Engine**:
-  - **Email (SMTP)**: Embedded Tokio ESMTP listener (`127.0.0.1:1025` default) supporting `AUTH PLAIN` and `AUTH LOGIN`, multipart `text/plain` + `text/html`, attachment preview/download, inline `cid:` hydration, responsive Desktop/Tablet/Mobile + Dark Client preview, offline Email Audit diagnostics, and raw MIME source.
+  - **Email (SMTP)**: Embedded Tokio ESMTP listener (`127.0.0.1:1025` default) supporting `AUTH PLAIN` and `AUTH LOGIN`, multipart `text/plain` + `text/html`, attachment preview/download, inline `cid:` hydration, responsive Desktop/Tablet/Mobile + Dark Client preview, offline Email Audit diagnostics, raw MIME source, and STARTTLS encryption toggle.
   - **SMS (HTTP)**: `POST /api/v1/sms` capturing recipient, sender ID, message text, JSON metadata, GSM-7 / UCS-2 encoding diagnostics, and multi-segment counter.
   - **Push (HTTP)**: `POST /api/v1/push` capturing device token, platform, notification title/body, badge count, custom payload data, and iOS / Android / Web Push device previews.
   - **Webhook (HTTP)**: `ANY /api/v1/webhooks/{credential_identifier}[/{subpath}]` supporting every HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), subpaths, request headers, query strings, JSON/raw request bodies, configurable **Webhook Mock Responses** (status code, headers, body, delay), and **Strict Loopback-Only Replay** (`127.0.0.1` / `localhost` / `[::1]`).
   - **Chaos & Failure Simulation**: Per-channel latency injection (`0..10000 ms`) and probabilistic failure rules (`0..100%` rate with custom HTTP `400..599` or SMTP `400..599` error codes) for testing retry and backoff logic locally.
-- **Desktop DX, Structured Search, CLI & Local MCP (`v1.4.0` / `v1.5.0`)**:
+- **Desktop DX, Testing Engine & Inspection (`v1.6.0`)**:
+  - **Multi-Selection & Bulk Operations**: Multi-select notifications with atomic database operations for marking read/unread, archiving, tagging, or bulk deleting.
+  - **Zero-Dependency Virtual Scrolling**: Windowed Inbox rendering capable of smoothly displaying 10,000+ notifications at 60fps with constant memory.
+  - **Portable Fixture Bundles & CLI Replay**: Export scoped notifications (including metadata and MIME attachments) as portable `.json` bundles and replay them in CI/CD via `notifytrap-cli replay`.
+  - **Side-by-Side Split Diff**: Interactive split comparison for HTML templates, rendered DOM, and JSON payloads with synced line scrolling.
+  - **Local SMTP TLS Configuration**: Toggle STARTTLS encryption advertising and validate client TLS negotiation locally.
+  - **Dashboard Activity Chart**: 24-hour channel distribution chart tracking throughput spikes and hourly metrics.
   - **Structured Search & Saved Filters**: Filter with `channel:`, `status:`, `run:`, `to:`, `from:`, `subject:`, `otp:true`, `-negation`, quoted phrases, and `/regex/`, plus per-project Saved Filters.
   - **Device Frames & Client Simulators**: Realistic iPhone 15, Pixel 8, and iPad Mini frames with Dynamic Island, Status Bar, iOS Lock Screen alerts, and Dynamic Banners.
   - **MJML Preview & Template Linter**: Transpiles MJML markup and detects unrendered placeholders (`{{...}}`, `${...}`, `null`, `None`, `[object Object]`).
   - **Deep Asset & Link Checker**: Concurrently verifies live HTTP/HTTPS status of outbound anchor links and remote images with redirection detection.
-  - **Public Webhook Ingress (Local Tunneling)**: Integrated `cloudflared`, `ngrok`, and `bore` management to expose local webhook capture URLs to the public internet.
-  - **Auto-Forwarding Pipeline**: Automatically forward captured notifications to downstream microservices or test harnesses with event filtering.
+  - **Public Webhook Ingress (Local Tunneling)**: Integrated `cloudflared`, `ngrok`, and `bore` management to expose local webhook capture URLs to the public internet with clear UI security alerts.
+  - **Auto-Forwarding Pipeline**: Explicitly forward captured notifications to downstream microservices or test harnesses with event filtering.
   - **Database Maintenance & VACUUM**: Monitor SQLite disk footprint, run VACUUM, and prune expired retention records.
   - **Headless Server & Web Companion Mode**: Run `notifytrap-cli serve --web-port=4000` to operate headless in Docker/CI with a full browser UI.
   - **System Tray & Keyboard Navigation**: Optional minimize-to-tray, OS desktop notifications, `Ctrl/Cmd+K` Command Palette, and `j`/`k`/`/` Inbox shortcuts.
-  - **Built-in Local MCP Server & `notifytrap-cli`**: Channel-scoped JSON-RPC 2.0 MCP endpoint (`POST /api/v1/mcp`) and `notifytrap-cli` (`serve`, `tail`, `wait-otp`, `export`, `mcp`).
+  - **Built-in Local MCP Server & `notifytrap-cli`**: Channel-scoped JSON-RPC 2.0 MCP endpoint (`POST /api/v1/mcp`) and `notifytrap-cli` (`serve`, `tail`, `wait-otp`, `export`, `import`, `mcp`).
 - **Scoped Multi-Project Organization**: Organize captures across **Workspaces → Projects → Environments (`local`, `development`, `testing`, `staging`) → Channels**, each with its own generated `<credential_identifier>.<secret_token>`.
 - **Real-Time Unified Inbox & Diff Inspector**: Live desktop event streaming (`notification:captured`), channel/status/run-tag (`X-NotifyTrap-Run`) filtering, automatic OTP & magic-link extraction, one-click `.eml` / redacted `JSON` / `cURL` export, side-by-side notification diffing, search, pagination, and syntax highlighting (`JSON`, `HTML`, `Bash`, `.ENV`, `MIME / HTTP`).
 - **First-Class Bilingual & Dual-Theme UI**:
@@ -293,6 +314,26 @@ with smtplib.SMTP("127.0.0.1", 1025) as server:
     server.send_message(message)
 ```
 
+#### Go (`net/smtp`)
+
+```go
+package main
+
+import (
+	"net/smtp"
+)
+
+func main() {
+	auth := smtp.PlainAuth("", "email-local", "ntsec_your_secret_token", "127.0.0.1")
+	to := []string{"developer@example.com"}
+	msg := []byte("To: developer@example.com\r\n" +
+		"Subject: Verify Account\r\n\r\n" +
+		"Verification code: 482-910\r\n")
+
+	_ = smtp.SendMail("127.0.0.1:1025", auth, "noreply@local.test", to, msg)
+}
+```
+
 ### HTTP SMS Capture (`POST /api/v1/sms`)
 
 ```bash
@@ -352,7 +393,13 @@ curl -fsS "http://127.0.0.1:4080/api/v1/notifications/wait?run_id=ci-run-42&time
 
 ## Security & Privacy Model
 
-- **Strict Loopback Binding**: HTTP and SMTP servers listen on `127.0.0.1` by default and never relay messages externally.
+### Safe-by-Default Delivery Boundary
+- **Loopback-Only Isolation by Default**: HTTP and SMTP servers bind exclusively to `127.0.0.1`. The core ingestion pipeline never relays messages externally, preventing accidental notification leaks to real recipients.
+- **Explicit Forwarding & Ingress**: Features that cross the local boundary require explicit user configuration:
+  - **Downstream Auto-Forwarding**: Dispatches strictly to user-defined internal endpoints with event filtering; never connects to public relays automatically.
+  - **Public Webhook Ingress**: Managed tunnels (`cloudflared`, `ngrok`, `bore`) expose only the local webhook receiver with explicit visual indicators in the UI. Inbound payloads remain quarantined inside your local SQLite database.
+
+### Data Protection & Hardening
 - **Encrypted Channel Keys & Secret Hashing**: Channel secrets are encrypted at rest with `AES-256-GCM` (backed by the OS keychain when available, with strict `0o600` atomic fallback key file), hashed via `SHA-256`, and verified in constant time.
 - **Untrusted Email HTML Defense in Depth**:
   1. Backend `ammonia` HTML sanitization strips `<script>`, event handlers, `javascript:` URLs, and dangerous tags before storage and IPC delivery.

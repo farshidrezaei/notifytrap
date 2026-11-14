@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { NotificationDetail } from '../app/types/application'
 import {
   buildNotificationBundleExport,
   buildNotificationCurlExport,
   buildNotificationEmlExport,
   buildNotificationJsonExport,
+  triggerTextFileDownload,
 } from '../app/utils/notificationExport'
 
 function createSampleDetail(overrides: Partial<NotificationDetail['notification']> = {}): NotificationDetail {
@@ -132,5 +133,63 @@ describe('notification export formatters', () => {
     expect(parsed.version).toBe('1.0')
     expect(parsed.notifications).toHaveLength(1)
     expect(parsed.notifications[0].attachments[0].filename).toBe('test.txt')
+  })
+
+  it('builds safe cURL commands for push notifications and normalizes base urls', () => {
+    const pushCurl = buildNotificationCurlExport(
+      createSampleDetail({
+        channelType: 'push',
+        payloadJson: {
+          deviceToken: 'device-xyz',
+          platform: 'ios',
+          title: 'Push Title',
+          body: 'Push Body',
+          data: { orderId: '99' },
+        },
+      }),
+      '   ',
+    )
+    expect(pushCurl).toContain("curl -X 'POST' 'http://127.0.0.1:8080/api/v1/push'")
+    expect(pushCurl).toContain('"device_token":"device-xyz"')
+    expect(pushCurl).toContain('"platform":"ios"')
+    expect(pushCurl).toContain('"orderId":"99"')
+
+    const webhookWithSkippedHeaders = buildNotificationCurlExport(
+      createSampleDetail({
+        channelType: 'webhook',
+        rawPayload: '{"status":"ok"}',
+        payloadJson: {
+          headers: {
+            Host: '127.0.0.1:4080',
+            'Content-Length': '15',
+            'X-Custom': 'KeepMe',
+            'Invalid-Number': 123,
+          },
+        },
+      }),
+      'https://custom.local:8080/',
+    )
+    expect(webhookWithSkippedHeaders).toContain("'https://custom.local:8080/api/v1/webhooks/<CREDENTIAL_IDENTIFIER>'")
+    expect(webhookWithSkippedHeaders).toContain("'x-custom: KeepMe'")
+    expect(webhookWithSkippedHeaders).not.toContain('host:')
+    expect(webhookWithSkippedHeaders).not.toContain('content-length:')
+    expect(webhookWithSkippedHeaders).not.toContain('invalid-number:')
+  })
+
+  it('triggers text file downloads cleanly without error', () => {
+    const createObjectURLMock = vi.fn().mockReturnValue('blob:http://localhost/sample-uuid')
+    const revokeObjectURLMock = vi.fn()
+    window.URL.createObjectURL = createObjectURLMock
+    window.URL.revokeObjectURL = revokeObjectURLMock
+
+    const appendChildSpy = vi.spyOn(document.body, 'appendChild')
+    const removeChildSpy = vi.spyOn(document.body, 'removeChild')
+
+    triggerTextFileDownload('export.json', '{"test":true}', 'application/json')
+
+    expect(createObjectURLMock).toHaveBeenCalled()
+    expect(appendChildSpy).toHaveBeenCalled()
+    expect(removeChildSpy).toHaveBeenCalled()
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:http://localhost/sample-uuid')
   })
 })

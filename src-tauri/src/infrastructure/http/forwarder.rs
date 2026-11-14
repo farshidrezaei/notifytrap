@@ -194,3 +194,113 @@ async fn dispatch_forward_request(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::channel::{ChannelChaosConfiguration, WebhookMockConfiguration};
+    use crate::domain::notification::NotificationStatus;
+    use serde_json::json;
+
+    fn create_test_notification(payload: serde_json::Value, subject: &str) -> Notification {
+        Notification {
+            id: "notification-test-1".to_string(),
+            workspace_id: "workspace-1".to_string(),
+            project_id: "project-1".to_string(),
+            environment_id: "environment-1".to_string(),
+            channel_id: "channel-1".to_string(),
+            channel_type: crate::domain::channel::ChannelType::Webhook,
+            status: NotificationStatus::Captured,
+            recipient: "target@example.com".to_string(),
+            sender: "sender@example.com".to_string(),
+            subject: subject.to_string(),
+            preview_text: "Preview".to_string(),
+            payload_json: payload,
+            raw_payload: "{}".to_string(),
+            test_run_identifier: "run-42".to_string(),
+            verification_artifacts: Vec::new(),
+            received_at: "2026-11-15T00:00:00Z".to_string(),
+            created_at: "2026-11-15T00:00:00Z".to_string(),
+        }
+    }
+
+    fn create_test_channel_record(
+        forwarding_rule: ChannelForwardingConfiguration,
+    ) -> ChannelRecord {
+        ChannelRecord {
+            id: "channel-1".to_string(),
+            workspace_id: "workspace-1".to_string(),
+            project_id: "project-1".to_string(),
+            environment_id: "environment-1".to_string(),
+            name: "Forwarding Test Channel".to_string(),
+            channel_type: crate::domain::channel::ChannelType::Webhook,
+            is_enabled: true,
+            credential_identifier: "webhook-test".to_string(),
+            credential_hash: "hash".to_string(),
+            encrypted_credential: "enc".to_string(),
+            webhook_mock: WebhookMockConfiguration::default(),
+            chaos_rule: ChannelChaosConfiguration::default(),
+            forwarding_rule,
+            created_at: "2026-11-15T00:00:00Z".to_string(),
+            updated_at: "2026-11-15T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn matches_event_filter_evaluates_event_key_case_insensitively() {
+        let notification = create_test_notification(json!({"event": "payment.succeeded"}), "");
+        assert!(matches_event_filter(&notification, "payment.succeeded"));
+        assert!(matches_event_filter(&notification, "PAYMENT.SUCCEEDED"));
+        assert!(!matches_event_filter(&notification, "user.created"));
+    }
+
+    #[test]
+    fn matches_event_filter_evaluates_type_key() {
+        let notification = create_test_notification(json!({"type": "invoice.paid"}), "");
+        assert!(matches_event_filter(&notification, "invoice.paid"));
+        assert!(!matches_event_filter(&notification, "invoice.failed"));
+    }
+
+    #[test]
+    fn matches_event_filter_evaluates_subject_fallback() {
+        let notification = create_test_notification(json!({"message": "Hello"}), "Password Reset");
+        assert!(matches_event_filter(&notification, "Password Reset"));
+        assert!(matches_event_filter(&notification, "password reset"));
+        assert!(!matches_event_filter(&notification, "Welcome"));
+    }
+
+    #[tokio::test]
+    async fn execute_channel_forwarding_returns_none_when_disabled() {
+        let rule = ChannelForwardingConfiguration {
+            is_enabled: false,
+            ..Default::default()
+        };
+        let channel = create_test_channel_record(rule);
+        let notification = create_test_notification(json!({}), "Test");
+
+        let result = execute_channel_forwarding_if_enabled(&channel, &notification, b"").await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn execute_channel_forwarding_returns_skipped_when_filter_mismatch() {
+        let rule = ChannelForwardingConfiguration {
+            is_enabled: true,
+            filter_event_name: Some("order.completed".to_string()),
+            ..Default::default()
+        };
+        let channel = create_test_channel_record(rule);
+        let notification = create_test_notification(json!({"event": "order.cancelled"}), "Test");
+
+        let result = execute_channel_forwarding_if_enabled(&channel, &notification, b"").await;
+        assert!(result.is_some());
+        let execution = result.unwrap();
+        assert_eq!(execution.status, ForwardExecutionStatus::Skipped);
+        assert!(
+            execution
+                .response_body_snippet
+                .unwrap()
+                .contains("Skipped: event filter")
+        );
+    }
+}

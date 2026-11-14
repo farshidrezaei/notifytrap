@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Notification, NotificationAttachmentSummary } from '../app/types/application'
 import {
+  decodeBase64ToUint8Array,
   decodeBase64ToUtf8Text,
   isPreviewableTextMime,
   isSafePreviewableImageMime,
   resolveInlineCidImages,
+  triggerBinaryFileDownload,
 } from '../app/utils/attachmentPreview'
 import { auditCapturedEmail } from '../app/utils/emailAudit'
 import { buildSandboxedEmailDocument } from '../app/utils/emailSandbox'
@@ -149,10 +151,31 @@ describe('Phase 2 Rich Inspector utilities', () => {
     expect(isSafePreviewableImageMime('image/svg+xml')).toBe(false)
     expect(isPreviewableTextMime('application/json; charset=utf-8')).toBe(true)
     expect(decodeBase64ToUtf8Text(btoa('hello'))).toBe('hello')
+    const uint8Bytes = decodeBase64ToUint8Array(btoa('hello'))
+    expect(uint8Bytes.length).toBe(5)
+    expect(uint8Bytes[0]).toBe(104) // 'h'
 
     const cidMap = new Map([['logo@test', 'data:image/png;base64,AAAA']])
     const resolved = resolveInlineCidImages('<img src="cid:<logo@test>" alt="L">', cidMap)
     expect(resolved).toContain('src="data:image/png;base64,AAAA"')
+
+    // Empty html or empty cid map branches
+    expect(resolveInlineCidImages('', cidMap)).toBe('')
+    expect(resolveInlineCidImages('<p>Hi</p>', new Map())).toBe('<p>Hi</p>')
+
+    // triggerBinaryFileDownload test
+    const createObjectURLMock = vi.fn().mockReturnValue('blob:http://localhost/sample-bin-uuid')
+    const revokeObjectURLMock = vi.fn()
+    window.URL.createObjectURL = createObjectURLMock
+    window.URL.revokeObjectURL = revokeObjectURLMock
+    const appendSpy = vi.spyOn(document.body, 'appendChild')
+    const removeSpy = vi.spyOn(document.body, 'removeChild')
+
+    triggerBinaryFileDownload('archive.zip', btoa('zipbytes'), 'application/zip')
+    expect(createObjectURLMock).toHaveBeenCalled()
+    expect(appendSpy).toHaveBeenCalled()
+    expect(removeSpy).toHaveBeenCalled()
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:http://localhost/sample-bin-uuid')
 
     const simulatedDark = buildSandboxedEmailDocument('<p>Hi</p>', {
       isDarkTheme: false,

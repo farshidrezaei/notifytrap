@@ -64,6 +64,13 @@
   - Rust matrix test (`channel_forwarding_rules_persistence_and_matrix_update`) verifying SQLite persistence and domain rule validation.
   - Rust database maintenance test (`database_storage_statistics_and_vacuum_lifecycle`) verifying SQLite disk statistics, retention cleanup, and database VACUUM.
   - Vitest suites (`tests/phase1SimulationAndTemplateAudit.spec.ts`, `tests/phase2DeepAssetAndStorageLifecycle.spec.ts`, `tests/phase3IngressAndForwardingPipeline.spec.ts`) covering realistic device frames, MJML parser, placeholder linter, asset auditor, and auto-forwarding rule parsing.
+- **v1.6.0 Additions**:
+  - Rust matrix test (`bulk_operations_delete_update_and_tag_lifecycle` in `src-tauri/tests/domain_persistence_matrix.rs`) covering batch deletion, status update, and tag assignment across scopes.
+  - Rust fixture bundle tests (`fixture_bundle_export_and_import_roundtrip_lifecycle`, `fixture_bundle_import_rejects_unsupported_version`, `fixture_bundle_import_rejects_empty_channels_target_environment`, `fixture_bundle_import_handles_corrupt_base64_attachments_safely`) in `src-tauri/tests/domain_persistence_matrix.rs` verifying scoped portable JSON export, corrupt attachment handling, and version guards.
+  - Rust workspace/project/channel lifecycle update test (`lifecycle_workspace_and_project_updates_and_channel_state_toggles` in `src-tauri/tests/domain_persistence_matrix.rs`).
+  - Rust tunnel and forwarder unit suites (`domain::tunnel::tests`, `infrastructure::http::forwarder::tests`) verifying provider parsing, status serialization, and event filter evaluation.
+  - Rust SMTP TLS configuration validation and schema checks in `src-tauri/src/services/settings_service.rs`.
+  - Vitest suites (`tests/bulkOperations.spec.ts`, `tests/notificationExport.spec.ts`, `tests/textDiff.spec.ts`) verifying batch operations, split diff rendering, clipboard fallbacks, and fixture bundle parsing.
 
 ---
 

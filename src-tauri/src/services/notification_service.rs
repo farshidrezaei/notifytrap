@@ -8,9 +8,10 @@ use crate::domain::database_statistics::DatabaseStorageStatistics;
 use crate::domain::errors::ApplicationError;
 use crate::domain::notification::{
     CaptureAttachmentInput, CaptureNotificationInput, FixtureAttachmentEntry,
-    FixtureNotificationEntry, Notification, NotificationAttachment, NotificationAttachmentSummary,
-    NotificationDetail, NotificationFixtureBundle, NotificationPage, NotificationQuery,
-    NotificationStatus, WebhookReplayInput, WebhookReplayResult,
+    FixtureNotificationEntry, MAXIMUM_FIXTURE_BUNDLE_NOTIFICATIONS, Notification,
+    NotificationAttachment, NotificationAttachmentSummary, NotificationDetail,
+    NotificationFixtureBundle, NotificationPage, NotificationQuery, NotificationStatus,
+    SUPPORTED_FIXTURE_BUNDLE_VERSION, WebhookReplayInput, WebhookReplayResult,
 };
 use crate::domain::validation::{
     current_utc_timestamp, validate_optional_test_run_identifier, validate_pagination,
@@ -466,7 +467,7 @@ impl NotificationService {
         }
 
         Ok(NotificationFixtureBundle {
-            version: "1.0".to_string(),
+            version: SUPPORTED_FIXTURE_BUNDLE_VERSION.to_string(),
             generator: "notifytrap".to_string(),
             exported_at: current_utc_timestamp(),
             notifications: fixture_notifications,
@@ -483,6 +484,21 @@ impl NotificationService {
         let workspace_id = validate_uuid(raw_workspace_id, "workspaceId")?;
         let project_id = validate_uuid(raw_project_id, "projectId")?;
         let environment_id = validate_uuid(raw_environment_id, "environmentId")?;
+
+        if bundle.version != SUPPORTED_FIXTURE_BUNDLE_VERSION {
+            return Err(ApplicationError::Validation(format!(
+                "Unsupported fixture bundle version '{}'. Expected version '{}'.",
+                bundle.version, SUPPORTED_FIXTURE_BUNDLE_VERSION
+            )));
+        }
+
+        if bundle.notifications.len() > MAXIMUM_FIXTURE_BUNDLE_NOTIFICATIONS {
+            return Err(ApplicationError::Validation(format!(
+                "Fixture bundle exceeds maximum allowed count of {} notifications (received {}).",
+                MAXIMUM_FIXTURE_BUNDLE_NOTIFICATIONS,
+                bundle.notifications.len()
+            )));
+        }
 
         let existing_channels = self.database_manager.with_connection(|connection| {
             SqliteChannelRepository::list_by_scope(

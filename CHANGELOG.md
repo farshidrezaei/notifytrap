@@ -2,6 +2,14 @@
 
 All notable changes to **NotifyTrap** are documented in this file.
 
+## [1.6.1] - 2026-11-15
+
+### Added & Improved
+- **Safe-by-Default Architecture Model**: Clarified delivery boundaries in documentation, explicitly decoupling loopback isolation from optional downstream auto-forwarding and public ingress tunneling.
+- **Fixture Bundle Hardening & Schema Versioning**: Added schema version guards (`SUPPORTED_FIXTURE_BUNDLE_VERSION = "1.0"`) and safety limits (`MAXIMUM_FIXTURE_BUNDLE_NOTIFICATIONS = 5000`) with safe base64 decoding for corrupted attachment payloads.
+- **Competitor Comparison & Quickstart**: Added multi-channel local matrix comparison (NotifyTrap vs MailHog, Mailpit, Mailtrap) and Go (`net/smtp`) quick-start configuration in README.
+- **Automated Test Suite Expansion**: Added test suites for Side-by-Side Diff (`textDiff.spec.ts`), local tunnel management (`domain::tunnel`), webhook auto-forwarder (`infrastructure::http::forwarder`), and workspace/project/channel lifecycle updates, elevating test count to 234 active tests with >92% core logic coverage.
+
 ## [1.6.0] - 2026-11-15
 
 ### Added

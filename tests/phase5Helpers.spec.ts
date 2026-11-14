@@ -12,6 +12,7 @@ import { buildSandboxedEmailDocument } from '../app/utils/emailSandbox'
 import {
   buildMonogramLabel,
   formatByteSize,
+  formatShortTimestamp,
   formatSlugIdentifier,
 } from '../app/utils/formatters'
 import { buildChannelIntegrationSnippet } from '../app/utils/integrationSnippets'
@@ -145,11 +146,24 @@ describe('Phase 5 formatting helpers & onboarding/channel schemas', () => {
     expect(truncatedSlug.length).toBeLessThanOrEqual(64)
     expect(truncatedSlug.endsWith('-')).toBe(false)
     expect(formatByteSize(0)).toBe('0 B')
+    expect(formatByteSize(-10)).toBe('0 B')
+    expect(formatByteSize(Number.NaN)).toBe('0 B')
     expect(formatByteSize(512)).toBe('512 B')
     expect(formatByteSize(2048)).toBe('2.0 KB')
+    expect(formatByteSize(10 * 1024 * 1024)).toBe('10.0 MB')
+    expect(formatByteSize(3 * 1024 * 1024 * 1024)).toBe('3.0 GB')
     expect(buildMonogramLabel('Billing API')).toBe('BA')
     expect(buildMonogramLabel('NotifyTrap')).toBe('NO')
+    expect(buildMonogramLabel('Single')).toBe('SI')
+    expect(buildMonogramLabel('   ')).toBe('NT')
+    expect(buildMonogramLabel('')).toBe('NT')
     expect(buildMonogramLabel(undefined)).toBe('NT')
+
+    // formatShortTimestamp
+    expect(formatShortTimestamp('invalid-date', 'en')).toBe('invalid-date')
+    const validIso = '2026-11-15T12:00:00.000Z'
+    expect(formatShortTimestamp(validIso, 'en')).toBeTruthy()
+    expect(formatShortTimestamp(validIso, 'fa')).toBeTruthy()
   })
 
   it.each(['en', 'fa'] as const)(
