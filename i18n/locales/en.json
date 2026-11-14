@@ -376,8 +376,15 @@
       "modes": {
         "prettyPayload": "Formatted Payload",
         "rawPayload": "Raw Payload",
-        "metadata": "Metadata"
-      }
+        "metadata": "Metadata",
+        "htmlBody": "HTML Document"
+      },
+      "layout": {
+        "unified": "Unified",
+        "split": "Side-by-Side"
+      },
+      "leftLabel": "Baseline (Current)",
+      "rightLabel": "Target (Selected)"
     },
     "bulk": {
       "selectedCount": "{count} selected",

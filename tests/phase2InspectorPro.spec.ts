@@ -9,7 +9,11 @@ import {
 import { auditCapturedEmail } from '../app/utils/emailAudit'
 import { buildSandboxedEmailDocument } from '../app/utils/emailSandbox'
 import { analyzeSmsMessage } from '../app/utils/smsAnalyzer'
-import { buildNotificationComparableText, computeLineDiff } from '../app/utils/textDiff'
+import {
+  buildNotificationComparableText,
+  buildSideBySideRows,
+  computeLineDiff,
+} from '../app/utils/textDiff'
 
 function createSampleEmail(overrides: Partial<Notification> = {}): Notification {
   return {
@@ -127,6 +131,16 @@ describe('Phase 2 Rich Inspector utilities', () => {
     expect(buildNotificationComparableText(email, 'rawPayload')).toBe(email.rawPayload)
     expect(buildNotificationComparableText(email, 'metadata')).toContain('"subject": "Welcome"')
     expect(buildNotificationComparableText(email, 'prettyPayload')).toContain('"textBody": "Hello plain"')
+    expect(buildNotificationComparableText(email, 'htmlBody')).toBe(email.rawPayload)
+
+    const emailWithHtml = createSampleEmail({
+      payloadJson: { htmlBody: '<h1>Hello World</h1>' },
+    })
+    expect(buildNotificationComparableText(emailWithHtml, 'htmlBody')).toBe('<h1>Hello World</h1>')
+
+    const sideBySide = buildSideBySideRows(diff)
+    expect(sideBySide.length).toBeGreaterThan(0)
+    expect(sideBySide.some((row) => row.left?.kind === 'removed' || row.right?.kind === 'added')).toBe(true)
   })
 
   it('validates safe attachment preview MIMEs, resolves inline cid images, and builds dark simulator HTML', () => {

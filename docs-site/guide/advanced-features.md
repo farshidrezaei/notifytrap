@@ -134,5 +134,21 @@ Bundles are stored as portable `.json` files conforming to the `NotificationFixt
 - **Export Bundle**: Click the Download icon in the Inbox toolbar to generate and save a timestamped JSON fixture bundle for the active scope.
 - **Import Bundle**: Click the Upload icon in the Inbox toolbar to load any fixture JSON file. Notifications and attachments are automatically inserted into the active workspace, project, and environment.
 
+---
+
+## 8. Split & Unified Notification Comparison
+
+Compare two captured notifications with deterministic line diffing:
+
+- **View Layouts**:
+  - **Side-by-Side (Split)**: Aligned two-column view contrasting baseline message on the left against target message on the right.
+  - **Unified**: Single-stream patch view with line additions (`+`) and deletions (`-`).
+- **Comparison Modes**:
+  - **Formatted Payload**: Inspect differences between parsed structured JSON payloads.
+  - **Raw Payload**: Compare byte-exact raw payloads, including full RFC-5322 MIME headers and multi-part boundaries.
+  - **HTML Document**: Line-by-line inspection of rendered email HTML bodies.
+  - **Metadata**: Compare headers, status, recipients, and test run tags.
+
+
 
 

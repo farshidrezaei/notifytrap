@@ -376,8 +376,15 @@
       "modes": {
         "prettyPayload": "بدنه قالب‌بندی‌شده",
         "rawPayload": "پیام خام",
-        "metadata": "فراداده"
-      }
+        "metadata": "فراداده",
+        "htmlBody": "سند HTML"
+      },
+      "layout": {
+        "unified": "یکپارچه",
+        "split": "کنار هم"
+      },
+      "leftLabel": "مبنا (فعلی)",
+      "rightLabel": "مقصد (انتخاب‌شده)"
     },
     "bulk": {
       "selectedCount": "{count} انتخاب‌شده",

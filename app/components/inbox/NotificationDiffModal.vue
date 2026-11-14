@@ -4,9 +4,12 @@ import { formatShortTimestamp } from '~/utils/formatters'
 import { extractCommandErrorMessage } from '~/utils/tauriClient'
 import {
   buildNotificationComparableText,
+  buildSideBySideRows,
   computeLineDiff,
   type NotificationCompareMode,
 } from '~/utils/textDiff'
+
+type DiffViewLayout = 'split' | 'unified'
 
 const props = defineProps<{
   baselineNotification: Notification | null
@@ -20,6 +23,7 @@ const { fetchNotificationDetailById } = useNotifications()
 
 const selectedTargetId = ref<string>('')
 const compareMode = ref<NotificationCompareMode>('prettyPayload')
+const viewLayout = ref<DiffViewLayout>('split')
 const comparisonNotification = ref<Notification | null>(null)
 const isLoadingTarget = ref(false)
 
@@ -36,6 +40,12 @@ const modeOptions = computed<Array<{ label: string; value: NotificationCompareMo
   { label: t('inbox.diff.modes.prettyPayload'), value: 'prettyPayload' },
   { label: t('inbox.diff.modes.rawPayload'), value: 'rawPayload' },
   { label: t('inbox.diff.modes.metadata'), value: 'metadata' },
+  { label: t('inbox.diff.modes.htmlBody'), value: 'htmlBody' },
+])
+
+const layoutOptions = computed<Array<{ label: string; value: DiffViewLayout }>>(() => [
+  { label: t('inbox.diff.layout.split'), value: 'split' },
+  { label: t('inbox.diff.layout.unified'), value: 'unified' },
 ])
 
 watch(
@@ -91,6 +101,8 @@ const diffLines = computed(() => {
   return computeLineDiff(baselineText, comparisonText)
 })
 
+const sideBySideRows = computed(() => buildSideBySideRows(diffLines.value))
+
 const diffCounts = computed(() => {
   let added = 0
   let removed = 0
@@ -110,7 +122,7 @@ const diffCounts = computed(() => {
     v-model:open="isOpen"
     :title="t('inbox.diff.title')"
     :description="t('inbox.diff.description')"
-    :ui="{ content: 'max-w-4xl' }"
+    :ui="{ content: 'max-w-5xl' }"
   >
     <template #body>
       <div class="space-y-4">
@@ -125,6 +137,13 @@ const diffCounts = computed(() => {
           />
 
           <div class="flex items-center gap-2">
+            <USelect
+              v-model="viewLayout"
+              :items="layoutOptions"
+              value-key="value"
+              size="xs"
+              class="w-32"
+            />
             <USelect
               v-model="compareMode"
               :items="modeOptions"
@@ -154,6 +173,51 @@ const diffCounts = computed(() => {
           :title="t('inbox.diff.emptyTitle')"
           :description="t('inbox.diff.emptyDescription')"
         />
+
+        <div
+          v-else-if="viewLayout === 'split'"
+          dir="ltr"
+          class="max-h-[58vh] overflow-auto rounded-lg border border-default bg-muted/20 font-mono text-xs"
+        >
+          <div class="sticky top-0 z-10 grid grid-cols-2 border-b border-default bg-muted/80 text-[11px] font-semibold text-muted">
+            <div class="border-e border-default px-3 py-1">
+              {{ t('inbox.diff.leftLabel') }}
+            </div>
+            <div class="px-3 py-1">
+              {{ t('inbox.diff.rightLabel') }}
+            </div>
+          </div>
+          <div
+            v-for="(row, index) in sideBySideRows"
+            :key="index"
+            class="grid grid-cols-2 border-b border-default/40 last:border-b-0"
+          >
+            <div
+              class="flex items-stretch border-e border-default/40"
+              :class="row.left?.kind === 'removed' ? 'bg-error/10 text-error' : 'text-toned'"
+            >
+              <span class="w-10 shrink-0 select-none border-e border-default/40 px-2 py-0.5 text-end text-[11px] text-muted">
+                {{ row.left?.lineNumber ?? '' }}
+              </span>
+              <span class="w-5 shrink-0 select-none px-1 py-0.5 text-center font-bold">
+                {{ row.left?.kind === 'removed' ? '-' : ' ' }}
+              </span>
+              <pre class="flex-1 whitespace-pre-wrap break-all px-2 py-0.5">{{ row.left?.text ?? '' }}</pre>
+            </div>
+            <div
+              class="flex items-stretch"
+              :class="row.right?.kind === 'added' ? 'bg-success/10 text-success' : 'text-toned'"
+            >
+              <span class="w-10 shrink-0 select-none border-e border-default/40 px-2 py-0.5 text-end text-[11px] text-muted">
+                {{ row.right?.lineNumber ?? '' }}
+              </span>
+              <span class="w-5 shrink-0 select-none px-1 py-0.5 text-center font-bold">
+                {{ row.right?.kind === 'added' ? '+' : ' ' }}
+              </span>
+              <pre class="flex-1 whitespace-pre-wrap break-all px-2 py-0.5">{{ row.right?.text ?? '' }}</pre>
+            </div>
+          </div>
+        </div>
 
         <div
           v-else

@@ -9,9 +9,66 @@ export interface DiffLine {
   text: string
 }
 
-export type NotificationCompareMode = 'prettyPayload' | 'rawPayload' | 'metadata'
+export type NotificationCompareMode = 'prettyPayload' | 'rawPayload' | 'metadata' | 'htmlBody'
+
+export interface SideBySideDiffRow {
+  left: {
+    lineNumber: number | null
+    text: string
+    kind: DiffLineKind
+  } | null
+  right: {
+    lineNumber: number | null
+    text: string
+    kind: DiffLineKind
+  } | null
+}
 
 const MAXIMUM_LCS_LINES = 400
+
+/**
+ * Converts unified diff lines into aligned side-by-side rows for split viewing.
+ */
+export function buildSideBySideRows(unifiedLines: readonly DiffLine[]): SideBySideDiffRow[] {
+  const rows: SideBySideDiffRow[] = []
+  let pendingRemoved: DiffLine[] = []
+  let pendingAdded: DiffLine[] = []
+
+  function flushPending(): void {
+    const maxLen = Math.max(pendingRemoved.length, pendingAdded.length)
+    for (let index = 0; index < maxLen; index += 1) {
+      const leftLine = pendingRemoved[index]
+      const rightLine = pendingAdded[index]
+      rows.push({
+        left: leftLine
+          ? { lineNumber: leftLine.leftLineNumber, text: leftLine.text, kind: leftLine.kind }
+          : null,
+        right: rightLine
+          ? { lineNumber: rightLine.rightLineNumber, text: rightLine.text, kind: rightLine.kind }
+          : null,
+      })
+    }
+    pendingRemoved = []
+    pendingAdded = []
+  }
+
+  for (const line of unifiedLines) {
+    if (line.kind === 'unchanged') {
+      flushPending()
+      rows.push({
+        left: { lineNumber: line.leftLineNumber, text: line.text, kind: 'unchanged' },
+        right: { lineNumber: line.rightLineNumber, text: line.text, kind: 'unchanged' },
+      })
+    } else if (line.kind === 'removed') {
+      pendingRemoved.push(line)
+    } else if (line.kind === 'added') {
+      pendingAdded.push(line)
+    }
+  }
+
+  flushPending()
+  return rows
+}
 
 /**
  * Computes a deterministic line-by-line diff using LCS (falling back to linear diff on very large payloads).
@@ -103,6 +160,15 @@ export function buildNotificationComparableText(
   mode: NotificationCompareMode,
 ): string {
   if (mode === 'rawPayload') {
+    return notification.rawPayload
+  }
+  if (mode === 'htmlBody') {
+    if (typeof notification.payloadJson.htmlBody === 'string') {
+      return notification.payloadJson.htmlBody
+    }
+    if (typeof notification.payloadJson.html === 'string') {
+      return notification.payloadJson.html
+    }
     return notification.rawPayload
   }
   if (mode === 'metadata') {
