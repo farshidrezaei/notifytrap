@@ -22,7 +22,7 @@ const badgeStyle = computed<Record<string, string>>(() => ({
 
 <template>
   <span
-    class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium"
+    class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium"
     :style="badgeStyle"
   >
     <UIcon :name="CHANNEL_ICON_MAP[channelType]" class="size-3.5 shrink-0" />

@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
+import AboutSettingsCard from '~/components/settings/AboutSettingsCard.vue'
+import ApplicationUpdatesCard from '~/components/settings/ApplicationUpdatesCard.vue'
+import DatabaseMaintenanceCard from '~/components/settings/DatabaseMaintenanceCard.vue'
+import GeneralSettingsCard from '~/components/settings/GeneralSettingsCard.vue'
+import McpSettingsCard from '~/components/settings/McpSettingsCard.vue'
+import PublicTunnelCard from '~/components/settings/PublicTunnelCard.vue'
+import ServerSettingsCard from '~/components/settings/ServerSettingsCard.vue'
 import {
   createServerSettingsFormSchema,
   DEFAULT_SERVER_SETTINGS_FORM_VALUES,
@@ -8,7 +15,6 @@ import {
 } from '~/schemas/serverSettingsForm'
 import type { ApplicationSettingEntry, ServerConfiguration } from '~/types/application'
 import { copyTextToClipboard } from '~/utils/clipboard'
-import { INPUT_MASKS } from '~/utils/inputMasks'
 import {
   extractCommandErrorMessage,
   invokeTauriCommand,
@@ -19,22 +25,12 @@ type SettingsCategory = 'general' | 'server' | 'storage' | 'tunnel' | 'mcp' | 'a
 
 const RETENTION_DAYS_SETTING_KEY = 'inbox.retention_days'
 const BYTES_PER_MEGABYTE = 1024 * 1024
-const TELEGRAM_CHANNEL_URL = 'https://t.me/notifytrap'
-const TELEGRAM_CHANNEL_HANDLE = '@notifytrap'
-const GITHUB_REPOSITORY_URL = 'https://github.com/farshidrezaei/notifytrap'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
-const { locale, localeOptions, changeLocale } = useLocaleController()
 const { health, isInitialLoading: isHealthInitialLoading, refreshHealth } = useApplicationHealth()
-const {
-  isMinimizeToTrayEnabled,
-  isNativeNotificationsEnabled,
-  setMinimizeToTray,
-  setNativeNotifications,
-} = useDesktopPreferences()
 
 const activeCategory = ref<SettingsCategory>('general')
 
@@ -109,7 +105,7 @@ watch(
 
 onMounted(async () => {
   const initialTab = route.query.category as string | undefined
-  if (initialTab && ['general', 'server', 'storage', 'mcp', 'about'].includes(initialTab)) {
+  if (initialTab && ['general', 'server', 'storage', 'tunnel', 'mcp', 'about'].includes(initialTab)) {
     activeCategory.value = initialTab as SettingsCategory
   }
 
@@ -261,404 +257,44 @@ function resetServerForm(): void {
       <!-- Main Content Area for Active Category (3 cols on desktop) -->
       <div class="space-y-6 lg:col-span-3">
         <!-- 1. GENERAL & APPEARANCE -->
-        <template v-if="activeCategory === 'general'">
-          <UCard>
-            <div class="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 class="text-base font-medium text-highlighted">
-                  {{ t('settings.appearance.title') }}
-                </h2>
-                <p class="mt-0.5 text-sm text-muted">
-                  {{ t('settings.appearance.description') }}
-                </p>
-              </div>
-              <UColorModeSelect class="w-44" />
-            </div>
-          </UCard>
-
-          <UCard>
-            <div class="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 class="text-base font-medium text-highlighted">
-                  {{ t('settings.language.title') }}
-                </h2>
-                <p class="mt-0.5 text-sm text-muted">
-                  {{ t('settings.language.description') }}
-                </p>
-              </div>
-              <USelect
-                :model-value="locale"
-                :items="localeOptions"
-                value-key="code"
-                label-key="label"
-                class="w-48"
-                @update:model-value="(value) => changeLocale(value as 'en' | 'fa')"
-              />
-            </div>
-          </UCard>
-
-          <UCard>
-            <template #header>
-              <div class="space-y-1">
-                <h2 class="text-sm font-semibold text-highlighted">
-                  {{ t('settings.desktop.title') }}
-                </h2>
-                <p class="text-xs text-muted">
-                  {{ t('settings.desktop.description') }}
-                </p>
-              </div>
-            </template>
-
-            <div class="space-y-3">
-              <div class="flex items-center justify-between gap-4 rounded-lg border border-default px-3.5 py-2.5">
-                <div class="space-y-0.5">
-                  <p class="text-xs font-medium text-highlighted">
-                    {{ t('settings.desktop.minimizeToTrayLabel') }}
-                  </p>
-                  <p class="text-xs text-muted">
-                    {{ t('settings.desktop.minimizeToTrayHint') }}
-                  </p>
-                </div>
-                <USwitch
-                  :model-value="isMinimizeToTrayEnabled"
-                  @update:model-value="setMinimizeToTray"
-                />
-              </div>
-
-              <div class="flex items-center justify-between gap-4 rounded-lg border border-default px-3.5 py-2.5">
-                <div class="space-y-0.5">
-                  <p class="text-xs font-medium text-highlighted">
-                    {{ t('settings.desktop.nativeNotificationsLabel') }}
-                  </p>
-                  <p class="text-xs text-muted">
-                    {{ t('settings.desktop.nativeNotificationsHint') }}
-                  </p>
-                </div>
-                <USwitch
-                  :model-value="isNativeNotificationsEnabled"
-                  @update:model-value="setNativeNotifications"
-                />
-              </div>
-            </div>
-          </UCard>
-        </template>
+        <GeneralSettingsCard v-if="activeCategory === 'general'" />
 
         <!-- 2. SERVER & NETWORK -->
-        <template v-else-if="activeCategory === 'server'">
-          <UCard>
-            <h2 class="text-base font-medium text-highlighted">
-              {{ t('settings.server.title') }}
-            </h2>
-            <p class="mt-0.5 text-sm text-muted">
-              {{ t('settings.server.description') }}
-            </p>
-
-            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div class="rounded-md border border-default bg-muted/40 p-3">
-                <div class="text-xs text-muted">{{ t('settings.server.httpEndpoint') }}</div>
-                <USkeleton v-if="isHealthInitialLoading || isLoadingConfiguration" class="mt-1 h-5 w-32 rounded" />
-                <div v-else class="mt-1 font-mono text-sm text-highlighted" dir="ltr">
-                  {{ health?.httpEndpoint ?? '127.0.0.1:4080' }}
-                </div>
-              </div>
-              <div class="rounded-md border border-default bg-muted/40 p-3">
-                <div class="text-xs text-muted">{{ t('settings.server.smtpEndpoint') }}</div>
-                <USkeleton v-if="isHealthInitialLoading || isLoadingConfiguration" class="mt-1 h-5 w-32 rounded" />
-                <div v-else class="mt-1 font-mono text-sm text-highlighted" dir="ltr">
-                  {{ health?.smtpEndpoint ?? '127.0.0.1:1025' }}
-                </div>
-              </div>
-            </div>
-
-            <SkeletonSettingsFormGrid v-if="isLoadingConfiguration" />
-
-            <UForm
-              v-else
-              :schema="serverSettingsSchema"
-              :state="serverFormState"
-              class="mt-6 space-y-5"
-              @submit="handleSaveServerSettings"
-            >
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <SharedHintedFormField
-                  :label="t('settings.server.form.bindAddress')"
-                  name="bindAddress"
-                  required
-                  :hint="t('settings.server.form.bindAddressHint')"
-                >
-                  <UInput
-                    v-model="serverFormState.bindAddress"
-                    v-maska="INPUT_MASKS.ipv4Address"
-                    dir="ltr"
-                    class="w-full font-mono"
-                    placeholder="127.0.0.1"
-                  />
-                </SharedHintedFormField>
-
-                <SharedHintedFormField
-                  :label="t('settings.server.form.httpPort')"
-                  name="httpPort"
-                  required
-                  :hint="t('settings.server.form.httpPortHint')"
-                >
-                  <UInput
-                    v-model="serverFormState.httpPort"
-                    v-maska="INPUT_MASKS.tcpPort"
-                    dir="ltr"
-                    class="w-full font-mono"
-                    placeholder="4080"
-                  />
-                </SharedHintedFormField>
-
-                <SharedHintedFormField
-                  :label="t('settings.server.form.smtpPort')"
-                  name="smtpPort"
-                  required
-                  :hint="t('settings.server.form.smtpPortHint')"
-                >
-                  <UInput
-                    v-model="serverFormState.smtpPort"
-                    v-maska="INPUT_MASKS.tcpPort"
-                    dir="ltr"
-                    class="w-full font-mono"
-                    placeholder="1025"
-                  />
-                </SharedHintedFormField>
-              </div>
-
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <SharedHintedFormField
-                  :label="t('settings.server.form.maxHttpPayload')"
-                  name="maximumHttpPayloadMegabytes"
-                  required
-                  :hint="t('settings.server.form.maxHttpPayloadHint')"
-                >
-                  <UInput
-                    v-model="serverFormState.maximumHttpPayloadMegabytes"
-                    v-maska="INPUT_MASKS.payloadMegabytes"
-                    dir="ltr"
-                    class="w-full font-mono"
-                    placeholder="10"
-                  />
-                </SharedHintedFormField>
-
-                <SharedHintedFormField
-                  :label="t('settings.server.form.maxSmtpMessage')"
-                  name="maximumSmtpMessageMegabytes"
-                  required
-                  :hint="t('settings.server.form.maxSmtpMessageHint')"
-                >
-                  <UInput
-                    v-model="serverFormState.maximumSmtpMessageMegabytes"
-                    v-maska="INPUT_MASKS.payloadMegabytes"
-                    dir="ltr"
-                    class="w-full font-mono"
-                    placeholder="25"
-                  />
-                </SharedHintedFormField>
-
-                <SharedHintedFormField
-                  :label="t('settings.server.form.retentionDays')"
-                  name="retentionDays"
-                  required
-                  :hint="t('settings.server.form.retentionDaysHint')"
-                >
-                  <UInput
-                    v-model="serverFormState.retentionDays"
-                    v-maska="INPUT_MASKS.retentionDays"
-                    dir="ltr"
-                    class="w-full font-mono"
-                    placeholder="30"
-                  />
-                </SharedHintedFormField>
-              </div>
-
-              <div class="flex items-center justify-between border-t border-default pt-5">
-                <UButton
-                  type="button"
-                  color="neutral"
-                  variant="ghost"
-                  :label="t('common.cancel')"
-                  @click="resetServerForm"
-                />
-
-                <UButton
-                  type="submit"
-                  color="primary"
-                  :loading="isSavingConfiguration"
-                  :label="t('common.saveChanges')"
-                />
-              </div>
-            </UForm>
-          </UCard>
-        </template>
+        <ServerSettingsCard
+          v-else-if="activeCategory === 'server'"
+          :health="health"
+          :is-health-initial-loading="isHealthInitialLoading"
+          :is-loading-configuration="isLoadingConfiguration"
+          :is-saving-configuration="isSavingConfiguration"
+          :server-form-state="serverFormState"
+          :server-settings-schema="serverSettingsSchema"
+          @submit="handleSaveServerSettings"
+          @reset="resetServerForm"
+        />
 
         <!-- 3. STORAGE & LIFECYCLE -->
         <template v-else-if="activeCategory === 'storage'">
-          <SettingsDatabaseMaintenanceCard :retention-days="Number(serverFormState.retentionDays)" />
+          <DatabaseMaintenanceCard :retention-days="Number(serverFormState.retentionDays)" />
         </template>
 
         <!-- 4. PUBLIC TUNNEL / WEBHOOK INGRESS -->
-        <template v-else-if="activeCategory === 'tunnel'">
-          <SettingsPublicTunnelCard />
-        </template>
+        <PublicTunnelCard v-else-if="activeCategory === 'tunnel'" />
 
         <!-- 5. AI & INTEGRATIONS (MCP) -->
-        <template v-else-if="activeCategory === 'mcp'">
-          <UCard>
-            <template #header>
-              <div class="space-y-1">
-                <h2 class="text-sm font-semibold text-highlighted">
-                  {{ t('settings.mcp.title') }}
-                </h2>
-                <p class="text-xs text-muted">
-                  {{ t('settings.mcp.description') }}
-                </p>
-              </div>
-            </template>
+        <McpSettingsCard
+          v-else-if="activeCategory === 'mcp'"
+          :mcp-endpoint-url="mcpEndpointUrl"
+          :mcp-cli-snippet="mcpCliSnippet"
+          @copy="copyText"
+        />
 
-            <div class="space-y-3">
-              <div class="space-y-1">
-                <span class="text-xs font-medium text-toned">
-                  {{ t('settings.mcp.httpEndpointLabel') }}
-                </span>
-                <div class="flex items-center gap-2 rounded-md border border-default bg-muted/40 px-3 py-2">
-                  <code dir="ltr" class="min-w-0 flex-1 truncate font-mono text-xs text-default">
-                    {{ mcpEndpointUrl }}
-                  </code>
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    square
-                    icon="i-lucide-copy"
-                    :aria-label="t('common.copy')"
-                    @click="copyText(mcpEndpointUrl, t('settings.mcp.httpEndpointLabel'))"
-                  />
-                </div>
-              </div>
-
-              <div class="space-y-1">
-                <span class="text-xs font-medium text-toned">
-                  {{ t('settings.mcp.cliBridgeLabel') }}
-                </span>
-                <div class="flex items-center gap-2 rounded-md border border-default bg-muted/40 px-3 py-2">
-                  <code dir="ltr" class="min-w-0 flex-1 truncate font-mono text-xs text-default">
-                    {{ mcpCliSnippet }}
-                  </code>
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    square
-                    icon="i-lucide-copy"
-                    :aria-label="t('common.copy')"
-                    @click="copyText(mcpCliSnippet, t('settings.mcp.cliBridgeLabel'))"
-                  />
-                </div>
-              </div>
-            </div>
-          </UCard>
-        </template>
-
-        <!-- 5. ABOUT & UPDATES -->
+        <!-- 6. ABOUT & UPDATES -->
         <template v-else-if="activeCategory === 'about'">
-          <SettingsApplicationUpdatesCard />
-
-          <UCard>
-            <div class="flex flex-wrap items-center justify-between gap-4">
-              <div class="flex items-center gap-3.5">
-                <div class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                  <SharedBrandLogo size="lg" />
-                </div>
-                <div class="space-y-1">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <h2 class="text-sm font-semibold text-highlighted">
-                      {{ t('application.name') }}
-                    </h2>
-                    <UBadge
-                      color="primary"
-                      variant="subtle"
-                      size="xs"
-                      :label="t('settings.about.architectureBadge')"
-                    />
-                  </div>
-                  <p class="text-xs text-muted">
-                    {{ t('settings.about.description') }}
-                  </p>
-                </div>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-3">
-                <div class="rounded-lg border border-default bg-elevated px-3 py-1.5 text-xs">
-                  <span class="text-muted">{{ t('settings.about.versionLabel') }}:</span>
-                  <USkeleton v-if="isHealthInitialLoading" class="ms-1.5 inline-block h-4 w-10 align-middle rounded" />
-                  <code v-else class="ms-1.5 font-mono font-medium text-highlighted">v{{ health?.applicationVersion ?? '1.0.0' }}</code>
-                </div>
-                <div class="rounded-lg border border-default bg-elevated px-3 py-1.5 text-xs">
-                  <span class="text-muted">{{ t('settings.about.schemaLabel') }}:</span>
-                  <USkeleton v-if="isHealthInitialLoading" class="ms-1.5 inline-block h-4 w-8 align-middle rounded" />
-                  <code v-else class="ms-1.5 font-mono font-medium text-highlighted">v{{ health?.schemaMigrationVersion ?? 1 }}</code>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-4 flex flex-col gap-3 border-t border-default pt-4">
-              <!-- Telegram Channel Reference -->
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="space-y-0.5">
-                  <div class="flex items-center gap-2 text-xs font-medium text-highlighted">
-                    <UIcon name="i-simple-icons-telegram" class="size-4 text-[#24A1DE]" />
-                    <span>{{ t('settings.about.telegramChannelTitle') }}</span>
-                  </div>
-                  <p class="text-xs text-muted">
-                    {{ t('settings.about.telegramChannelDescription') }}
-                  </p>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="rounded-md border border-default bg-muted/40 px-2.5 py-1 font-mono text-xs text-default" dir="ltr">
-                    {{ TELEGRAM_CHANNEL_HANDLE }}
-                  </span>
-
-                  <UButton
-                    color="primary"
-                    variant="subtle"
-                    size="xs"
-                    icon="i-simple-icons-telegram"
-                    :label="t('settings.about.openTelegramAction')"
-                    :to="TELEGRAM_CHANNEL_URL"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
-                </div>
-              </div>
-
-              <!-- GitHub Repository -->
-              <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default/60 pt-3">
-                <div class="space-y-0.5">
-                  <div class="flex items-center gap-2 text-xs font-medium text-highlighted">
-                    <UIcon name="i-simple-icons-github" class="size-4 text-highlighted" />
-                    <span>{{ t('settings.about.githubTitle') }}</span>
-                  </div>
-                  <p class="text-xs text-muted">
-                    {{ t('settings.about.githubDescription') }}
-                  </p>
-                </div>
-
-                <UButton
-                  color="neutral"
-                  variant="outline"
-                  size="xs"
-                  icon="i-simple-icons-github"
-                  :label="t('settings.about.openGitHubAction')"
-                  :to="GITHUB_REPOSITORY_URL"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              </div>
-            </div>
-          </UCard>
+          <ApplicationUpdatesCard />
+          <AboutSettingsCard
+            :health="health"
+            :is-health-initial-loading="isHealthInitialLoading"
+          />
         </template>
       </div>
     </div>

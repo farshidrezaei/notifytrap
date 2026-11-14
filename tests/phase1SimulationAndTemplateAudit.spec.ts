@@ -143,4 +143,18 @@ describe('Phase 1: Email Audit Integration with Template Linter', () => {
     expect(placeholderFinding?.severity).toBe('warning')
     expect(placeholderFinding?.translationKey).toBe('inbox.email.audit.findings.unrenderedPlaceholdersFound')
   })
+
+  it('validates device viewport configurations and i18n keys', async () => {
+    const enLocale = await import('../i18n/locales/en.json')
+    const faLocale = await import('../i18n/locales/fa.json')
+
+    const requiredDevices = ['desktop', 'iphone18Pro', 'galaxyS28Plus', 'ipadPro'] as const
+
+    for (const deviceKey of requiredDevices) {
+      expect(enLocale.inbox.email.viewport).toHaveProperty(deviceKey)
+      expect(faLocale.inbox.email.viewport).toHaveProperty(deviceKey)
+      expect(enLocale.inbox.email.viewport[deviceKey].length).toBeGreaterThan(0)
+      expect(faLocale.inbox.email.viewport[deviceKey].length).toBeGreaterThan(0)
+    }
+  })
 })

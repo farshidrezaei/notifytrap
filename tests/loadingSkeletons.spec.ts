@@ -63,7 +63,7 @@ const SKELETON_CONTRACTS: SkeletonStructuralContract[] = [
   },
   {
     skeletonFile: 'app/components/skeleton/SettingsFormGrid.vue',
-    targetFile: 'app/pages/settings.vue',
+    targetFile: 'app/components/settings/ServerSettingsCard.vue',
     expectedClasses: ['grid grid-cols-1 gap-4 sm:grid-cols-3', 'border-t border-default pt-5'],
   },
 ]

@@ -45,7 +45,7 @@ NotifyTrap is a **modular monolith** desktop application built with **Tauri 2**,
 | `infrastructure/migrations/` | Versioned deterministic SQL migrations (`0001_initial_schema.sql`, `0002_rename_tenant_to_workspace.sql`, etc.) |
 | `infrastructure/security/` | Constant-time credential hashing/verification, AES-256-GCM envelope encryption, `SecretKeyProvider`, HTML sanitization (`ammonia`) |
 | `infrastructure/smtp/` | Managed Tokio local SMTP server + MIME parser (`mail-parser`) |
-| `infrastructure/http/` | Managed Axum local HTTP capture server (`POST /api/v1/sms`, `POST /api/v1/push`, `ANY /api/v1/webhooks/:channel_identifier`, `GET /api/v1/health`) |
+| `infrastructure/http/` | Managed Axum local HTTP capture router (`routes.rs`), modular protocol handlers (`sms_handler.rs`, `push_handler.rs`, `webhook_handler.rs`), auth/redaction guards (`capture_auth.rs`), typed HTTP error mappings (`capture_error.rs`), loopback replay (`loopback_replay.rs`), live asset checker (`asset_checker.rs`), downstream forwarding (`forwarder.rs`), and headless web companion server (`web_server.rs`) |
 | `services/` | Orchestration & business invariants (`WorkspaceService`, `ProjectService`, `EnvironmentService`, `ChannelService`, `NotificationService`) |
 | `commands/` | Thin Tauri IPC command boundaries validating inputs and delegating to services |
 | `events/` | Typed Tauri event payloads (`notification:captured`, `server:status_changed`) |
@@ -180,3 +180,9 @@ Default loopback binding: `127.0.0.1`. Default HTTP port: `4080`. Default SMTP p
   - **Phase 2 — Deep Asset Checker & Storage Maintenance**: Concurrent HEAD/GET link & image health verifier (`asset_checker.rs`), SQLite disk metric reporting, database VACUUM, and categorized settings navigation (`DatabaseMaintenanceCard.vue`, `settings.vue`).
   - **Phase 3 — Public Ingress & Forwarding Pipeline**: Migration `0005_add_channel_forwarding_rules.sql`, managed local tunnel engine (`cloudflared`, `ngrok`, `bore` in `tunnel_manager.rs`), public webhook URL display in channel cards, and downstream auto-forwarding dispatcher (`forwarder.rs`) with event filtering.
   - **Phase 4 — Headless Server & Web Companion**: `notifytrap-cli serve --web-port=4000` supporting headless execution in Docker/CI with embedded Axum SPA asset serving (`web_server.rs`).
+- **v2.0.0 (Phase 1 — Architectural Decoupling & Modular Monolith Hardening)**:
+  - Decomposed oversized `EmailInspectorView.vue` into focused subcomponents (`EmailInspectorHeader.vue`, `EmailHtmlTab.vue`, `EmailMjmlTab.vue`, `EmailAttachmentsTab.vue`, `EmailAuditTab.vue`).
+  - Extracted inline settings sections in `settings.vue` into standalone modular cards (`GeneralSettingsCard.vue`, `ServerSettingsCard.vue`, `McpSettingsCard.vue`, `AboutSettingsCard.vue`).
+  - Modularized monolithic Axum HTTP router (`routes.rs`) into dedicated single-responsibility modules: `sms_handler.rs`, `push_handler.rs`, `webhook_handler.rs`, `capture_auth.rs`, and `capture_error.rs`.
+  - Zero behavioral regressions; 100% test coverage maintained across Rust unit/integration suites and Vitest component specs.
+

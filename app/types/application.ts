@@ -22,6 +22,8 @@ export interface ApplicationHealthSnapshot {
   smtpEndpoint: string
 }
 
+export type ApplicationHealth = ApplicationHealthSnapshot
+
 export interface CommandErrorPayload {
   code: string
   message: string

@@ -352,7 +352,7 @@ async function handleInspectRecent(notificationId: string): Promise<void> {
               @click="handleInspectRecent(item.id)"
             >
               <div class="min-w-0 space-y-1">
-                <div class="flex items-center gap-2">
+                <div class="flex min-w-0 items-center gap-2">
                   <SharedChannelBadge :channel-type="item.channelType" />
                   <span class="truncate text-xs font-semibold text-highlighted">
                     {{ item.subject || item.recipient || t('inbox.noSubject') }}
