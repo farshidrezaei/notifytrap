@@ -182,4 +182,3 @@ pub fn import_scope_fixture_bundle(
         .import_scope_fixture_bundle(&workspace_id, &project_id, &environment_id, bundle)
         .map_err(|error| error.to_command_payload())
 }
-

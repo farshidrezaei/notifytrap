@@ -835,7 +835,10 @@ fn bulk_operations_delete_update_and_tag_lifecycle() {
     // 3. Bulk delete
     let deleted_count = services
         .notifications
-        .bulk_delete_notifications(vec![notification_ids[3].clone(), notification_ids[4].clone()])
+        .bulk_delete_notifications(vec![
+            notification_ids[3].clone(),
+            notification_ids[4].clone(),
+        ])
         .expect("bulk delete");
     assert_eq!(deleted_count, 2);
 
@@ -936,9 +939,15 @@ fn fixture_bundle_export_and_import_roundtrip_lifecycle() {
 
     assert_eq!(exported_bundle.version, "1.0");
     assert_eq!(exported_bundle.notifications.len(), 1);
-    assert_eq!(exported_bundle.notifications[0].recipient, "bundle1@example.com");
+    assert_eq!(
+        exported_bundle.notifications[0].recipient,
+        "bundle1@example.com"
+    );
     assert_eq!(exported_bundle.notifications[0].attachments.len(), 1);
-    assert_eq!(exported_bundle.notifications[0].attachments[0].filename, "report.txt");
+    assert_eq!(
+        exported_bundle.notifications[0].attachments[0].filename,
+        "report.txt"
+    );
 
     // Create target environment
     let env_target = &environments[1];

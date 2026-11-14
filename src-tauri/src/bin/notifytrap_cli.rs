@@ -524,7 +524,8 @@ async fn run_import(options: &CliOptions) -> Result<(), String> {
     let parsed: Value = serde_json::from_str(&file_content)
         .map_err(|error| format!("Invalid JSON file: {error}"))?;
 
-    let notifications = if let Some(items) = parsed.get("notifications").and_then(|v| v.as_array()) {
+    let notifications = if let Some(items) = parsed.get("notifications").and_then(|v| v.as_array())
+    {
         items.clone()
     } else if parsed.is_object() {
         vec![parsed]
@@ -536,7 +537,10 @@ async fn run_import(options: &CliOptions) -> Result<(), String> {
     let mut imported = 0;
 
     for item in notifications {
-        let channel_type = item.get("channelType").and_then(|v| v.as_str()).unwrap_or("sms");
+        let channel_type = item
+            .get("channelType")
+            .and_then(|v| v.as_str())
+            .unwrap_or("sms");
         let endpoint = match channel_type {
             "sms" => format!("{}/api/v1/sms", options.base_url),
             "push" => format!("{}/api/v1/push", options.base_url),
@@ -549,7 +553,9 @@ async fn run_import(options: &CliOptions) -> Result<(), String> {
             item.to_string()
         };
 
-        match send_loopback_request("POST", &endpoint, &options.channel_key, Some(&payload_str)).await {
+        match send_loopback_request("POST", &endpoint, &options.channel_key, Some(&payload_str))
+            .await
+        {
             Ok(_) => imported += 1,
             Err(e) => eprintln!("Warning: Failed to import item: {e}"),
         }

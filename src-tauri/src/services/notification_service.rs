@@ -485,12 +485,18 @@ impl NotificationService {
         let environment_id = validate_uuid(raw_environment_id, "environmentId")?;
 
         let existing_channels = self.database_manager.with_connection(|connection| {
-            SqliteChannelRepository::list_by_scope(connection, &workspace_id, &project_id, &environment_id)
+            SqliteChannelRepository::list_by_scope(
+                connection,
+                &workspace_id,
+                &project_id,
+                &environment_id,
+            )
         })?;
 
         if existing_channels.is_empty() {
             return Err(ApplicationError::Validation(
-                "Cannot import fixture bundle into an environment with no channels configured".to_string(),
+                "Cannot import fixture bundle into an environment with no channels configured"
+                    .to_string(),
             ));
         }
 

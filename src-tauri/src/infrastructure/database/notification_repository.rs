@@ -268,7 +268,8 @@ impl SqliteNotificationRepository {
         status: NotificationStatus,
     ) -> Result<u64, ApplicationError> {
         let mut total_updated: u64 = 0;
-        let mut statement = connection.prepare_cached("UPDATE notifications SET status = ?2 WHERE id = ?1")?;
+        let mut statement =
+            connection.prepare_cached("UPDATE notifications SET status = ?2 WHERE id = ?1")?;
         for id in notification_ids {
             let affected = statement.execute(params![id, status.as_str()])?;
             total_updated += affected as u64;
@@ -282,7 +283,8 @@ impl SqliteNotificationRepository {
         tag: &str,
     ) -> Result<u64, ApplicationError> {
         let mut total_tagged: u64 = 0;
-        let mut statement = connection.prepare_cached("UPDATE notifications SET test_run_identifier = ?2 WHERE id = ?1")?;
+        let mut statement = connection
+            .prepare_cached("UPDATE notifications SET test_run_identifier = ?2 WHERE id = ?1")?;
         for id in notification_ids {
             let affected = statement.execute(params![id, tag])?;
             total_tagged += affected as u64;
