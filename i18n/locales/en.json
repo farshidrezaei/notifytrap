@@ -600,6 +600,8 @@
         "retentionDays": "Retention Period (Days)",
         "retentionDaysLabel": "Retention Period (Days)",
         "retentionDaysHint": "Number of days to preserve captured notifications before automatic pruning.",
+        "smtpTls": "Enable SMTP STARTTLS",
+        "smtpTlsHint": "Advertise STARTTLS extension and establish TLS encryption with an automatic self-signed local certificate.",
         "saveLabel": "Validate & Save",
         "savedTitle": "Configuration Validated",
         "savedDescription": "All server parameters passed Zod validation. Persistent backend storage activates in Phase 2."

@@ -130,6 +130,7 @@ onMounted(async () => {
     serverFormState.maximumSmtpMessageMegabytes = String(
       Math.max(1, Math.round(configuration.maximumSmtpMessageBytes / BYTES_PER_MEGABYTE)),
     )
+    serverFormState.isSmtpTlsEnabled = Boolean(configuration.isSmtpTlsEnabled)
     shutdownGracePeriodSeconds.value = configuration.shutdownGracePeriodSeconds
     if (retentionSetting && typeof retentionSetting.value === 'number') {
       serverFormState.retentionDays = String(retentionSetting.value)
@@ -166,6 +167,7 @@ async function handleSaveServerSettings(
           maximumHttpPayloadBytes: event.data.maximumHttpPayloadMegabytes * BYTES_PER_MEGABYTE,
           maximumSmtpMessageBytes: event.data.maximumSmtpMessageMegabytes * BYTES_PER_MEGABYTE,
           shutdownGracePeriodSeconds: shutdownGracePeriodSeconds.value,
+          isSmtpTlsEnabled: event.data.isSmtpTlsEnabled,
         },
       },
     )
@@ -185,6 +187,7 @@ async function handleSaveServerSettings(
       Math.max(1, Math.round(savedConfiguration.maximumSmtpMessageBytes / BYTES_PER_MEGABYTE)),
     )
     serverFormState.retentionDays = String(event.data.retentionDays)
+    serverFormState.isSmtpTlsEnabled = Boolean(savedConfiguration.isSmtpTlsEnabled)
     shutdownGracePeriodSeconds.value = savedConfiguration.shutdownGracePeriodSeconds
 
     await refreshHealth()

@@ -9,6 +9,7 @@ export interface ServerConfiguration {
   maximumHttpPayloadBytes: number
   maximumSmtpMessageBytes: number
   shutdownGracePeriodSeconds: number
+  isSmtpTlsEnabled: boolean
 }
 
 export interface ApplicationHealthSnapshot {

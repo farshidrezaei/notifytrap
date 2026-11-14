@@ -17,6 +17,7 @@ export interface ServerSettingsFormValues {
   maximumHttpPayloadMegabytes: string
   maximumSmtpMessageMegabytes: string
   retentionDays: string
+  isSmtpTlsEnabled: boolean
 }
 
 export const DEFAULT_SERVER_SETTINGS_FORM_VALUES: ServerSettingsFormValues = {
@@ -26,6 +27,7 @@ export const DEFAULT_SERVER_SETTINGS_FORM_VALUES: ServerSettingsFormValues = {
   maximumHttpPayloadMegabytes: '2',
   maximumSmtpMessageMegabytes: '10',
   retentionDays: '30',
+  isSmtpTlsEnabled: false,
 }
 
 /**
@@ -49,6 +51,7 @@ export function createServerSettingsFormSchema(translate: ValidationTranslator) 
         min: MINIMUM_RETENTION_DAYS,
         max: MAXIMUM_RETENTION_DAYS,
       }),
+      isSmtpTlsEnabled: z.boolean().default(false),
     })
     .superRefine((formValues, refinementContext) => {
       if (formValues.httpPort === formValues.smtpPort) {

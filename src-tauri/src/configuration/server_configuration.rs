@@ -10,6 +10,7 @@ pub struct ServerConfiguration {
     pub maximum_http_payload_bytes: usize,
     pub maximum_smtp_message_bytes: usize,
     pub shutdown_grace_period_seconds: u64,
+    pub is_smtp_tls_enabled: bool,
 }
 
 impl ServerConfiguration {
@@ -19,6 +20,7 @@ impl ServerConfiguration {
     pub const DEFAULT_MAXIMUM_HTTP_PAYLOAD_BYTES: usize = 2 * 1024 * 1024;
     pub const DEFAULT_MAXIMUM_SMTP_MESSAGE_BYTES: usize = 10 * 1024 * 1024;
     pub const DEFAULT_SHUTDOWN_GRACE_PERIOD_SECONDS: u64 = 5;
+    pub const DEFAULT_IS_SMTP_TLS_ENABLED: bool = false;
 }
 
 impl Default for ServerConfiguration {
@@ -30,6 +32,7 @@ impl Default for ServerConfiguration {
             maximum_http_payload_bytes: Self::DEFAULT_MAXIMUM_HTTP_PAYLOAD_BYTES,
             maximum_smtp_message_bytes: Self::DEFAULT_MAXIMUM_SMTP_MESSAGE_BYTES,
             shutdown_grace_period_seconds: Self::DEFAULT_SHUTDOWN_GRACE_PERIOD_SECONDS,
+            is_smtp_tls_enabled: Self::DEFAULT_IS_SMTP_TLS_ENABLED,
         }
     }
 }

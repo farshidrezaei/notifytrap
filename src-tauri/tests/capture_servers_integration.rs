@@ -77,6 +77,7 @@ async fn setup_capture_harness(
         maximum_http_payload_bytes,
         maximum_smtp_message_bytes,
         shutdown_grace_period_seconds: 2,
+        is_smtp_tls_enabled: false,
     };
 
     let coordinator = CaptureServerCoordinator::new(&configuration);

@@ -9,7 +9,7 @@ const props = defineProps<{
   isHealthInitialLoading: boolean
   isLoadingConfiguration: boolean
   isSavingConfiguration: boolean
-  serverFormState: Record<string, string>
+  serverFormState: Record<string, any>
   serverSettingsSchema: unknown
 }>()
 
@@ -148,6 +148,21 @@ const { t } = useI18n()
             placeholder="30"
           />
         </SharedHintedFormField>
+
+        <div class="sm:col-span-3 flex items-center justify-between rounded-lg border border-default bg-muted/20 p-3">
+          <div>
+            <div class="text-xs font-semibold text-highlighted">
+              {{ t('settings.server.form.smtpTls') }}
+            </div>
+            <div class="text-[11px] text-muted">
+              {{ t('settings.server.form.smtpTlsHint') }}
+            </div>
+          </div>
+          <USwitch
+            v-model="props.serverFormState.isSmtpTlsEnabled"
+            size="sm"
+          />
+        </div>
       </div>
 
       <div class="flex items-center justify-between border-t border-default pt-5">

@@ -26,6 +26,7 @@ async fn headless_server_and_web_companion_end_to_end_lifecycle() {
         maximum_http_payload_bytes: 10 * 1024 * 1024,
         maximum_smtp_message_bytes: 25 * 1024 * 1024,
         shutdown_grace_period_seconds: 5,
+        is_smtp_tls_enabled: false,
     };
 
     let http_server = RunningHttpServer::start(
