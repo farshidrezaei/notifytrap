@@ -372,6 +372,26 @@
         "rawPayload": "Raw Payload",
         "metadata": "Metadata"
       }
+    },
+    "bulk": {
+      "selectedCount": "{count} selected",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "markRead": "Mark Read",
+      "markUnread": "Mark Unread",
+      "archive": "Archive",
+      "delete": "Delete",
+      "tag": "Add Tag",
+      "tagTitle": "Assign Tag to Selected",
+      "tagPlaceholder": "Enter tag name (e.g. e2e-smoke)",
+      "tagSubmit": "Apply Tag",
+      "deleteConfirmTitle": "Delete Selected",
+      "deleteConfirmDescription": "Are you sure you want to permanently delete {count} selected notifications?",
+      "toast": {
+        "deleted": "Deleted {count} notifications",
+        "statusUpdated": "Updated status for {count} notifications",
+        "tagged": "Applied tag to {count} notifications"
+      }
     }
   },
   "workspaces": {

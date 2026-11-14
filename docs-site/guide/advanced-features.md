@@ -79,3 +79,15 @@ Keep your local development database clean and performant directly from the **Se
 - **Enhanced Command Palette (`Ctrl/Cmd+K`)**:
   - Instant actions to reset all inbox filters, copy the local MCP server endpoint, create new channels, and jump directly to relevant documentation.
 
+---
+
+## 6. Bulk Operations & Batch Tagging
+
+Manage high-volume captured notifications efficiently from the inbox toolbar:
+
+- **Multi-Selection Checkboxes**: Select individual notifications or toggle «Select All» across the current view.
+- **Batch Status Transitions**: One-click Mark as Read, Mark as Unread, or Archive across all selected items.
+- **Interactive Batch Tagging**: Assign custom tags (e.g. `e2e-run-42`, `auth-flow`, `regression`) to multiple notifications simultaneously. All tags are immediately filterable via the search grammar (`tag:<name>` or `run:<name>`).
+- **Transactional Bulk Deletion**: Safely and permanently delete batches of notifications with a modal confirmation dialog.
+
+

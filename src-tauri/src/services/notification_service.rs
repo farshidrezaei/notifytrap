@@ -236,6 +236,48 @@ impl NotificationService {
         })
     }
 
+    pub fn bulk_delete_notifications(
+        &self,
+        raw_notification_ids: Vec<String>,
+    ) -> Result<u64, ApplicationError> {
+        let mut validated_ids = Vec::with_capacity(raw_notification_ids.len());
+        for raw_id in &raw_notification_ids {
+            validated_ids.push(validate_uuid(raw_id, "notificationId")?);
+        }
+        self.database_manager.with_transaction(|transaction| {
+            SqliteNotificationRepository::bulk_delete(transaction, &validated_ids)
+        })
+    }
+
+    pub fn bulk_update_notification_status(
+        &self,
+        raw_notification_ids: Vec<String>,
+        status: NotificationStatus,
+    ) -> Result<u64, ApplicationError> {
+        let mut validated_ids = Vec::with_capacity(raw_notification_ids.len());
+        for raw_id in &raw_notification_ids {
+            validated_ids.push(validate_uuid(raw_id, "notificationId")?);
+        }
+        self.database_manager.with_transaction(|transaction| {
+            SqliteNotificationRepository::bulk_update_status(transaction, &validated_ids, status)
+        })
+    }
+
+    pub fn bulk_set_notification_tag(
+        &self,
+        raw_notification_ids: Vec<String>,
+        raw_tag: &str,
+    ) -> Result<u64, ApplicationError> {
+        let tag = validate_optional_test_run_identifier(Some(raw_tag))?.unwrap_or_default();
+        let mut validated_ids = Vec::with_capacity(raw_notification_ids.len());
+        for raw_id in &raw_notification_ids {
+            validated_ids.push(validate_uuid(raw_id, "notificationId")?);
+        }
+        self.database_manager.with_transaction(|transaction| {
+            SqliteNotificationRepository::bulk_set_tag(transaction, &validated_ids, &tag)
+        })
+    }
+
     pub fn clear_scope_notifications(
         &self,
         raw_workspace_id: &str,

@@ -189,5 +189,11 @@ Default loopback binding: `127.0.0.1`. Default HTTP port: `4080`. Default SMTP p
   - Added zero-dependency virtual scrolling composable (`useVirtualList.ts`) in `InboxMessageList.vue` allowing 60fps rendering across 10,000+ notifications.
   - Expanded global Command Palette (`CommandPaletteModal.vue`, `Ctrl+K`) with Quick Actions (Reset Filters, Copy MCP Endpoint, Quick Create Channel, Open Docs).
   - Added Dashboard Notification Activity Rate card (`NotificationActivityCard.vue`) displaying multi-channel hourly distribution buckets and peak rates.
+- **v2.0.0 (Phase 3 — Bulk Operations & Advanced Tagging)**:
+  - Implemented transactional batch operations in Rust: `bulk_delete_notifications`, `bulk_update_notification_status`, and `bulk_set_notification_tag` in `NotificationService` and `SqliteNotificationRepository`.
+  - Added multi-select checkbox capabilities in `InboxMessageList.vue` with dedicated bulk action toolbar (Mark as Read, Mark as Unread, Archive, Assign Tag, Delete).
+  - Built interactive Tag Assignment Modal and destructive Delete Confirmation dialog with complete English (LTR) and Persian (RTL) localization.
+  - Added unit/integration matrix test `bulk_operations_delete_update_and_tag_lifecycle` and frontend spec `tests/bulkOperations.spec.ts`.
+
 
 

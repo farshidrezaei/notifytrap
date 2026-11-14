@@ -114,3 +114,42 @@ pub fn clear_scope_notifications(
         .clear_scope_notifications(&workspace_id, &project_id, &environment_id)
         .map_err(|error| error.to_command_payload())
 }
+
+#[tauri::command]
+pub fn bulk_delete_notifications(
+    state: State<'_, ApplicationState>,
+    notification_ids: Vec<String>,
+) -> Result<u64, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .bulk_delete_notifications(notification_ids)
+        .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
+pub fn bulk_update_notification_status(
+    state: State<'_, ApplicationState>,
+    notification_ids: Vec<String>,
+    status: NotificationStatus,
+) -> Result<u64, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .bulk_update_notification_status(notification_ids, status)
+        .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
+pub fn bulk_set_notification_tag(
+    state: State<'_, ApplicationState>,
+    notification_ids: Vec<String>,
+    tag: String,
+) -> Result<u64, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .bulk_set_notification_tag(notification_ids, &tag)
+        .map_err(|error| error.to_command_payload())
+}
+

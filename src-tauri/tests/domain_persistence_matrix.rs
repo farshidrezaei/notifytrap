@@ -739,6 +739,127 @@ fn channel_forwarding_rules_persistence_and_matrix_update() {
     );
 }
 
+#[test]
+fn bulk_operations_delete_update_and_tag_lifecycle() {
+    let services = create_test_services();
+    let workspace = services
+        .workspaces
+        .create_workspace(CreateWorkspaceInput {
+            name: "Bulk Workspace".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create workspace");
+
+    let project = services
+        .projects
+        .create_project(CreateProjectInput {
+            workspace_id: workspace.id.clone(),
+            name: "Bulk Project".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create project");
+
+    let environments = services
+        .environments
+        .list_environments_by_project(&project.id)
+        .expect("list envs");
+    let environment = &environments[0];
+
+    let email_channel = services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: environment.id.clone(),
+            name: "Bulk Email Channel".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("create email channel");
+
+    let mut notification_ids = Vec::new();
+    for i in 1..=5 {
+        let detail = services
+            .notifications
+            .capture_notification(CaptureNotificationInput {
+                workspace_id: workspace.id.clone(),
+                project_id: project.id.clone(),
+                environment_id: environment.id.clone(),
+                channel_id: email_channel.channel.id.clone(),
+                channel_type: ChannelType::Email,
+                recipient: format!("user{i}@example.com"),
+                sender: "noreply@bulk.local".to_string(),
+                subject: format!("Subject {i}"),
+                preview_text: format!("Body {i}"),
+                payload_json: json!({ "index": i }),
+                raw_payload: format!("Raw {i}"),
+                test_run_identifier: None,
+                received_at: None,
+                attachments: Vec::new(),
+            })
+            .expect("capture");
+        notification_ids.push(detail.notification.id);
+    }
+
+    assert_eq!(notification_ids.len(), 5);
+
+    // 1. Bulk update status to Read
+    let updated_count = services
+        .notifications
+        .bulk_update_notification_status(notification_ids[0..3].to_vec(), NotificationStatus::Read)
+        .expect("bulk update status");
+    assert_eq!(updated_count, 3);
+
+    let detail_0 = services
+        .notifications
+        .get_notification_detail(&notification_ids[0])
+        .expect("detail");
+    assert_eq!(detail_0.notification.status, NotificationStatus::Read);
+
+    // 2. Bulk set tag
+    let tagged_count = services
+        .notifications
+        .bulk_set_notification_tag(notification_ids[0..2].to_vec(), "regression-v2")
+        .expect("bulk set tag");
+    assert_eq!(tagged_count, 2);
+
+    let detail_1 = services
+        .notifications
+        .get_notification_detail(&notification_ids[1])
+        .expect("detail 1");
+    assert_eq!(detail_1.notification.test_run_identifier, "regression-v2");
+
+    // 3. Bulk delete
+    let deleted_count = services
+        .notifications
+        .bulk_delete_notifications(vec![notification_ids[3].clone(), notification_ids[4].clone()])
+        .expect("bulk delete");
+    assert_eq!(deleted_count, 2);
+
+    let remaining_page = services
+        .notifications
+        .query_notifications(NotificationQuery {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: environment.id.clone(),
+            channel_id: None,
+            channel_type: None,
+            status: None,
+            test_run_identifier: None,
+            recipient_contains: None,
+            subject_contains: None,
+            since: None,
+            search_query: None,
+            limit: Some(10),
+            offset: Some(0),
+        })
+        .expect("query page");
+    assert_eq!(remaining_page.total_count, 3);
+}
+
 proptest! {
     #[test]
     fn property_derived_slug_is_always_valid_for_alphanumeric_inputs(

@@ -249,6 +249,47 @@ impl SqliteNotificationRepository {
         Ok(affected > 0)
     }
 
+    pub fn bulk_delete(
+        connection: &Connection,
+        notification_ids: &[String],
+    ) -> Result<u64, ApplicationError> {
+        let mut total_deleted: u64 = 0;
+        let mut statement = connection.prepare_cached("DELETE FROM notifications WHERE id = ?1")?;
+        for id in notification_ids {
+            let affected = statement.execute(params![id])?;
+            total_deleted += affected as u64;
+        }
+        Ok(total_deleted)
+    }
+
+    pub fn bulk_update_status(
+        connection: &Connection,
+        notification_ids: &[String],
+        status: NotificationStatus,
+    ) -> Result<u64, ApplicationError> {
+        let mut total_updated: u64 = 0;
+        let mut statement = connection.prepare_cached("UPDATE notifications SET status = ?2 WHERE id = ?1")?;
+        for id in notification_ids {
+            let affected = statement.execute(params![id, status.as_str()])?;
+            total_updated += affected as u64;
+        }
+        Ok(total_updated)
+    }
+
+    pub fn bulk_set_tag(
+        connection: &Connection,
+        notification_ids: &[String],
+        tag: &str,
+    ) -> Result<u64, ApplicationError> {
+        let mut total_tagged: u64 = 0;
+        let mut statement = connection.prepare_cached("UPDATE notifications SET test_run_identifier = ?2 WHERE id = ?1")?;
+        for id in notification_ids {
+            let affected = statement.execute(params![id, tag])?;
+            total_tagged += affected as u64;
+        }
+        Ok(total_tagged)
+    }
+
     pub fn clear_scope(
         connection: &Connection,
         workspace_id: &str,

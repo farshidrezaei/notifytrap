@@ -372,6 +372,26 @@
         "rawPayload": "پیام خام",
         "metadata": "فراداده"
       }
+    },
+    "bulk": {
+      "selectedCount": "{count} انتخاب‌شده",
+      "selectAll": "انتخاب همه",
+      "deselectAll": "لغو انتخاب",
+      "markRead": "خوانده‌شده",
+      "markUnread": "خوانده‌نشده",
+      "archive": "بایگانی",
+      "delete": "حذف",
+      "tag": "برچسب",
+      "tagTitle": "تخصیص برچسب به موارد انتخابی",
+      "tagPlaceholder": "نام برچسب (مثال: e2e-smoke)",
+      "tagSubmit": "اعمال برچسب",
+      "deleteConfirmTitle": "حذف موارد انتخابی",
+      "deleteConfirmDescription": "آیا از حذف دائمی {count} اعلان انتخاب‌شده اطمینان دارید؟",
+      "toast": {
+        "deleted": "{count} اعلان حذف شد",
+        "statusUpdated": "وضعیت {count} اعلان به‌روزرسانی شد",
+        "tagged": "{count} اعلان برچسب‌گذاری شد"
+      }
     }
   },
   "workspaces": {

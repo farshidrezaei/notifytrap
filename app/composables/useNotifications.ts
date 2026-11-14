@@ -34,6 +34,7 @@ export function useNotifications() {
   const filterTestRunIdentifier = useState<string>('inbox-filter-test-run', () => '')
   const filterSearchQuery = useState<string>('inbox-filter-search', () => '')
   const currentPage = useState<number>('inbox-current-page', () => 1)
+  const selectedNotificationIds = useState<string[]>('inbox-selected-notification-ids', () => [])
 
   const unreadCount = computed<number>(() => {
     if (!notificationPage.value) {
@@ -170,8 +171,93 @@ export function useNotifications() {
     })
     selectedDetail.value = null
     currentPage.value = 1
+    selectedNotificationIds.value = []
     await refreshInbox()
     return deletedCount
+  }
+
+  function toggleSelectNotification(notificationId: string): void {
+    const set = new Set(selectedNotificationIds.value)
+    if (set.has(notificationId)) {
+      set.delete(notificationId)
+    } else {
+      set.add(notificationId)
+    }
+    selectedNotificationIds.value = Array.from(set)
+  }
+
+  function toggleSelectAll(selectAll: boolean): void {
+    if (!selectAll || !notificationPage.value) {
+      selectedNotificationIds.value = []
+    } else {
+      selectedNotificationIds.value = notificationPage.value.items.map((item) => item.id)
+    }
+  }
+
+  function clearSelection(): void {
+    selectedNotificationIds.value = []
+  }
+
+  async function bulkDeleteSelected(): Promise<number> {
+    const ids = selectedNotificationIds.value
+    if (ids.length === 0) {
+      return 0
+    }
+    const deletedCount = await invokeTauriCommand<number>('bulk_delete_notifications', {
+      notificationIds: ids,
+    })
+    if (selectedDetail.value && ids.includes(selectedDetail.value.notification.id)) {
+      selectedDetail.value = null
+    }
+    selectedNotificationIds.value = []
+    await refreshInbox()
+    return deletedCount
+  }
+
+  async function bulkUpdateStatusSelected(status: NotificationStatus): Promise<number> {
+    const ids = selectedNotificationIds.value
+    if (ids.length === 0) {
+      return 0
+    }
+    const updatedCount = await invokeTauriCommand<number>('bulk_update_notification_status', {
+      notificationIds: ids,
+      status,
+    })
+    if (selectedDetail.value && ids.includes(selectedDetail.value.notification.id)) {
+      selectedDetail.value = {
+        ...selectedDetail.value,
+        notification: {
+          ...selectedDetail.value.notification,
+          status,
+        },
+      }
+    }
+    selectedNotificationIds.value = []
+    await refreshInbox()
+    return updatedCount
+  }
+
+  async function bulkTagSelected(tag: string): Promise<number> {
+    const ids = selectedNotificationIds.value
+    if (ids.length === 0) {
+      return 0
+    }
+    const taggedCount = await invokeTauriCommand<number>('bulk_set_notification_tag', {
+      notificationIds: ids,
+      tag,
+    })
+    if (selectedDetail.value && ids.includes(selectedDetail.value.notification.id)) {
+      selectedDetail.value = {
+        ...selectedDetail.value,
+        notification: {
+          ...selectedDetail.value.notification,
+          testRunIdentifier: tag,
+        },
+      }
+    }
+    selectedNotificationIds.value = []
+    await refreshInbox()
+    return taggedCount
   }
 
   async function fetchNotificationDetailById(
@@ -237,5 +323,12 @@ export function useNotifications() {
     updateNotificationStatus,
     deleteNotification,
     clearScopeNotifications,
+    selectedNotificationIds: readonly(selectedNotificationIds),
+    toggleSelectNotification,
+    toggleSelectAll,
+    clearSelection,
+    bulkDeleteSelected,
+    bulkUpdateStatusSelected,
+    bulkTagSelected,
   }
 }
