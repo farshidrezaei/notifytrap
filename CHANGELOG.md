@@ -2,6 +2,18 @@
 
 All notable changes to **NotifyTrap** are documented in this file.
 
+## [1.6.0] - 2026-11-15
+
+### Added
+- **Multi-Selection & Transactional Bulk Operations**: Batch-select notifications in the Inbox with one-click Mark Read, Mark Unread, Archive, and permanent Bulk Delete backed by atomic database transactions (`bulk_delete`, `bulk_update_status`, `bulk_set_tag`).
+- **Interactive Batch Tagging**: Assign custom tags to batches of selected notifications directly from the Inbox toolbar with instant qualifier searchability (`tag:<name>` / `run:<name>`).
+- **Zero-Dependency Virtual Scrolling**: High-performance windowing engine (`useVirtualList.ts`) capable of rendering 10,000+ items at 60fps with bounded DOM geometry.
+- **Hourly Traffic Distribution Chart**: 24-hour channel-segmented activity chart on Dashboard (`NotificationActivityCard.vue`) displaying volume spikes and hourly metrics.
+- **Data Portability & Fixture Bundles**: Portable JSON fixture bundle export and import across desktop and CLI (`export_scope_fixture_bundle`, `import_scope_fixture_bundle`, `notifytrap-cli import`), supporting full payloads, metadata, and binary MIME attachments.
+- **Side-by-Side Split Diff & HTML Comparison**: Interactive two-column split diff viewer with synchronized row heights, visual HTML document diffing, and formatted JSON diffing.
+- **SMTP TLS Configuration**: Server settings toggle for STARTTLS encryption advertising and schema validation.
+- **Architectural Decoupling**: Modularized oversized components (`EmailInspectorView.vue`, `settings.vue`, Axum route handlers) into lightweight focused domain sub-components.
+
 ## [1.5.0] - 2026-11-13
 
 ### Added
