@@ -206,7 +206,7 @@ async function handleCreateProjectSubmit(event: FormSubmitEvent<ValidatedProject
 </script>
 
 <template>
-  <div class="w-full">
+  <div :class="props.isCollapsed ? 'flex justify-center w-full' : 'w-full'">
     <template v-if="isWorkspaceInitializing">
       <USkeleton
         v-if="props.isCollapsed"
@@ -231,6 +231,7 @@ async function handleCreateProjectSubmit(event: FormSubmitEvent<ValidatedProject
       v-else
       v-model:open="isPopoverOpen"
       :content="{ side: 'bottom', align: 'start', sideOffset: 6 }"
+      :class="props.isCollapsed ? 'flex justify-center w-full' : 'w-full'"
     >
       <UTooltip
         v-if="props.isCollapsed"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { NotificationDetail } from '../app/types/application'
 import {
+  buildNotificationBundleExport,
   buildNotificationCurlExport,
   buildNotificationEmlExport,
   buildNotificationJsonExport,
@@ -93,5 +94,43 @@ describe('notification export formatters', () => {
     )
     expect(smsCurl).toContain("'http://127.0.0.1:9090/api/v1/sms'")
     expect(smsCurl).toContain("'x-channel-key: <CHANNEL_KEY>'")
+  })
+
+  it('serializes complete notification fixture bundles accurately', () => {
+    const bundle = {
+      version: '1.0',
+      generator: 'notifytrap',
+      exportedAt: '2026-11-14T20:00:00Z',
+      notifications: [
+        {
+          channelType: 'email' as const,
+          status: 'captured' as const,
+          recipient: 'dev@test.local',
+          sender: 'ci@test.local',
+          subject: 'Fixture Notification',
+          previewText: 'Hello from fixture',
+          payloadJson: { greeting: 'hello' },
+          rawPayload: 'Hello from fixture',
+          testRunIdentifier: 'fixture-run-1',
+          receivedAt: '2026-11-14T20:00:00Z',
+          attachments: [
+            {
+              filename: 'test.txt',
+              contentType: 'text/plain',
+              sizeBytes: 12,
+              contentId: 'cid-1',
+              isInline: false,
+              contentBase64: 'SGVsbG8gV29ybGQ=',
+            },
+          ],
+        },
+      ],
+    }
+
+    const exported = buildNotificationBundleExport(bundle)
+    const parsed = JSON.parse(exported)
+    expect(parsed.version).toBe('1.0')
+    expect(parsed.notifications).toHaveLength(1)
+    expect(parsed.notifications[0].attachments[0].filename).toBe('test.txt')
   })
 })

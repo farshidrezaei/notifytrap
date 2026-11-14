@@ -1,3 +1,5 @@
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use uuid::Uuid;
 
 use crate::domain::asset_audit::AssetCheckResult;
@@ -5,9 +7,10 @@ use crate::domain::channel::ChannelType;
 use crate::domain::database_statistics::DatabaseStorageStatistics;
 use crate::domain::errors::ApplicationError;
 use crate::domain::notification::{
-    CaptureNotificationInput, Notification, NotificationAttachment, NotificationAttachmentSummary,
-    NotificationDetail, NotificationPage, NotificationQuery, NotificationStatus,
-    WebhookReplayInput, WebhookReplayResult,
+    CaptureAttachmentInput, CaptureNotificationInput, FixtureAttachmentEntry,
+    FixtureNotificationEntry, Notification, NotificationAttachment, NotificationAttachmentSummary,
+    NotificationDetail, NotificationFixtureBundle, NotificationPage, NotificationQuery,
+    NotificationStatus, WebhookReplayInput, WebhookReplayResult,
 };
 use crate::domain::validation::{
     current_utc_timestamp, validate_optional_test_run_identifier, validate_pagination,
@@ -379,6 +382,157 @@ impl NotificationService {
 
         let candidates = extract_candidate_urls(raw_html);
         check_candidate_assets(candidates).await
+    }
+
+    pub fn export_scope_fixture_bundle(
+        &self,
+        raw_workspace_id: &str,
+        raw_project_id: &str,
+        raw_environment_id: &str,
+    ) -> Result<NotificationFixtureBundle, ApplicationError> {
+        let workspace_id = validate_uuid(raw_workspace_id, "workspaceId")?;
+        let project_id = validate_uuid(raw_project_id, "projectId")?;
+        let environment_id = validate_uuid(raw_environment_id, "environmentId")?;
+
+        let mut offset = 0;
+        let page_size = 200;
+        let mut fixture_notifications = Vec::new();
+
+        loop {
+            let query = NotificationQuery {
+                workspace_id: workspace_id.clone(),
+                project_id: project_id.clone(),
+                environment_id: environment_id.clone(),
+                channel_id: None,
+                channel_type: None,
+                status: None,
+                test_run_identifier: None,
+                recipient_contains: None,
+                subject_contains: None,
+                since: None,
+                search_query: None,
+                limit: Some(page_size),
+                offset: Some(offset),
+            };
+
+            let page = self.query_notifications(query)?;
+            let fetched_count = page.items.len();
+            if fetched_count == 0 {
+                break;
+            }
+
+            for summary in page.items {
+                if let Ok(detail) = self.get_notification_detail(&summary.id) {
+                    let mut fixture_attachments = Vec::with_capacity(detail.attachments.len());
+                    for attachment in detail.attachments {
+                        let content_blob = self
+                            .get_attachment(&attachment.id)
+                            .map(|att| att.content_blob)
+                            .unwrap_or_default();
+                        fixture_attachments.push(FixtureAttachmentEntry {
+                            filename: attachment.filename,
+                            content_type: attachment.content_type,
+                            size_bytes: attachment.size_bytes,
+                            content_id: attachment.content_id,
+                            is_inline: attachment.is_inline,
+                            content_base64: STANDARD.encode(&content_blob),
+                        });
+                    }
+
+                    fixture_notifications.push(FixtureNotificationEntry {
+                        channel_type: detail.notification.channel_type,
+                        status: detail.notification.status,
+                        recipient: detail.notification.recipient,
+                        sender: detail.notification.sender,
+                        subject: detail.notification.subject,
+                        preview_text: detail.notification.preview_text,
+                        payload_json: detail.notification.payload_json,
+                        raw_payload: detail.notification.raw_payload,
+                        test_run_identifier: if detail.notification.test_run_identifier.is_empty() {
+                            None
+                        } else {
+                            Some(detail.notification.test_run_identifier)
+                        },
+                        received_at: Some(detail.notification.received_at),
+                        attachments: fixture_attachments,
+                    });
+                }
+            }
+
+            offset += fetched_count as u32;
+            if offset >= page.total_count as u32 {
+                break;
+            }
+        }
+
+        Ok(NotificationFixtureBundle {
+            version: "1.0".to_string(),
+            generator: "notifytrap".to_string(),
+            exported_at: current_utc_timestamp(),
+            notifications: fixture_notifications,
+        })
+    }
+
+    pub fn import_scope_fixture_bundle(
+        &self,
+        raw_workspace_id: &str,
+        raw_project_id: &str,
+        raw_environment_id: &str,
+        bundle: NotificationFixtureBundle,
+    ) -> Result<u64, ApplicationError> {
+        let workspace_id = validate_uuid(raw_workspace_id, "workspaceId")?;
+        let project_id = validate_uuid(raw_project_id, "projectId")?;
+        let environment_id = validate_uuid(raw_environment_id, "environmentId")?;
+
+        let existing_channels = self.database_manager.with_connection(|connection| {
+            SqliteChannelRepository::list_by_scope(connection, &workspace_id, &project_id, &environment_id)
+        })?;
+
+        if existing_channels.is_empty() {
+            return Err(ApplicationError::Validation(
+                "Cannot import fixture bundle into an environment with no channels configured".to_string(),
+            ));
+        }
+
+        let mut imported_count: u64 = 0;
+        for entry in bundle.notifications {
+            let matched_channel = existing_channels
+                .iter()
+                .find(|ch| ch.channel_type == entry.channel_type)
+                .unwrap_or(&existing_channels[0]);
+
+            let mut attachments = Vec::with_capacity(entry.attachments.len());
+            for att in entry.attachments {
+                let content_blob = STANDARD.decode(&att.content_base64).unwrap_or_default();
+                attachments.push(CaptureAttachmentInput {
+                    filename: att.filename,
+                    content_type: att.content_type,
+                    content_id: att.content_id,
+                    is_inline: att.is_inline,
+                    content_blob,
+                });
+            }
+
+            self.capture_notification(CaptureNotificationInput {
+                workspace_id: workspace_id.clone(),
+                project_id: project_id.clone(),
+                environment_id: environment_id.clone(),
+                channel_id: matched_channel.id.clone(),
+                channel_type: entry.channel_type,
+                recipient: entry.recipient,
+                sender: entry.sender,
+                subject: entry.subject,
+                preview_text: entry.preview_text,
+                payload_json: entry.payload_json,
+                raw_payload: entry.raw_payload,
+                test_run_identifier: entry.test_run_identifier,
+                received_at: entry.received_at,
+                attachments,
+            })?;
+            imported_count += 1;
+        }
+
+        Ok(imported_count)
     }
 }
 

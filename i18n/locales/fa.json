@@ -358,7 +358,13 @@
       "copyJson": "کپی JSON",
       "copyCurl": "کپی دستور cURL",
       "downloadedTitle": "فایل {format} ذخیره شد",
-      "copiedTitle": "محتوای {format} کپی شد"
+      "copiedTitle": "محتوای {format} کپی شد",
+      "exportBundle": "خروجی بسته فیکسچر",
+      "importBundle": "ورود بسته فیکسچر",
+      "bundleExportSuccess": "{count} اعلان در قالب بسته فیکسچر صادر شد",
+      "bundleImportSuccess": "{count} اعلان از بسته فیکسچر وارد شد",
+      "bundleEmpty": "هیچ اعلانی در محدوده جاری برای صدور وجود ندارد",
+      "invalidBundleFile": "فایل فیکسچر JSON نامعتبر است"
     },
     "diff": {
       "compareButton": "مقایسه",

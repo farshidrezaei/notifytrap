@@ -60,8 +60,8 @@ onBeforeUnmount(() => {
           root: 'peer [--sidebar-width:var(--nt-sidebar-width)] [--sidebar-width-icon:var(--nt-sidebar-collapsed-width)]',
           container: 'md:absolute inset-y-0 h-full py-2 border-transparent',
           inner: 'divide-transparent',
-          header: 'flex-col items-stretch gap-2 px-2.5 pt-2.5 pb-1',
-          body: 'px-2 py-1',
+          header: 'flex-col items-stretch gap-2 px-2.5 pt-2.5 pb-1 group-data-[state=collapsed]/sidebar:items-center group-data-[state=collapsed]/sidebar:px-0',
+          body: 'px-2 py-1 group-data-[state=collapsed]/sidebar:px-0 group-data-[state=collapsed]/sidebar:items-center',
           footer: 'hidden',
           rail: 'inset-y-2',
         }"
@@ -77,6 +77,12 @@ onBeforeUnmount(() => {
             :items="navigationGroups[0]"
             orientation="vertical"
             tooltip
+            :ui="{
+              list: state === 'collapsed' ? 'flex flex-col items-center w-full' : '',
+              item: state === 'collapsed' ? 'w-full flex justify-center' : '',
+              link: state === 'collapsed' ? 'size-9 justify-center p-0 mx-auto' : '',
+              linkLeadingIcon: state === 'collapsed' ? 'size-5 shrink-0' : '',
+            }"
           />
 
           <UNavigationMenu
@@ -85,6 +91,12 @@ onBeforeUnmount(() => {
             orientation="vertical"
             tooltip
             class="mt-auto"
+            :ui="{
+              list: state === 'collapsed' ? 'flex flex-col items-center w-full' : '',
+              item: state === 'collapsed' ? 'w-full flex justify-center' : '',
+              link: state === 'collapsed' ? 'size-9 justify-center p-0 mx-auto' : '',
+              linkLeadingIcon: state === 'collapsed' ? 'size-5 shrink-0' : '',
+            }"
           />
         </template>
       </USidebar>

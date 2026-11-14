@@ -323,3 +323,33 @@ export interface AssetCheckResult {
   latencyMilliseconds: number
   errorMessage: string | null
 }
+
+export interface FixtureAttachmentEntry {
+  filename: string
+  contentType: string
+  sizeBytes: number
+  contentId?: string
+  isInline: boolean
+  contentBase64: string
+}
+
+export interface FixtureNotificationEntry {
+  channelType: ChannelType
+  status: NotificationStatus
+  recipient: string
+  sender: string
+  subject: string
+  previewText: string
+  payloadJson: Record<string, unknown>
+  rawPayload: string
+  testRunIdentifier?: string
+  receivedAt?: string
+  attachments?: FixtureAttachmentEntry[]
+}
+
+export interface NotificationFixtureBundle {
+  version: string
+  generator: string
+  exportedAt: string
+  notifications: FixtureNotificationEntry[]
+}

@@ -240,3 +240,44 @@ pub struct NotificationPage {
     pub limit: u32,
     pub offset: u32,
 }
+
+/// Attachment snapshot inside an exported fixture bundle.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FixtureAttachmentEntry {
+    pub filename: String,
+    pub content_type: String,
+    pub size_bytes: i64,
+    pub content_id: Option<String>,
+    pub is_inline: bool,
+    pub content_base64: String,
+}
+
+/// Notification entry inside an exported fixture bundle.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FixtureNotificationEntry {
+    pub channel_type: ChannelType,
+    pub status: NotificationStatus,
+    pub recipient: String,
+    pub sender: String,
+    pub subject: String,
+    pub preview_text: String,
+    pub payload_json: serde_json::Value,
+    pub raw_payload: String,
+    pub test_run_identifier: Option<String>,
+    pub received_at: Option<String>,
+    #[serde(default)]
+    pub attachments: Vec<FixtureAttachmentEntry>,
+}
+
+/// Portable fixture bundle for importing, exporting, and reproducing test scenarios.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationFixtureBundle {
+    pub version: String,
+    pub generator: String,
+    pub exported_at: String,
+    #[serde(default)]
+    pub notifications: Vec<FixtureNotificationEntry>,
+}

@@ -89,6 +89,7 @@ async fn main() -> ExitCode {
         "tail" => run_tail(&options).await,
         "wait-otp" => run_wait_otp(&options).await,
         "export" => run_export(&options).await,
+        "import" => run_import(&options).await,
         "mcp" => run_mcp_stdio_bridge(&options).await,
         unknown => Err(format!(
             "Unknown subcommand '{unknown}'. Run 'notifytrap-cli --help' for usage."
@@ -511,6 +512,52 @@ async fn run_export(options: &CliOptions) -> Result<(), String> {
     Ok(())
 }
 
+async fn run_import(options: &CliOptions) -> Result<(), String> {
+    let file_path = options.positional.first().ok_or_else(|| {
+        "import requires <file_path>. Usage: notifytrap-cli import <fixture.json> --channel-key <KEY>".to_string()
+    })?;
+
+    let file_content = std::fs::read_to_string(file_path)
+        .map_err(|error| format!("Failed to read '{file_path}': {error}"))?;
+
+    let parsed: Value = serde_json::from_str(&file_content)
+        .map_err(|error| format!("Invalid JSON file: {error}"))?;
+
+    let notifications = if let Some(items) = parsed.get("notifications").and_then(|v| v.as_array()) {
+        items.clone()
+    } else if parsed.is_object() {
+        vec![parsed]
+    } else {
+        return Err("JSON must contain an object or an array of 'notifications'".to_string());
+    };
+
+    let total = notifications.len();
+    let mut imported = 0;
+
+    for item in notifications {
+        let channel_type = item.get("channelType").and_then(|v| v.as_str()).unwrap_or("sms");
+        let endpoint = match channel_type {
+            "sms" => format!("{}/api/v1/sms", options.base_url),
+            "push" => format!("{}/api/v1/push", options.base_url),
+            _ => format!("{}/api/v1/sms", options.base_url),
+        };
+
+        let payload_str = if let Some(payload) = item.get("payloadJson") {
+            payload.to_string()
+        } else {
+            item.to_string()
+        };
+
+        match send_loopback_request("POST", &endpoint, &options.channel_key, Some(&payload_str)).await {
+            Ok(_) => imported += 1,
+            Err(e) => eprintln!("Warning: Failed to import item: {e}"),
+        }
+    }
+
+    println!("Imported {imported}/{total} notifications into NotifyTrap.");
+    Ok(())
+}
+
 async fn run_mcp_stdio_bridge(options: &CliOptions) -> Result<(), String> {
     let url = format!("{}/api/v1/mcp", options.base_url);
     let target = validate_loopback_target_url(&url).map_err(|error| error.to_string())?;
@@ -711,6 +758,7 @@ Subcommands:
   tail       List recent notifications for a channel
   wait-otp   Wait for a matching notification and print the extracted OTP code
   export     Export a notification detail JSON by ID
+  import     Import a fixture JSON bundle or notification file into NotifyTrap
   mcp        Run stdio MCP JSON-RPC 2.0 bridge against local NotifyTrap
   update     Check for and perform self-update to latest GitHub release
 

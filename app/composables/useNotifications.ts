@@ -4,6 +4,7 @@ import type {
   NotificationAttachmentContent,
   NotificationCapturedEvent,
   NotificationDetail,
+  NotificationFixtureBundle,
   NotificationPage,
   NotificationStatus,
   WebhookReplayInput,
@@ -260,6 +261,31 @@ export function useNotifications() {
     return taggedCount
   }
 
+  async function exportFixtureBundle(): Promise<NotificationFixtureBundle | null> {
+    if (!activeWorkspaceId.value || !activeProjectId.value || !activeEnvironmentId.value) {
+      return null
+    }
+    return invokeTauriCommand<NotificationFixtureBundle>('export_scope_fixture_bundle', {
+      workspaceId: activeWorkspaceId.value,
+      projectId: activeProjectId.value,
+      environmentId: activeEnvironmentId.value,
+    })
+  }
+
+  async function importFixtureBundle(bundle: NotificationFixtureBundle): Promise<number> {
+    if (!activeWorkspaceId.value || !activeProjectId.value || !activeEnvironmentId.value) {
+      return 0
+    }
+    const count = await invokeTauriCommand<number>('import_scope_fixture_bundle', {
+      workspaceId: activeWorkspaceId.value,
+      projectId: activeProjectId.value,
+      environmentId: activeEnvironmentId.value,
+      bundle,
+    })
+    await refreshInbox()
+    return count
+  }
+
   async function fetchNotificationDetailById(
     notificationId: string,
   ): Promise<NotificationDetail | null> {
@@ -330,5 +356,7 @@ export function useNotifications() {
     bulkDeleteSelected,
     bulkUpdateStatusSelected,
     bulkTagSelected,
+    exportFixtureBundle,
+    importFixtureBundle,
   }
 }

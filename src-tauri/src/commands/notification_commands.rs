@@ -5,8 +5,9 @@ use tauri::State;
 use crate::application::application_state::ApplicationState;
 use crate::domain::errors::CommandErrorPayload;
 use crate::domain::notification::{
-    Notification, NotificationAttachmentContent, NotificationDetail, NotificationPage,
-    NotificationQuery, NotificationStatus, WebhookReplayInput, WebhookReplayResult,
+    Notification, NotificationAttachmentContent, NotificationDetail, NotificationFixtureBundle,
+    NotificationPage, NotificationQuery, NotificationStatus, WebhookReplayInput,
+    WebhookReplayResult,
 };
 
 #[tauri::command]
@@ -150,6 +151,35 @@ pub fn bulk_set_notification_tag(
         .services
         .notifications
         .bulk_set_notification_tag(notification_ids, &tag)
+        .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
+pub fn export_scope_fixture_bundle(
+    state: State<'_, ApplicationState>,
+    workspace_id: String,
+    project_id: String,
+    environment_id: String,
+) -> Result<NotificationFixtureBundle, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .export_scope_fixture_bundle(&workspace_id, &project_id, &environment_id)
+        .map_err(|error| error.to_command_payload())
+}
+
+#[tauri::command]
+pub fn import_scope_fixture_bundle(
+    state: State<'_, ApplicationState>,
+    workspace_id: String,
+    project_id: String,
+    environment_id: String,
+    bundle: NotificationFixtureBundle,
+) -> Result<u64, CommandErrorPayload> {
+    state
+        .services
+        .notifications
+        .import_scope_fixture_bundle(&workspace_id, &project_id, &environment_id, bundle)
         .map_err(|error| error.to_command_payload())
 }
 

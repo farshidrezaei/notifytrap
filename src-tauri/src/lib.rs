@@ -162,6 +162,8 @@ pub fn run() {
             commands::notification_commands::bulk_delete_notifications,
             commands::notification_commands::bulk_update_notification_status,
             commands::notification_commands::bulk_set_notification_tag,
+            commands::notification_commands::export_scope_fixture_bundle,
+            commands::notification_commands::import_scope_fixture_bundle,
             commands::tunnel_commands::get_tunnel_status,
             commands::tunnel_commands::start_tunnel,
             commands::tunnel_commands::stop_tunnel,

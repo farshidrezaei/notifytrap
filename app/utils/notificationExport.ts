@@ -1,4 +1,4 @@
-import type { NotificationDetail } from '~/types/application'
+import type { NotificationDetail, NotificationFixtureBundle } from '~/types/application'
 
 const PLACEHOLDER_CHANNEL_KEY = '<CHANNEL_KEY>'
 
@@ -7,6 +7,13 @@ const PLACEHOLDER_CHANNEL_KEY = '<CHANNEL_KEY>'
  */
 export function buildNotificationJsonExport(detail: NotificationDetail): string {
   return JSON.stringify(detail, null, 2)
+}
+
+/**
+ * Serializes an entire fixture bundle into formatted JSON.
+ */
+export function buildNotificationBundleExport(bundle: NotificationFixtureBundle): string {
+  return JSON.stringify(bundle, null, 2)
 }
 
 /**

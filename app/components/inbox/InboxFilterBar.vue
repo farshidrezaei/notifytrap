@@ -3,13 +3,17 @@ import {
   createInboxFilterFormSchema,
   NOTIFICATION_CHANNEL_KINDS,
 } from '~/schemas/workspaceForms'
-import type { ChannelType, NotificationStatus } from '~/types/application'
+import type { ChannelType, NotificationFixtureBundle, NotificationStatus } from '~/types/application'
 import type { SavedInboxFilter } from '~/utils/savedFilters'
+import {
+  buildNotificationBundleExport,
+  triggerTextFileDownload,
+} from '~/utils/notificationExport'
 import { extractCommandErrorMessage } from '~/utils/tauriClient'
 
 const { t } = useI18n()
 const toast = useToast()
-const { hasActiveScope } = useWorkspaceContext()
+const { hasActiveScope, activeProject, activeEnvironment } = useWorkspaceContext()
 const {
   filterChannelType,
   filterStatus,
@@ -19,6 +23,8 @@ const {
   isLoadingList,
   refreshInbox,
   clearScopeNotifications,
+  exportFixtureBundle,
+  importFixtureBundle,
 } = useNotifications()
 
 const filterSchema = computed(() => createInboxFilterFormSchema(t))
@@ -37,8 +43,87 @@ const filterFormState = reactive<{
 const isClearConfirmOpen = ref(false)
 const isClearing = ref(false)
 const isSavePopoverOpen = ref(false)
+const isExportingBundle = ref(false)
+const isImportingBundle = ref(false)
+const fileImportInputRef = ref<HTMLInputElement | null>(null)
 const newFilterName = ref('')
 const { savedFilters, saveFilter, deleteSavedFilter } = useSavedFilters()
+
+async function handleExportFixtureBundle(): Promise<void> {
+  if (!hasActiveScope.value || isExportingBundle.value) {
+    return
+  }
+  isExportingBundle.value = true
+  try {
+    const bundle = await exportFixtureBundle()
+    if (!bundle || bundle.notifications.length === 0) {
+      toast.add({
+        title: t('inbox.export.bundleEmpty'),
+        color: 'neutral',
+        icon: 'i-lucide-info',
+      })
+      return
+    }
+    const projectSlug = activeProject.value?.slug || 'project'
+    const environmentSlug = activeEnvironment.value?.slug || 'env'
+    const filename = `notifytrap-fixture-${projectSlug}-${environmentSlug}-${Date.now()}.json`
+    triggerTextFileDownload(
+      filename,
+      buildNotificationBundleExport(bundle),
+      'application/json;charset=utf-8',
+    )
+    toast.add({
+      title: t('inbox.export.bundleExportSuccess', { count: bundle.notifications.length }),
+      color: 'success',
+      icon: 'i-lucide-download',
+    })
+  } catch (error) {
+    toast.add({
+      title: t('common.errorTitle'),
+      description: extractCommandErrorMessage(error, t('common.unexpectedError')),
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+  } finally {
+    isExportingBundle.value = false
+  }
+}
+
+function handleTriggerFileInput(): void {
+  fileImportInputRef.value?.click()
+}
+
+async function handleFileImportSelected(event: Event): Promise<void> {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) {
+    return
+  }
+  isImportingBundle.value = true
+  try {
+    const textContent = await file.text()
+    const parsedBundle = JSON.parse(textContent) as NotificationFixtureBundle
+    if (!parsedBundle || !Array.isArray(parsedBundle.notifications)) {
+      throw new Error(t('inbox.export.invalidBundleFile'))
+    }
+    const importedCount = await importFixtureBundle(parsedBundle)
+    toast.add({
+      title: t('inbox.export.bundleImportSuccess', { count: importedCount }),
+      color: 'success',
+      icon: 'i-lucide-upload',
+    })
+  } catch (error) {
+    toast.add({
+      title: t('common.errorTitle'),
+      description: extractCommandErrorMessage(error, t('inbox.export.invalidBundleFile')),
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+  } finally {
+    isImportingBundle.value = false
+    target.value = ''
+  }
+}
 
 async function handleSaveCurrentFilter(): Promise<void> {
   if (!newFilterName.value.trim()) {
@@ -273,6 +358,42 @@ async function handleConfirmClear(): Promise<void> {
             </div>
           </template>
         </UPopover>
+
+        <UTooltip :text="t('inbox.export.exportBundle')">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="outline"
+            square
+            icon="i-lucide-download"
+            :loading="isExportingBundle"
+            :disabled="!hasActiveScope"
+            :aria-label="t('inbox.export.exportBundle')"
+            @click="handleExportFixtureBundle"
+          />
+        </UTooltip>
+
+        <UTooltip :text="t('inbox.export.importBundle')">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="outline"
+            square
+            icon="i-lucide-upload"
+            :loading="isImportingBundle"
+            :disabled="!hasActiveScope"
+            :aria-label="t('inbox.export.importBundle')"
+            @click="handleTriggerFileInput"
+          />
+        </UTooltip>
+
+        <input
+          ref="fileImportInputRef"
+          type="file"
+          accept=".json,application/json"
+          class="hidden"
+          @change="handleFileImportSelected"
+        >
 
         <UTooltip :text="t('common.refresh')">
           <UButton

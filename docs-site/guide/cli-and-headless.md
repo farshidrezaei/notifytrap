@@ -56,6 +56,13 @@ notifytrap-cli export --channel-key mail-local.ntsec_your_secret --format json -
 notifytrap-cli export --channel-key mail-local.ntsec_your_secret --format eml --output ./eml-files/
 ```
 
+### Import Fixture Bundles (`import`)
+Replay and seed test fixtures into a local or remote running NotifyTrap daemon:
+
+```bash
+notifytrap-cli import ./fixtures/e2e-seed.json --channel-key sms-local.ntsec_your_secret
+```
+
 ### Self-Updater (`update`)
 Upgrade the CLI binary directly to the latest GitHub release:
 

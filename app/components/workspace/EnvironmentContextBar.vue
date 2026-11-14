@@ -70,10 +70,10 @@ const activeEnvironmentLabel = computed(() => {
 </script>
 
 <template>
-  <div v-if="isWorkspaceInitializing" class="w-full">
+  <div v-if="isWorkspaceInitializing" :class="props.isCollapsed ? 'flex justify-center w-full' : 'w-full'">
     <USkeleton
       v-if="props.isCollapsed"
-      class="mx-auto size-8 rounded-md"
+      class="mx-auto size-9 rounded-md"
     />
     <div
       v-else
@@ -90,8 +90,12 @@ const activeEnvironmentLabel = computed(() => {
     </div>
   </div>
 
-  <div v-else-if="activeProject" class="w-full">
-    <UDropdownMenu :items="environmentMenuItems" :content="{ side: 'bottom', align: 'start' }">
+  <div v-else-if="activeProject" :class="props.isCollapsed ? 'flex justify-center w-full' : 'w-full'">
+    <UDropdownMenu
+      :items="environmentMenuItems"
+      :content="{ side: 'bottom', align: 'start' }"
+      :class="props.isCollapsed ? 'flex justify-center w-full' : 'w-full'"
+    >
       <UTooltip
         v-if="props.isCollapsed"
         :text="`${t('workspace.activeEnvironment')}: ${activeEnvironmentLabel}`"
@@ -101,7 +105,7 @@ const activeEnvironmentLabel = computed(() => {
           variant="ghost"
           square
           icon="i-lucide-layers"
-          class="mx-auto flex size-8 items-center justify-center rounded-md text-primary"
+          class="mx-auto flex size-9 items-center justify-center rounded-md text-primary"
           :aria-label="t('workspace.activeEnvironment')"
         />
       </UTooltip>

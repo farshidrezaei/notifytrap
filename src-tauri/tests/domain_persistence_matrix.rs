@@ -860,6 +860,131 @@ fn bulk_operations_delete_update_and_tag_lifecycle() {
     assert_eq!(remaining_page.total_count, 3);
 }
 
+#[test]
+fn fixture_bundle_export_and_import_roundtrip_lifecycle() {
+    let services = create_test_services();
+    let workspace = services
+        .workspaces
+        .create_workspace(CreateWorkspaceInput {
+            name: "Fixture Export WS".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create workspace");
+
+    let project = services
+        .projects
+        .create_project(CreateProjectInput {
+            workspace_id: workspace.id.clone(),
+            name: "Fixture Project".to_string(),
+            slug: None,
+            description: None,
+        })
+        .expect("create project");
+
+    let environments = services
+        .environments
+        .list_environments_by_project(&project.id)
+        .expect("list envs");
+    let env_source = &environments[0];
+
+    let email_channel = services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: env_source.id.clone(),
+            name: "Email Fixture Channel".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("channel");
+
+    // Capture 2 notifications with attachment
+    services
+        .notifications
+        .capture_notification(CaptureNotificationInput {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: env_source.id.clone(),
+            channel_id: email_channel.channel.id.clone(),
+            channel_type: ChannelType::Email,
+            recipient: "bundle1@example.com".to_string(),
+            sender: "system@example.com".to_string(),
+            subject: "Bundle Notice 1".to_string(),
+            preview_text: "Payload 1".to_string(),
+            payload_json: json!({ "key": "value1" }),
+            raw_payload: "Raw bundle 1".to_string(),
+            test_run_identifier: Some("bundle-run".to_string()),
+            received_at: None,
+            attachments: vec![CaptureAttachmentInput {
+                filename: "report.txt".to_string(),
+                content_type: "text/plain".to_string(),
+                content_id: None,
+                is_inline: false,
+                content_blob: b"Attachment content".to_vec(),
+            }],
+        })
+        .expect("capture 1");
+
+    // Export bundle
+    let exported_bundle = services
+        .notifications
+        .export_scope_fixture_bundle(&workspace.id, &project.id, &env_source.id)
+        .expect("export bundle");
+
+    assert_eq!(exported_bundle.version, "1.0");
+    assert_eq!(exported_bundle.notifications.len(), 1);
+    assert_eq!(exported_bundle.notifications[0].recipient, "bundle1@example.com");
+    assert_eq!(exported_bundle.notifications[0].attachments.len(), 1);
+    assert_eq!(exported_bundle.notifications[0].attachments[0].filename, "report.txt");
+
+    // Create target environment
+    let env_target = &environments[1];
+    let target_channel = services
+        .channels
+        .create_channel(CreateChannelInput {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: env_target.id.clone(),
+            name: "Target Channel".to_string(),
+            channel_type: ChannelType::Email,
+            credential_identifier: None,
+            is_enabled: Some(true),
+        })
+        .expect("target channel");
+
+    // Import bundle into target environment
+    let imported_count = services
+        .notifications
+        .import_scope_fixture_bundle(&workspace.id, &project.id, &env_target.id, exported_bundle)
+        .expect("import bundle");
+    assert_eq!(imported_count, 1);
+
+    // Verify imported notification in target environment
+    let target_page = services
+        .notifications
+        .query_notifications(NotificationQuery {
+            workspace_id: workspace.id.clone(),
+            project_id: project.id.clone(),
+            environment_id: env_target.id.clone(),
+            channel_id: Some(target_channel.channel.id),
+            channel_type: None,
+            status: None,
+            test_run_identifier: None,
+            recipient_contains: None,
+            subject_contains: None,
+            since: None,
+            search_query: None,
+            limit: Some(10),
+            offset: Some(0),
+        })
+        .expect("target query");
+    assert_eq!(target_page.total_count, 1);
+    assert_eq!(target_page.items[0].recipient, "bundle1@example.com");
+}
+
 proptest! {
     #[test]
     fn property_derived_slug_is_always_valid_for_alphanumeric_inputs(

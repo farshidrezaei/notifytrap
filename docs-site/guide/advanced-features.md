@@ -90,4 +90,49 @@ Manage high-volume captured notifications efficiently from the inbox toolbar:
 - **Interactive Batch Tagging**: Assign custom tags (e.g. `e2e-run-42`, `auth-flow`, `regression`) to multiple notifications simultaneously. All tags are immediately filterable via the search grammar (`tag:<name>` or `run:<name>`).
 - **Transactional Bulk Deletion**: Safely and permanently delete batches of notifications with a modal confirmation dialog.
 
+---
+
+## 7. Data Portability & Fixture Bundles
+
+NotifyTrap provides end-to-end data portability, allowing complete notification fixtures (including payloads, headers, metadata, and binary MIME attachments) to be exported and imported between testing environments, CI runners, and teammate workstations.
+
+### Fixture Bundle Format
+Bundles are stored as portable `.json` files conforming to the `NotificationFixtureBundle` schema:
+
+```json
+{
+  "version": "1.0",
+  "generator": "NotifyTrap 1.5.0",
+  "exportedAt": "2026-11-14T20:00:00Z",
+  "notifications": [
+    {
+      "channelType": "email",
+      "channelIdentifier": "auth-local",
+      "sender": "auth@example.com",
+      "recipient": "user@example.com",
+      "subject": "Verification Code",
+      "status": "captured",
+      "payloadJson": { "body": "Your code is 123456" },
+      "rawPayload": "From: auth@example.com...",
+      "previewText": "Your code is 123456",
+      "testRunIdentifier": "e2e-run-42",
+      "receivedAt": "2026-11-14T20:00:00Z",
+      "attachments": [
+        {
+          "filename": "invoice.pdf",
+          "contentType": "application/pdf",
+          "byteSize": 1024,
+          "contentBase64": "..."
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Export & Import in Desktop UI
+- **Export Bundle**: Click the Download icon in the Inbox toolbar to generate and save a timestamped JSON fixture bundle for the active scope.
+- **Import Bundle**: Click the Upload icon in the Inbox toolbar to load any fixture JSON file. Notifications and attachments are automatically inserted into the active workspace, project, and environment.
+
+
 

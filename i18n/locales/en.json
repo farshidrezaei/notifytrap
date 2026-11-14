@@ -358,7 +358,13 @@
       "copyJson": "Copy JSON",
       "copyCurl": "Copy cURL",
       "downloadedTitle": "Exported {format} file",
-      "copiedTitle": "Copied {format} to clipboard"
+      "copiedTitle": "Copied {format} to clipboard",
+      "exportBundle": "Export Fixture Bundle",
+      "importBundle": "Import Fixture Bundle",
+      "bundleExportSuccess": "Exported {count} notifications to bundle",
+      "bundleImportSuccess": "Imported {count} notifications from bundle",
+      "bundleEmpty": "No notifications to export in current scope",
+      "invalidBundleFile": "Invalid fixture bundle JSON file"
     },
     "diff": {
       "compareButton": "Compare",
